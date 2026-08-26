@@ -19,14 +19,22 @@ import PeriodSelector from "../components/dashboard/PeriodSelector";
 import B01Panel from "../components/sensors/b01/B01Panel";
 import C01Panel from "../components/sensors/c01/C01Panel";
 
-export type PeriodType = "today" | "yesterday" | "7days" | "30days" | "3months" | "custom";
+export type PeriodType =
+  | "today"
+  | "yesterday"
+  | "7days"
+  | "30days"
+  | "3months"
+  | "custom";
 
 export default function Dashboard() {
   const { user, signOut } = useAuth();
 
   // Estados Globales
   const [devices, setDevices] = useState<DeviceWithStatus[]>([]);
-  const [selectedDevice, setSelectedDevice] = useState<DeviceWithStatus | null>(null);
+  const [selectedDevice, setSelectedDevice] = useState<DeviceWithStatus | null>(
+    null,
+  );
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState("");
 
@@ -113,12 +121,18 @@ export default function Dashboard() {
 
   const periodLabel = useMemo(() => {
     switch (period) {
-      case "today": return "Hoy";
-      case "yesterday": return "Ayer";
-      case "7days": return "Últimos 7 días";
-      case "30days": return "Últimos 30 días";
-      case "3months": return "Últimos 3 meses";
-      case "custom": return "Período personalizado";
+      case "today":
+        return "Hoy";
+      case "yesterday":
+        return "Ayer";
+      case "7days":
+        return "Últimos 7 días";
+      case "30days":
+        return "Últimos 30 días";
+      case "3months":
+        return "Últimos 3 meses";
+      case "custom":
+        return "Período personalizado";
     }
   }, [period]);
 
@@ -130,12 +144,17 @@ export default function Dashboard() {
       const data = await deviceService.getDevices();
       setDevices(data);
       if (data.length > 0) {
-        setSelectedDevice((current) => current ? (data.find(d => d.id === current.id) || data[0]) : data[0]);
+        setSelectedDevice((current) =>
+          current ? data.find((d) => d.id === current.id) || data[0] : data[0],
+        );
       } else {
         setSelectedDevice(null);
       }
     } catch (err: any) {
-      setErrorMsg("Error al cargar los nodos sensores: " + (err?.message || "Error desconocido"));
+      setErrorMsg(
+        "Error al cargar los nodos sensores: " +
+          (err?.message || "Error desconocido"),
+      );
     } finally {
       setLoading(false);
     }
@@ -154,7 +173,11 @@ export default function Dashboard() {
       try {
         if (selectedDevice.type === "B01") {
           const [readings, electrodeData, latest] = await Promise.all([
-            readingsService.getB01Readings(selectedDevice.id, getDateRange.from, getDateRange.to),
+            readingsService.getB01Readings(
+              selectedDevice.id,
+              getDateRange.from,
+              getDateRange.to,
+            ),
             electrodeService.getElectrodesForDevice(selectedDevice.id),
             readingsService.getLatestB01Reading(selectedDevice.id),
           ]);
@@ -165,7 +188,11 @@ export default function Dashboard() {
           setLatestC01(null);
         } else if (selectedDevice.type === "C01") {
           const [readings, latest] = await Promise.all([
-            readingsService.getC01Readings(selectedDevice.id, getDateRange.from, getDateRange.to),
+            readingsService.getC01Readings(
+              selectedDevice.id,
+              getDateRange.from,
+              getDateRange.to,
+            ),
             readingsService.getLatestC01Reading(selectedDevice.id),
           ]);
           setReadingsC01(readings);
@@ -186,18 +213,47 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col">
-      <header className="bg-slate-900 text-white px-6 py-4 flex justify-between items-center shadow-md">
-        <div className="flex items-center space-x-3">
-          <div className="bg-blue-600 p-2 rounded-lg">
-            <Activity size={24} />
-          </div>
-          <div>
-            <h1 className="font-bold text-lg tracking-wide">SENSOR WEB - INTA</h1>
-            <p className="text-xs text-slate-400">Panel de Monitoreo y Análisis</p>
+      <header
+        className="text-white px-6 py-3 flex justify-between items-center shadow-lg relative overflow-hidden border-b border-slate-800"
+        style={{
+          backgroundColor: "#0b0f19",
+          backgroundImage: `
+      radial-gradient(circle at 20% 150%, rgba(37, 99, 235, 0.15) 0%, transparent 50%),
+      radial-gradient(circle at 80% -50%, rgba(20, 83, 112, 0.43) 0%, transparent 50%)
+    `,
+        }}
+      >
+        {/* Izquierda: Logos institucionales */}
+        <div className="flex items-center space-x-6">
+          <img
+            src="/branding/logo-inta.svg"
+            alt="INTA"
+            className="h-12 object-contain filter brightness-0 invert"
+          />
+          <div className="border-l border-slate-800 pl-6">
+            <img
+              src="/branding/isologotipo-blanco.svg"
+              alt="Isotipo Sensor Web"
+              className="h-10 w-auto object-contain filter brightness-0 invert"
+            />
           </div>
         </div>
+
+        {/* Centro: Título o leyenda principal del panel */}
+        <div className="hidden md:flex flex-col items-center">
+          <h2 className="text-m font-bold tracking-wider uppercase text-slate-200">
+            Panel de Monitoreo y Análisis
+          </h2>
+          <p className="text-xs text-slate-400 tracking-wide">
+            Red de Sensores IoT Agroambientales - INTA EEA Catamarca
+          </p>
+        </div>
+
+        {/* Derecha: Usuario y Salir */}
         <div className="flex items-center space-x-4">
-          <span className="text-xs text-slate-300 hidden md:inline">{user?.email}</span>
+          <span className="text-xs text-slate-300 hidden lg:inline">
+            {user?.email}
+          </span>
           <button
             onClick={signOut}
             className="flex items-center space-x-1 bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border border-slate-700"
@@ -209,7 +265,6 @@ export default function Dashboard() {
       </header>
 
       <div className="flex-1 flex overflow-hidden">
-        
         <DeviceSidebar
           devices={devices}
           selectedDevice={selectedDevice}
@@ -220,7 +275,6 @@ export default function Dashboard() {
         />
 
         <main className="flex-1 bg-slate-50 p-6 overflow-y-auto space-y-6">
-          
           <PeriodSelector
             period={period}
             setPeriod={setPeriod}
@@ -232,8 +286,13 @@ export default function Dashboard() {
 
           {loadingData ? (
             <div className="bg-white p-12 rounded-2xl border border-slate-200 shadow-sm flex flex-col items-center justify-center">
-              <RefreshCw className="animate-spin text-blue-600 mb-3" size={32} />
-              <p className="text-sm text-slate-600">Cargando registros históricos...</p>
+              <RefreshCw
+                className="animate-spin text-blue-600 mb-3"
+                size={32}
+              />
+              <p className="text-sm text-slate-600">
+                Cargando registros históricos...
+              </p>
             </div>
           ) : selectedDevice ? (
             <>
@@ -241,13 +300,20 @@ export default function Dashboard() {
               <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
                   <div className="flex items-center space-x-2 mb-1">
-                    <h2 className="text-xl font-bold text-slate-800">{selectedDevice.alias || selectedDevice.id}</h2>
-                    <span className="text-xs bg-blue-100 text-blue-800 px-2.5 py-0.5 rounded-full font-semibold">{selectedDevice.type}</span>
+                    <h2 className="text-xl font-bold text-slate-800">
+                      {selectedDevice.alias || selectedDevice.id}
+                    </h2>
+                    <span className="text-xs bg-blue-100 text-blue-800 px-2.5 py-0.5 rounded-full font-semibold">
+                      {selectedDevice.type}
+                    </span>
                   </div>
                   <p className="text-sm text-slate-500">
                     ID: <span className="font-mono">{selectedDevice.id}</span>
-                    {" · "}{selectedDevice.name_farm || "Sin finca asignada"}
-                    {selectedDevice.activity ? ` · ${selectedDevice.activity}` : ""}
+                    {" · "}
+                    {selectedDevice.name_farm || "Sin finca asignada"}
+                    {selectedDevice.activity
+                      ? ` · ${selectedDevice.activity}`
+                      : ""}
                   </p>
                 </div>
               </div>
@@ -275,11 +341,15 @@ export default function Dashboard() {
               <div className="bg-slate-200 p-4 rounded-full text-slate-500 mb-3">
                 <Radio size={32} />
               </div>
-              <h3 className="text-base font-semibold text-slate-700">Ningún sensor seleccionado</h3>
-              <p className="text-sm text-slate-400 mt-1">Selecciona un nodo de la lista izquierda para ver sus registros y tendencias.</p>
+              <h3 className="text-base font-semibold text-slate-700">
+                Ningún sensor seleccionado
+              </h3>
+              <p className="text-sm text-slate-400 mt-1">
+                Selecciona un nodo de la lista izquierda para ver sus registros
+                y tendencias.
+              </p>
             </div>
           )}
-
         </main>
       </div>
     </div>

@@ -88,8 +88,9 @@ export default function B01Panel({
                   key={index}
                   className="bg-slate-50 border border-slate-100 rounded-xl p-3"
                 >
-                  <p className="text-xs font-bold text-blue-600">
-                    E{index}
+                  {/* Etiqueta actualizada explícitamente */}
+                  <p className="text-sm font-bold text-blue-600">
+                    Electrodo {index}
                   </p>
 
                   <p className="text-lg font-bold text-slate-800 mt-1">
@@ -128,7 +129,7 @@ export default function B01Panel({
             })}
 
             <div className="bg-slate-50 border border-slate-100 rounded-xl p-3">
-              <p className="text-xs font-bold text-slate-500">
+              <p className="text-sm font-bold text-red-600">
                 Temperatura
               </p>
 

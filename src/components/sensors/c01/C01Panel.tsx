@@ -54,7 +54,7 @@ export default function C01Panel({
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="bg-slate-50 border border-slate-100 rounded-xl p-3">
-              <p className="text-xs font-bold text-slate-500">
+              <p className="text-sm font-bold text-red-600">
                 Temperatura del aire
               </p>
 
@@ -73,7 +73,7 @@ export default function C01Panel({
             </div>
 
             <div className="bg-slate-50 border border-slate-100 rounded-xl p-3">
-              <p className="text-xs font-bold text-slate-500">
+              <p className="text-sm font-bold text-blue-600">
                 Humedad relativa
               </p>
 

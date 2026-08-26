@@ -5,7 +5,9 @@ interface ElectrodeConfigurationProps {
   electrodes: DeviceElectrode[];
 }
 
-export default function ElectrodeConfiguration({ electrodes }: ElectrodeConfigurationProps) {
+export default function ElectrodeConfiguration({
+  electrodes,
+}: ElectrodeConfigurationProps) {
   if (electrodes.length === 0) return null;
 
   return (
@@ -24,7 +26,7 @@ export default function ElectrodeConfiguration({ electrodes }: ElectrodeConfigur
             className="bg-slate-50 p-3 rounded-xl border border-slate-100"
           >
             <p className="text-sm font-bold text-blue-600">
-              E{electrode.electrode_index}
+              Electrodo {electrode.electrode_index}
             </p>
             <p className="text-sm text-slate-700 mt-1">
               Profundidad:{" "}
