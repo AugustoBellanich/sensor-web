@@ -11,7 +11,7 @@ import type {
   DeviceElectrode,
 } from "../types/sensor";
 
-import { Activity, LogOut, Radio, RefreshCw } from "lucide-react";
+import { LogOut, Radio, RefreshCw } from "lucide-react";
 
 // Importación de nuestros nuevos componentes modulares
 import DeviceSidebar from "../components/dashboard/DeviceSidebar";

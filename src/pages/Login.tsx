@@ -1,7 +1,7 @@
 import React, { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
-import { Mail, Lock, ArrowRight, Eye, EyeOff, Radio } from "lucide-react";
+import { Mail, Lock, ArrowRight, Eye, EyeOff } from "lucide-react";
 
 // Nodos: Posición, tamaño del punto y timing de la animación de pulso
 const NODES = [
