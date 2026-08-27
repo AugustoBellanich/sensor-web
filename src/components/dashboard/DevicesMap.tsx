@@ -120,7 +120,7 @@ export default function DevicesMap({
 
   if (located.length === 0) {
     return (
-      <div className="bg-slate-50 border border-dashed border-slate-200 rounded-2xl p-8 text-center h-full flex flex-col items-center justify-center">
+      <div className="bg-white border border-dashed border-slate-200 rounded-2xl p-8 text-center h-[380px] flex flex-col items-center justify-center">
         <p className="text-sm text-slate-500">
           Ninguno de tus nodos tiene ubicación asignada todavía.
         </p>
@@ -129,7 +129,7 @@ export default function DevicesMap({
   }
 
   return (
-    <div className="rounded-2xl overflow-hidden border border-slate-200 shadow-sm relative w-full flex-1 flex flex-col min-h-[500px] z-10">
+    <div className="rounded-2xl overflow-hidden border border-slate-200 shadow-sm relative w-full h-[400px] lg:h-[calc(100vh-17rem)] min-h-[360px] flex flex-col z-10 bg-white">
       <style>{`
         @keyframes sensor-pulse {
           0% { transform: scale(0.6); opacity: 0.6; }
@@ -142,7 +142,7 @@ export default function DevicesMap({
         .leaflet-container { font-family: inherit; width: 100%; height: 100%; z-index: 10; }
       `}</style>
 
-      {/* Botón flotante para alternar entre Mapa Callejero y Satelital con z-index alto */}
+      {/* Botón flotante para alternar entre Mapa Callejero y Satelital */}
       <div className="absolute top-3 right-3 z-[450] bg-white/95 backdrop-blur-sm p-1 rounded-xl border border-slate-200 shadow-md flex items-center gap-1">
         <button
           onClick={() => setMapType("streets")}
@@ -171,7 +171,7 @@ export default function DevicesMap({
         center={centroid}
         zoom={15}
         scrollWheelZoom={true}
-        style={{ width: "100%", height: "100%", flex: 1 }}
+        style={{ width: "100%", height: "100%" }}
         attributionControl={false}
       >
         {mapType === "streets" ? (

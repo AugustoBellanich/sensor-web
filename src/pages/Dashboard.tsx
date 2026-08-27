@@ -33,15 +33,15 @@ export default function Dashboard() {
 
   // Estados Globales
   const [devices, setDevices] = useState<DeviceWithStatus[]>([]);
-
+  
   // Establecimiento activo por defecto
   const [selectedFarm, setSelectedFarm] = useState<string | null>(null);
-
+  
   // Sensor seleccionado individualmente
   const [selectedDevice, setSelectedDevice] = useState<DeviceWithStatus | null>(
     null,
   );
-
+  
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState("");
 
@@ -146,7 +146,7 @@ export default function Dashboard() {
 
   const devicesByFarm = useMemo(() => {
     const groups: Record<string, DeviceWithStatus[]> = {};
-    devices.forEach((device) => {
+    devices.forEach(device => {
       const farm = device.name_farm || "Sin establecimiento asignado";
       if (!groups[farm]) groups[farm] = [];
       groups[farm].push(device);
@@ -160,10 +160,10 @@ export default function Dashboard() {
       setErrorMsg("");
       const data = await deviceService.getDevices();
       setDevices(data);
-
+      
       if (data.length > 0) {
         const groups: Record<string, DeviceWithStatus[]> = {};
-        data.forEach((d) => {
+        data.forEach(d => {
           const farm = d.name_farm || "Sin establecimiento asignado";
           if (!groups[farm]) groups[farm] = [];
           groups[farm].push(d);
@@ -246,7 +246,7 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col">
       <header
-        className="text-white px-4 sm:px-6 py-3 flex justify-between items-center shadow-lg relative overflow-hidden border-b border-slate-800 z-20"
+        className="text-white px-4 sm:px-6 py-3 flex justify-between items-center shadow-lg relative overflow-hidden border-b border-slate-800 z-20 shrink-0"
         style={{
           backgroundColor: "#0b0f19",
           backgroundImage: `
@@ -259,9 +259,7 @@ export default function Dashboard() {
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
             className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors border border-slate-700"
-            title={
-              sidebarOpen ? "Ocultar panel lateral" : "Mostrar panel lateral"
-            }
+            title={sidebarOpen ? "Ocultar panel lateral" : "Mostrar panel lateral"}
           >
             {sidebarOpen ? <X size={18} /> : <Menu size={18} />}
           </button>
@@ -305,9 +303,9 @@ export default function Dashboard() {
         </div>
       </header>
 
-      <div className="flex-1 flex overflow-hidden relative">
+      <div className="flex-1 flex relative">
         {sidebarOpen && (
-          <div
+          <div 
             className="fixed inset-0 bg-black/40 z-20 md:hidden backdrop-blur-xs"
             onClick={() => setSidebarOpen(false)}
           />
@@ -336,7 +334,7 @@ export default function Dashboard() {
             onRefresh={loadDevices}
             onSelectFarm={(farmName) => {
               setSelectedFarm(farmName);
-              setSelectedDevice(null); // Al hacer clic en el GPS del establecimiento, pasamos a su vista general de mapa
+              setSelectedDevice(null);
               if (window.innerWidth < 768) {
                 setSidebarOpen(false);
               }
@@ -344,43 +342,41 @@ export default function Dashboard() {
           />
         </div>
 
-        {/* Contenedor principal que se extiende y ocupa todo el alto disponible */}
-        <main className="flex-1 bg-slate-50 p-4 sm:p-6 overflow-y-auto flex flex-col space-y-6">
-          <PeriodSelector
-            period={period}
-            setPeriod={setPeriod}
-            customFrom={customFrom}
-            setCustomFrom={setCustomFrom}
-            customTo={customTo}
-            setCustomTo={setCustomTo}
-          />
+        {/* Contenedor principal que permite scrollear toda la página completa */}
+        <main className="flex-1 bg-slate-100 p-4 sm:p-6 flex flex-col space-y-4">
+          <div className="shrink-0">
+            <PeriodSelector
+              period={period}
+              setPeriod={setPeriod}
+              customFrom={customFrom}
+              setCustomFrom={setCustomFrom}
+              customTo={customTo}
+              setCustomTo={setCustomTo}
+            />
+          </div>
 
           {!selectedDevice && !loading && devices.length > 0 && (
-            <div className="flex-1 flex flex-col space-y-4 min-h-[500px]">
-              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 shrink-0">
+            <div className="flex flex-col space-y-3">
+              <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 shrink-0">
                 <div className="flex items-center gap-3">
                   <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl">
                     <Building2 size={22} />
                   </div>
                   <div>
-                    <h2 className="text-lg font-bold text-slate-800">
+                    <h2 className="text-base sm:text-lg font-bold text-slate-800">
                       {selectedFarm || "Establecimiento General"}
                     </h2>
                     <p className="text-xs text-slate-500">
-                      Visualizando red de nodos sensores geolocalizados del
-                      establecimiento.
+                      Visualizando red de nodos sensores geolocalizados del establecimiento.
                     </p>
                   </div>
                 </div>
                 <span className="text-xs font-semibold bg-slate-100 text-slate-700 px-3 py-1 rounded-full">
-                  {currentFarmDevices.length}{" "}
-                  {currentFarmDevices.length === 1
-                    ? "nodo activo"
-                    : "nodos activos"}
+                  {currentFarmDevices.length} {currentFarmDevices.length === 1 ? "nodo activo" : "nodos activos"}
                 </span>
               </div>
 
-              <div className="flex-1 flex flex-col">
+              <div className="flex flex-col">
                 <DevicesMap
                   devices={currentFarmDevices}
                   selectedDevice={selectedDevice}
@@ -394,7 +390,7 @@ export default function Dashboard() {
           )}
 
           {loadingData ? (
-            <div className="bg-white p-12 rounded-2xl border border-slate-200 shadow-sm flex flex-col items-center justify-center flex-1">
+            <div className="bg-white p-12 rounded-2xl border border-slate-200 shadow-sm flex flex-col items-center justify-center flex-1 min-h-[400px]">
               <RefreshCw
                 className="animate-spin text-blue-600 mb-3"
                 size={32}
@@ -404,12 +400,10 @@ export default function Dashboard() {
               </p>
             </div>
           ) : selectedDevice ? (
-            <div className="flex flex-col space-y-6">
+            <div className="flex flex-col space-y-4">
               <div className="flex justify-between items-center bg-white px-5 py-3 rounded-xl border border-slate-200 shadow-sm">
                 <div className="flex items-center space-x-2">
-                  <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                    Establecimiento:
-                  </span>
+                  <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Establecimiento:</span>
                   <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-lg">
                     {selectedDevice.name_farm || "Sin asignar"}
                   </span>
