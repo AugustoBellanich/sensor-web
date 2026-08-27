@@ -239,7 +239,7 @@ export default function Login() {
               Iniciar Sesión
             </h1>
             <p className="text-xs text-slate-500 leading-relaxed">
-              Estación Experimental Agropecuaria Catamarca · Panel de control de nodos sensores.
+              Acceso al Panel de control y análisis de datos.
             </p>
           </div>
 

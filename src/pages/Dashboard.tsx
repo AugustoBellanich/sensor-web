@@ -19,6 +19,7 @@ import PeriodSelector from "../components/dashboard/PeriodSelector";
 import DevicesMap from "../components/dashboard/DevicesMap";
 import B01Panel from "../components/sensors/b01/B01Panel";
 import C01Panel from "../components/sensors/c01/C01Panel";
+import N01Panel from "../components/sensors/no1/N01Panel";
 
 export type PeriodType =
   | "today"
@@ -33,15 +34,15 @@ export default function Dashboard() {
 
   // Estados Globales
   const [devices, setDevices] = useState<DeviceWithStatus[]>([]);
-  
+
   // Establecimiento activo por defecto
   const [selectedFarm, setSelectedFarm] = useState<string | null>(null);
-  
+
   // Sensor seleccionado individualmente
   const [selectedDevice, setSelectedDevice] = useState<DeviceWithStatus | null>(
     null,
   );
-  
+
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState("");
 
@@ -146,7 +147,7 @@ export default function Dashboard() {
 
   const devicesByFarm = useMemo(() => {
     const groups: Record<string, DeviceWithStatus[]> = {};
-    devices.forEach(device => {
+    devices.forEach((device) => {
       const farm = device.name_farm || "Sin establecimiento asignado";
       if (!groups[farm]) groups[farm] = [];
       groups[farm].push(device);
@@ -160,10 +161,10 @@ export default function Dashboard() {
       setErrorMsg("");
       const data = await deviceService.getDevices();
       setDevices(data);
-      
+
       if (data.length > 0) {
         const groups: Record<string, DeviceWithStatus[]> = {};
-        data.forEach(d => {
+        data.forEach((d) => {
           const farm = d.name_farm || "Sin establecimiento asignado";
           if (!groups[farm]) groups[farm] = [];
           groups[farm].push(d);
@@ -198,7 +199,13 @@ export default function Dashboard() {
     const fetchDeviceData = async () => {
       setLoadingData(true);
       try {
-        if (selectedDevice.type === "B01") {
+        if (selectedDevice.type === "N01") {
+          setReadingsB01([]);
+          setReadingsC01([]);
+          setElectrodes([]);
+          setLatestB01(null);
+          setLatestC01(null);
+        } else if (selectedDevice.type === "B01") {
           const [readings, electrodeData, latest] = await Promise.all([
             readingsService.getB01Readings(
               selectedDevice.id,
@@ -265,7 +272,9 @@ export default function Dashboard() {
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
             className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-200 hover:text-sky-400 transition-all border border-slate-800 shadow-inner"
-            title={sidebarOpen ? "Ocultar panel lateral" : "Mostrar panel lateral"}
+            title={
+              sidebarOpen ? "Ocultar panel lateral" : "Mostrar panel lateral"
+            }
           >
             {sidebarOpen ? <X size={18} /> : <Menu size={18} />}
           </button>
@@ -285,13 +294,13 @@ export default function Dashboard() {
                   className="h-8 sm:h-9 w-auto object-contain filter brightness-0 invert"
                 />
                 {/* Nodo neón posicionado exactamente en el centro del círculo de la letra "O" */}
-                <span 
+                <span
                   className="absolute pointer-events-none"
                   style={{ top: "46%", left: "74%" }}
                 >
                   <span className="absolute block w-4.5 h-4.5 -ml-[0px] -mt-[0px] rounded-full bg-sky-400/30 border border-sky-400/60 header-node-pulse" />
-                  <span 
-                    className="absolute block w-1.5 h-1.5 -ml-[3px] -mt-[3px] rounded-full bg-sky-400" 
+                  <span
+                    className="absolute block w-1.5 h-1.5 -ml-[3px] -mt-[3px] rounded-full bg-sky-400"
                     style={{ boxShadow: "0 0 10px 2px rgba(56,189,248,0.9)" }}
                   />
                 </span>
@@ -328,7 +337,7 @@ export default function Dashboard() {
 
       <div className="flex-1 flex relative">
         {sidebarOpen && (
-          <div 
+          <div
             className="fixed inset-0 bg-black/40 z-20 md:hidden backdrop-blur-xs"
             onClick={() => setSidebarOpen(false)}
           />
@@ -379,13 +388,16 @@ export default function Dashboard() {
                       {selectedFarm || "Establecimiento General"}
                     </h2>
                     <p className="text-xs text-slate-500">
-                      Visualizando red de nodos sensores geolocalizados del establecimiento.
+                      Visualizando red de nodos sensores geolocalizados del
+                      establecimiento.
                     </p>
                   </div>
                 </div>
                 <span className="text-xs font-semibold bg-slate-100 text-slate-700 px-3 py-1 rounded-full">
                   {currentFarmDevices.length}{" "}
-                  {currentFarmDevices.length === 1 ? "nodo activo" : "nodos activos"}
+                  {currentFarmDevices.length === 1
+                    ? "nodo activo"
+                    : "nodos activos"}
                 </span>
               </div>
 
@@ -438,7 +450,7 @@ export default function Dashboard() {
                   onClick={() => setSelectedDevice(null)}
                   className="text-xs font-semibold text-slate-600 hover:text-blue-600 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-lg transition-colors"
                 >
-                  ← Volver a vista general del establecimiento
+                  ← Mapa
                 </button>
               </div>
 
@@ -462,6 +474,14 @@ export default function Dashboard() {
                   </p>
                 </div>
               </div>
+
+              {selectedDevice.type === "N01" && (
+                <N01Panel
+                  deviceId={selectedDevice.id}
+                  from={getDateRange.from}
+                  to={getDateRange.to}
+                />
+              )}
 
               {selectedDevice.type === "B01" && (
                 <B01Panel

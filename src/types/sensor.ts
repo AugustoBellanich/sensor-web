@@ -84,3 +84,32 @@ export interface DeviceWithStatus extends Device {
   battery?: number | null;
   status: "online" | "warning" | "offline";
 }
+
+export interface IngestLog {
+  id: string;
+  device_id: string;
+  received_at: string;
+
+  request_status: string | null;
+
+  processing_ms: number | null;
+
+  readings_received: number | null;
+  readings_inserted: number | null;
+  readings_duplicate: number | null;
+
+  sensors_count: number | null;
+
+  sensor_ids: unknown | null;
+
+  error_message: string | null;
+
+  readings_min_timestamp: string | null;
+  readings_max_timestamp: string | null;
+
+  upload_delay_seconds: number | null;
+
+  payload_bytes: number | null;
+
+  http_status: number | null;
+}
