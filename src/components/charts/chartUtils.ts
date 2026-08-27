@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react";
+
 export interface ChartSeries {
   key: string;
   name: string;
@@ -113,4 +115,46 @@ export const prepareChartData = <
       (a, b) =>
         a.numericTime - b.numericTime
     );
+};
+
+/*
+ * =========================================================
+ * useIsMobile
+ * =========================================================
+ * Hook puramente de lectura de viewport. No cambia layout
+ * por sí solo: cada componente decide qué props ajustar
+ * cuando isMobile === true. En desktop (isMobile === false)
+ * el comportamiento de los componentes que lo consumen
+ * queda exactamente igual que antes.
+ *
+ * breakpoint por defecto: 640px (equivalente al "sm" de
+ * Tailwind), pensado para teléfonos, no para tablets.
+ */
+export const useIsMobile = (breakpoint = 640): boolean => {
+  const [isMobile, setIsMobile] = useState<boolean>(() =>
+    typeof window !== "undefined"
+      ? window.innerWidth < breakpoint
+      : false
+  );
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const mediaQuery = window.matchMedia(
+      `(max-width: ${breakpoint - 1}px)`
+    );
+
+    const handleChange = () => setIsMobile(mediaQuery.matches);
+
+    handleChange();
+    mediaQuery.addEventListener("change", handleChange);
+
+    return () => {
+      mediaQuery.removeEventListener("change", handleChange);
+    };
+  }, [breakpoint]);
+
+  return isMobile;
 };

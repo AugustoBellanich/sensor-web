@@ -18,6 +18,7 @@ import {
   formatChartDate,
   formatChartValue,
   formatXAxisDate,
+  useIsMobile,
 } from "./chartUtils";
 
 interface InteractiveLineChartProps {
@@ -48,6 +49,14 @@ export default function InteractiveTimeChart({
   emptyMessage = "No hay mediciones para el período seleccionado.",
   tooltipFormatter,
 }: InteractiveLineChartProps) {
+  /*
+   * =========================================================
+   * RESPONSIVE (solo mobile — desktop no cambia)
+   * =========================================================
+   */
+
+  const isMobile = useIsMobile();
+
   /*
    * =========================================================
    * DATOS
@@ -168,10 +177,13 @@ export default function InteractiveTimeChart({
 
     /*
      * Evitamos demasiadas etiquetas.
-     * Dejamos aproximadamente 6-8.
+     * En desktop dejamos ~6-8. En mobile, con menos
+     * ancho disponible, bajamos a 4 para que las
+     * etiquetas de dos líneas (hora + fecha) no se
+     * pisen entre sí.
      */
 
-    const maxTicks = 8;
+    const maxTicks = isMobile ? 4 : 8;
 
     if (candidates.length <= maxTicks) {
       return candidates;
@@ -191,7 +203,7 @@ export default function InteractiveTimeChart({
     }
 
     return ticks;
-  }, [chartData, visibleMin, visibleMax]);
+  }, [chartData, visibleMin, visibleMax, isMobile]);
 
   /*
    * =========================================================
@@ -443,6 +455,7 @@ export default function InteractiveTimeChart({
           color: isActive ? "#334155" : "#94a3b8",
           textDecoration: isActive ? "none" : "line-through",
           transition: "all 0.2s ease",
+          fontSize: isMobile ? 11 : undefined,
         }}
       >
         {value}
@@ -463,6 +476,10 @@ export default function InteractiveTimeChart({
 
     const formatted = formatXAxisDate(Number(payload.value));
 
+    const primaryFontSize = isMobile ? 10 : 11;
+    const secondaryFontSize = isMobile ? 9 : 10;
+    const secondaryDy = isMobile ? 22 : 26;
+
     return (
       <g transform={`translate(${x},${y})`}>
         <text
@@ -471,7 +488,7 @@ export default function InteractiveTimeChart({
           dy={12}
           textAnchor="middle"
           fill="#475569"
-          fontSize={11}
+          fontSize={primaryFontSize}
           fontWeight="bold"
         >
           {`${formatted.hours}:${formatted.minutes}`}
@@ -480,10 +497,10 @@ export default function InteractiveTimeChart({
         <text
           x={0}
           y={0}
-          dy={26}
+          dy={secondaryDy}
           textAnchor="middle"
           fill="#94a3b8"
-          fontSize={10}
+          fontSize={secondaryFontSize}
         >
           {`${formatted.day}/${formatted.month}`}
         </text>
@@ -586,7 +603,10 @@ export default function InteractiveTimeChart({
           <p className="text-xs text-slate-400 mt-1">
             <span className="font-semibold text-blue-600">{periodLabel}</span>
 
-            {" · Seleccioná y arrastrá sobre el gráfico para ampliar."}
+            {/* En mobile ocultamos la instrucción de arrastre: es guía para mouse, no aporta en touch */}
+            <span className="hidden sm:inline">
+              {" · Seleccioná y arrastrá sobre el gráfico para ampliar."}
+            </span>
           </p>
         </div>
 
@@ -619,9 +639,9 @@ export default function InteractiveTimeChart({
             data={chartData}
             margin={{
               top: 10,
-              right: 15,
+              right: isMobile ? 8 : 15,
               left: 0,
-              bottom: 20,
+              bottom: isMobile ? 24 : 20,
             }}
           >
             <CartesianGrid
@@ -652,7 +672,8 @@ export default function InteractiveTimeChart({
                   yAxisId="left"
                   orientation="left"
                   stroke="#64748b"
-                  fontSize={11}
+                  fontSize={isMobile ? 10 : 11}
+                  width={isMobile ? 32 : undefined}
                   tickFormatter={(value) =>
                     typeof value === "number" ? value.toFixed(1) : value
                   }
@@ -662,7 +683,8 @@ export default function InteractiveTimeChart({
                   yAxisId="right"
                   orientation="right"
                   stroke="#64748b"
-                  fontSize={11}
+                  fontSize={isMobile ? 10 : 11}
+                  width={isMobile ? 32 : undefined}
                   tickFormatter={(value) =>
                     typeof value === "number" ? value.toFixed(1) : value
                   }
@@ -672,7 +694,8 @@ export default function InteractiveTimeChart({
               <YAxis
                 yAxisId="left"
                 stroke="#64748b"
-                fontSize={11}
+                fontSize={isMobile ? 10 : 11}
+                width={isMobile ? 32 : undefined}
                 tickFormatter={(value) =>
                   typeof value === "number" ? value.toFixed(1) : value
                 }
@@ -694,6 +717,12 @@ export default function InteractiveTimeChart({
                 height={36}
                 onClick={handleLegendClick}
                 formatter={renderLegendText}
+                iconSize={isMobile ? 8 : 10}
+                wrapperStyle={
+                  isMobile
+                    ? { fontSize: 11, paddingBottom: 4 }
+                    : undefined
+                }
               />
             )}
 
