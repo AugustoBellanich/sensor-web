@@ -3,14 +3,14 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { Mail, Lock, ArrowRight, Eye, EyeOff, FlaskConical, BadgeCheck } from "lucide-react";
 
-// Nodos / Estrellas distribuidos en el panel izquierdo
+// Nodos / Estrellas distribuidos en el panel izquierdo (con retraso de aparición inicial 'appearDelay')
 const NODES = [
-  { top: 25, left: 20, size: 4, delay: "0s", duration: "4s" },
-  { top: 40, left: 45, size: 5, delay: "1.5s", duration: "3s" },
-  { top: 30, left: 75, size: 3, delay: "0.5s", duration: "4.5s" },
-  { top: 75, left: 30, size: 4.5, delay: "2.5s", duration: "8s" },
-  { top: 75, left: 65, size: 5, delay: "1s", duration: "3.5s" },
-  { top: 50, left: 88, size: 3.5, delay: "2s", duration: "4s" },
+  { top: 25, left: 20, size: 4, delay: "0s", duration: "4s", appearDelay: "0.1s" },
+  { top: 40, left: 45, size: 5, delay: "1.5s", duration: "3s", appearDelay: "0.3s" },
+  { top: 30, left: 75, size: 3, delay: "0.5s", duration: "4.5s", appearDelay: "0.5s" },
+  { top: 75, left: 30, size: 4.5, delay: "2.5s", duration: "8s", appearDelay: "0.7s" },
+  { top: 75, left: 65, size: 5, delay: "1s", duration: "3.5s", appearDelay: "0.9s" },
+  { top: 50, left: 88, size: 3.5, delay: "2s", duration: "4s", appearDelay: "1.1s" },
 ];
 
 export default function Login() {
@@ -57,6 +57,16 @@ export default function Login() {
       }}
     >
       <style>{`
+        @keyframes fadeInScale {
+          0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+          100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+        }
+
+        @keyframes fadeInScaleSimple {
+          0% { transform: scale(0); opacity: 0; }
+          100% { transform: scale(1); opacity: 1; }
+        }
+
         @keyframes pulse-ring {
           0% { transform: translate(-50%, -50%) scale(1); opacity: 0.6; }
           80%, 100% { transform: translate(-50%, -50%) scale(3.5); opacity: 0; }
@@ -65,6 +75,18 @@ export default function Login() {
         @keyframes glow-dot {
           0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.7; }
           50% { transform: translate(-50%, -50%) scale(1.15); opacity: 1; }
+        }
+
+        .node-appear {
+          opacity: 0;
+          animation: fadeInScale 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+          animation-delay: var(--appear-delay);
+        }
+
+        .logo-node-appear {
+          opacity: 0;
+          animation: fadeInScaleSimple 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+          animation-delay: 0.5s;
         }
 
         .ring-animation {
@@ -86,7 +108,7 @@ export default function Login() {
         }
 
         @media (prefers-reduced-motion: reduce) {
-          .ring-animation, .dot-animation, .login-node-pulse { animation: none; }
+          .ring-animation, .dot-animation, .login-node-pulse, .node-appear, .logo-node-appear { animation: none; opacity: 1; }
         }
       `}</style>
 
@@ -105,11 +127,12 @@ export default function Login() {
         {NODES.map((n, i) => (
           <div
             key={i}
-            className="absolute pointer-events-none"
+            className="absolute pointer-events-none node-appear"
             style={{
               top: `${n.top}%`,
               left: `${n.left}%`,
-            }}
+              "--appear-delay": n.appearDelay,
+            } as React.CSSProperties}
           >
             <div
               className="absolute rounded-full ring-animation border border-sky-400"
@@ -117,6 +140,7 @@ export default function Login() {
                 width: `${n.size * 2}px`,
                 height: `${n.size * 2}px`,
                 backgroundColor: "rgba(56, 189, 248, 0.1)",
+                transform: "translate(-50%, -50%)", // ← CORRECCIÓN: Centrado estático desde milisegundo cero
                 "--delay": n.delay,
                 "--duration": n.duration,
               } as React.CSSProperties}
@@ -127,6 +151,7 @@ export default function Login() {
                 width: `${n.size}px`,
                 height: `${n.size}px`,
                 boxShadow: `0 0 ${n.size * 2.5}px rgba(56, 189, 248, 0.8)`,
+                transform: "translate(-50%, -50%)", // ← CORRECCIÓN: Centrado estático desde milisegundo cero
                 "--delay": n.delay,
                 "--duration": n.duration,
               } as React.CSSProperties}
@@ -135,8 +160,8 @@ export default function Login() {
         ))}
 
         <div
-          className="absolute pointer-events-none"
-          style={{ top: "35%", left: "55%" }}
+          className="absolute pointer-events-none node-appear"
+          style={{ top: "35%", left: "55%", "--appear-delay": "0.4s" } as React.CSSProperties}
         >
           <div 
             className="absolute rounded-full bg-sky-500/20 border border-sky-400/50"
@@ -162,7 +187,7 @@ export default function Login() {
           <div className="h-5 w-px bg-slate-700" />
           <div className="relative inline-block">
             <img src="/branding/isologotipo.svg" alt="Sensor Web" className="h-11 w-auto object-contain filter brightness-0 invert" />
-            <span className="absolute pointer-events-none" style={{ top: "45.2%", left: "73%" }}>
+            <span className="absolute pointer-events-none logo-node-appear" style={{ top: "45.2%", left: "73%" }}>
               <span className="absolute block w-5 h-5 -ml-[10px] -mt-[8px] rounded-full bg-sky-400/30 border border-sky-400/60 login-node-pulse" />
               <span className="absolute block w-2 h-2 -ml-[3px] -mt-[3px] rounded-full bg-sky-400" style={{ boxShadow: "0 0 10px 2px rgba(56,189,248,0.9)" }} />
             </span>
@@ -202,7 +227,7 @@ export default function Login() {
             <img src="/branding/logo-inta.svg" alt="INTA" className="h-16 w-auto object-contain filter brightness-0 opacity-90" />
             <div className="relative inline-block">
               <img src="/branding/isologotipo.svg" alt="Sensor Web" className="h-12 w-auto object-contain filter brightness-0 opacity-90" />
-              <span className="absolute pointer-events-none" style={{ top: "45%", left: "73%" }}>
+              <span className="absolute pointer-events-none logo-node-appear" style={{ top: "45%", left: "73%" }}>
                 <span className="absolute block w-5 h-5 -ml-[10px] -mt-[9px] rounded-full bg-sky-400/30 border border-sky-400/60 login-node-pulse" />
                 <span className="absolute block w-2 h-2 -ml-[3px] -mt-[3px] rounded-full bg-sky-400" style={{ boxShadow: "0 0 10px 2px rgba(56,189,248,0.9)" }} />
               </span>
