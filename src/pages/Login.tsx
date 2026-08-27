@@ -8,7 +8,7 @@ const NODES = [
   { top: 25, left: 20, size: 4, delay: "0s", duration: "4s" },
   { top: 40, left: 45, size: 5, delay: "1.5s", duration: "3s" },
   { top: 30, left: 75, size: 3, delay: "0.5s", duration: "4.5s" },
-  { top: 60, left: 30, size: 4.5, delay: "2.5s", duration: "5s" },
+  { top: 75, left: 30, size: 4.5, delay: "2.5s", duration: "8s" },
   { top: 75, left: 65, size: 5, delay: "1s", duration: "3.5s" },
   { top: 50, left: 88, size: 3.5, delay: "2s", duration: "4s" },
 ];
