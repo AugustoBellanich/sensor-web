@@ -77,8 +77,16 @@ export default function Login() {
           animation-delay: var(--delay);
         }
 
+        @keyframes pulse-ring-login {
+          0% { transform: scale(1); opacity: 0.8; }
+          100% { transform: scale(2.8); opacity: 0; }
+        }
+        .login-node-pulse {
+          animation: pulse-ring-login 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+        }
+
         @media (prefers-reduced-motion: reduce) {
-          .ring-animation, .dot-animation { animation: none; }
+          .ring-animation, .dot-animation, .login-node-pulse { animation: none; }
         }
       `}</style>
 
@@ -152,7 +160,13 @@ export default function Login() {
         <div className="relative z-10 flex items-center gap-4">
           <img src="/branding/logo-inta.svg" alt="INTA" className="h-14 w-auto object-contain filter brightness-0 invert" />
           <div className="h-5 w-px bg-slate-700" />
-          <img src="/branding/isologotipo.svg" alt="Sensor Web" className="h-11 w-auto object-contain filter brightness-0 invert" />
+          <div className="relative inline-block">
+            <img src="/branding/isologotipo.svg" alt="Sensor Web" className="h-11 w-auto object-contain filter brightness-0 invert" />
+            <span className="absolute pointer-events-none" style={{ top: "45.2%", left: "73%" }}>
+              <span className="absolute block w-5 h-5 -ml-[10px] -mt-[8px] rounded-full bg-sky-400/30 border border-sky-400/60 login-node-pulse" />
+              <span className="absolute block w-2 h-2 -ml-[3px] -mt-[3px] rounded-full bg-sky-400" style={{ boxShadow: "0 0 10px 2px rgba(56,189,248,0.9)" }} />
+            </span>
+          </div>
         </div>
 
         {/* Texto institucional central */}
@@ -186,7 +200,13 @@ export default function Login() {
           
           <div className="flex lg:hidden items-center justify-center gap-6 mb-12 border-b border-slate-100 pb-6">
             <img src="/branding/logo-inta.svg" alt="INTA" className="h-16 w-auto object-contain filter brightness-0 opacity-90" />
-            <img src="/branding/isologotipo.svg" alt="Sensor Web" className="h-12 w-auto object-contain filter brightness-0 opacity-90" />
+            <div className="relative inline-block">
+              <img src="/branding/isologotipo.svg" alt="Sensor Web" className="h-12 w-auto object-contain filter brightness-0 opacity-90" />
+              <span className="absolute pointer-events-none" style={{ top: "45%", left: "73%" }}>
+                <span className="absolute block w-5 h-5 -ml-[10px] -mt-[9px] rounded-full bg-sky-400/30 border border-sky-400/60 login-node-pulse" />
+                <span className="absolute block w-2 h-2 -ml-[3px] -mt-[3px] rounded-full bg-sky-400" style={{ boxShadow: "0 0 10px 2px rgba(56,189,248,0.9)" }} />
+              </span>
+            </div>
           </div>
 
           <div className="mb-8">

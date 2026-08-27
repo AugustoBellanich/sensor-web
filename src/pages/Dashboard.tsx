@@ -33,15 +33,15 @@ export default function Dashboard() {
 
   // Estados Globales
   const [devices, setDevices] = useState<DeviceWithStatus[]>([]);
-
+  
   // Establecimiento activo por defecto
   const [selectedFarm, setSelectedFarm] = useState<string | null>(null);
-
+  
   // Sensor seleccionado individualmente
   const [selectedDevice, setSelectedDevice] = useState<DeviceWithStatus | null>(
     null,
   );
-
+  
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState("");
 
@@ -146,7 +146,7 @@ export default function Dashboard() {
 
   const devicesByFarm = useMemo(() => {
     const groups: Record<string, DeviceWithStatus[]> = {};
-    devices.forEach((device) => {
+    devices.forEach(device => {
       const farm = device.name_farm || "Sin establecimiento asignado";
       if (!groups[farm]) groups[farm] = [];
       groups[farm].push(device);
@@ -160,10 +160,10 @@ export default function Dashboard() {
       setErrorMsg("");
       const data = await deviceService.getDevices();
       setDevices(data);
-
+      
       if (data.length > 0) {
         const groups: Record<string, DeviceWithStatus[]> = {};
-        data.forEach((d) => {
+        data.forEach(d => {
           const farm = d.name_farm || "Sin establecimiento asignado";
           if (!groups[farm]) groups[farm] = [];
           groups[farm].push(d);
@@ -245,61 +245,82 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col">
+      <style>{`
+        @keyframes pulse-ring-header {
+          0% { transform: translate(-50%, -50%) scale(1); opacity: 0.8; }
+          100% { transform: translate(-50%, -50%) scale(3); opacity: 0; }
+        }
+        .header-node-pulse {
+          animation: pulse-ring-header 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+        }
+      `}</style>
+
+      {/* HEADER: Color oscuro puro idéntico al panel lateral (#0b0f19 sin gradientes claros) */}
       <header
-        className="text-white px-4 sm:px-6 py-3 flex justify-between items-center shadow-lg relative overflow-hidden border-b border-slate-800 z-20 shrink-0"
-        style={{
-          backgroundColor: "#0b0f19",
-          backgroundImage: `
-            radial-gradient(circle at 20% 150%, rgba(37, 99, 235, 0.15) 0%, transparent 50%),
-            radial-gradient(circle at 80% -50%, rgba(20, 83, 112, 0.43) 0%, transparent 50%)
-          `,
-        }}
+        className="text-white px-4 sm:px-6 py-3.5 flex justify-between items-center shadow-2xl relative overflow-hidden border-b border-slate-800 z-20 shrink-0"
+        style={{ backgroundColor: "#0b0f19" }}
       >
-        <div className="flex items-center space-x-3 sm:space-x-6">
+        {/* Izquierda: Menú y logos institucionales */}
+        <div className="flex items-center space-x-3 sm:space-x-4">
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors border border-slate-700"
-            title={
-              sidebarOpen ? "Ocultar panel lateral" : "Mostrar panel lateral"
-            }
+            className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-200 hover:text-sky-400 transition-all border border-slate-800 shadow-inner"
+            title={sidebarOpen ? "Ocultar panel lateral" : "Mostrar panel lateral"}
           >
             {sidebarOpen ? <X size={18} /> : <Menu size={18} />}
           </button>
 
-          <div className="flex items-center space-x-3 sm:space-x-6">
+          <div className="flex items-center space-x-3">
             <img
               src="/branding/logo-inta.svg"
               alt="INTA"
-              className="h-10 sm:h-12 object-contain filter brightness-0 invert"
+              className="h-8 sm:h-10 object-contain filter brightness-0 invert"
             />
-            <div className="border-l border-slate-800 pl-4 sm:pl-6 hidden sm:block">
-              <img
-                src="/branding/isologotipo-blanco.svg"
-                alt="Isotipo Sensor Web"
-                className="h-10 w-auto object-contain filter brightness-0 invert"
-              />
+            <div className="border-l border-slate-800 pl-3 sm:pl-4 relative">
+              {/* Contenedor relativo del isologotipo para colocar el punto exacto en la "O" */}
+              <div className="relative inline-block">
+                <img
+                  src="/branding/isologotipo.svg"
+                  alt="Sensor Web"
+                  className="h-8 sm:h-9 w-auto object-contain filter brightness-0 invert"
+                />
+                {/* Nodo neón posicionado exactamente en el centro del círculo de la letra "O" */}
+                <span 
+                  className="absolute pointer-events-none"
+                  style={{ top: "46%", left: "74%" }}
+                >
+                  <span className="absolute block w-4.5 h-4.5 -ml-[0px] -mt-[0px] rounded-full bg-sky-400/30 border border-sky-400/60 header-node-pulse" />
+                  <span 
+                    className="absolute block w-1.5 h-1.5 -ml-[3px] -mt-[3px] rounded-full bg-sky-400" 
+                    style={{ boxShadow: "0 0 10px 2px rgba(56,189,248,0.9)" }}
+                  />
+                </span>
+              </div>
             </div>
           </div>
         </div>
 
-        <div className="hidden md:flex flex-col items-center">
-          <h2 className="text-sm sm:text-base font-bold tracking-wider uppercase text-slate-200">
+        {/* Centro: Título descriptivo */}
+        <div className="hidden lg:flex flex-col items-center">
+          <h2 className="text-sm font-bold tracking-wider uppercase text-slate-100">
             Panel de Monitoreo y Análisis
           </h2>
-          <p className="text-[11px] text-slate-400 tracking-wide">
-            Red de Sensores IoT Agroambientales - INTA EEA Catamarca
+          <p className="text-[11px] text-sky-400/80 font-mono tracking-wide">
+            RED DE SENSORES IOT · INTA EEA CATAMARCA
           </p>
         </div>
 
+        {/* Derecha: Usuario y salida */}
         <div className="flex items-center space-x-3">
-          <span className="text-xs text-slate-300 hidden lg:inline">
+          <span className="text-xs text-slate-300 hidden xl:inline font-medium">
             {user?.email}
           </span>
           <button
             onClick={signOut}
-            className="flex items-center space-x-1 bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border border-slate-700"
+            className="flex items-center space-x-1.5 bg-slate-900 hover:bg-rose-950/40 text-slate-200 hover:text-rose-300 px-3 py-2 rounded-xl text-xs font-semibold transition-all border border-slate-800 hover:border-rose-900/50 shadow-sm"
+            title="Cerrar sesión"
           >
-            <LogOut size={16} />
+            <LogOut size={15} />
             <span className="hidden sm:inline">Salir</span>
           </button>
         </div>
@@ -307,7 +328,7 @@ export default function Dashboard() {
 
       <div className="flex-1 flex relative">
         {sidebarOpen && (
-          <div
+          <div 
             className="fixed inset-0 bg-black/40 z-20 md:hidden backdrop-blur-xs"
             onClick={() => setSidebarOpen(false)}
           />
@@ -344,7 +365,7 @@ export default function Dashboard() {
           />
         </div>
 
-        {/* Contenedor principal sin el selector de período en la vista general */}
+        {/* Contenedor principal */}
         <main className="flex-1 bg-slate-100 p-4 sm:p-6 flex flex-col space-y-4">
           {!selectedDevice && !loading && devices.length > 0 && (
             <div className="flex flex-col space-y-3">
@@ -358,16 +379,13 @@ export default function Dashboard() {
                       {selectedFarm || "Establecimiento General"}
                     </h2>
                     <p className="text-xs text-slate-500">
-                      Visualizando red de nodos sensores geolocalizados del
-                      establecimiento.
+                      Visualizando red de nodos sensores geolocalizados del establecimiento.
                     </p>
                   </div>
                 </div>
                 <span className="text-xs font-semibold bg-slate-100 text-slate-700 px-3 py-1 rounded-full">
                   {currentFarmDevices.length}{" "}
-                  {currentFarmDevices.length === 1
-                    ? "nodo activo"
-                    : "nodos activos"}
+                  {currentFarmDevices.length === 1 ? "nodo activo" : "nodos activos"}
                 </span>
               </div>
 
@@ -396,7 +414,6 @@ export default function Dashboard() {
             </div>
           ) : selectedDevice ? (
             <div className="flex flex-col space-y-4">
-              {/* Aquí el PeriodSelector sí se mantiene o se muestra cuando estás dentro del detalle de un sensor específico */}
               <div className="shrink-0">
                 <PeriodSelector
                   period={period}
