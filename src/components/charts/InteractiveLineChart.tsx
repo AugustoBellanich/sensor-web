@@ -168,42 +168,35 @@ export default function InteractiveTimeChart({
       return [];
     }
 
-    const candidates = chartData
-      .map((item) => item.numericTime)
-      .filter(
-        (time) =>
-          Number.isFinite(time) && time >= visibleMin && time <= visibleMax,
-      );
-
     /*
-     * Evitamos demasiadas etiquetas.
-     * En desktop dejamos ~6-8. En mobile, con menos
-     * ancho disponible, bajamos a 4 para que las
-     * etiquetas de dos líneas (hora + fecha) no se
-     * pisen entre sí.
+     * Repartimos los ticks parejo en el TIEMPO (no por
+     * índice de datos). Repartir por índice hacía que,
+     * si las lecturas no están distribuidas parejo en el
+     * período visible (por ejemplo, mucha más densidad de
+     * datos en los últimos días), varios ticks cayeran
+     * casi en el mismo instante y terminaran colapsando en
+     * uno solo tras deduplicar — eso es lo que se veía en
+     * mobile. Como el eje es numérico con scale="time",
+     * podemos ubicar un tick en cualquier instante, exista
+     * o no un dato exacto ahí.
+     *
+     * En desktop dejamos ~8 etiquetas. En mobile, con menos
+     * ancho disponible, bajamos a 4 para que las etiquetas
+     * de dos líneas (hora + fecha) no se pisen entre sí.
      */
 
     const maxTicks = isMobile ? 4 : 8;
 
-    if (candidates.length <= maxTicks) {
-      return candidates;
+    if (maxTicks <= 1) {
+      return [visibleMin];
     }
 
-    const step = (candidates.length - 1) / (maxTicks - 1);
+    const step = (visibleMax - visibleMin) / (maxTicks - 1);
 
-    const ticks: number[] = [];
-
-    for (let i = 0; i < maxTicks; i++) {
-      const index = Math.round(i * step);
-      const value = candidates[index];
-
-      if (value !== undefined && !ticks.includes(value)) {
-        ticks.push(value);
-      }
-    }
-
-    return ticks;
-  }, [chartData, visibleMin, visibleMax, isMobile]);
+    return Array.from({ length: maxTicks }, (_, i) =>
+      Math.round(visibleMin + i * step),
+    );
+  }, [chartData.length, visibleMin, visibleMax, isMobile]);
 
   /*
    * =========================================================
@@ -211,9 +204,7 @@ export default function InteractiveTimeChart({
    * =========================================================
    */
 
-  const getTimestampFromMouseEvent = (
-    event: React.MouseEvent<HTMLDivElement>,
-  ): number | null => {
+  const getTimestampFromClientX = (clientX: number): number | null => {
     const container = chartContainerRef.current;
 
     if (!container) {
@@ -231,7 +222,7 @@ export default function InteractiveTimeChart({
      * al contenedor.
      */
 
-    let x = event.clientX - rect.left;
+    let x = clientX - rect.left;
 
     /*
      * Limitamos la posición al área
@@ -257,6 +248,22 @@ export default function InteractiveTimeChart({
     }
 
     return timestamp;
+  };
+
+  const getTimestampFromMouseEvent = (
+    event: React.MouseEvent<HTMLDivElement>,
+  ): number | null => getTimestampFromClientX(event.clientX);
+
+  const getTimestampFromTouchEvent = (
+    event: React.TouchEvent<HTMLDivElement>,
+  ): number | null => {
+    const touch = event.touches[0] ?? event.changedTouches[0];
+
+    if (!touch) {
+      return null;
+    }
+
+    return getTimestampFromClientX(touch.clientX);
   };
 
   /*
@@ -317,23 +324,14 @@ export default function InteractiveTimeChart({
 
   /*
    * =========================================================
-   * MOUSE UP
+   * CIERRE DE SELECCIÓN (compartido por mouse y touch)
    * =========================================================
    */
 
-  const finishSelection = (event?: React.MouseEvent<HTMLDivElement>) => {
+  const finishSelectionAt = (endTimestamp: number | null) => {
     if (!isSelecting) {
       return;
     }
-
-    if (event) {
-      event.preventDefault();
-      event.stopPropagation();
-    }
-
-    const endTimestamp = event
-      ? getTimestampFromMouseEvent(event)
-      : selectionEnd;
 
     if (selectionStart === null || endTimestamp === null) {
       setSelectionStart(null);
@@ -347,7 +345,7 @@ export default function InteractiveTimeChart({
     const right = Math.max(selectionStart, endTimestamp);
 
     /*
-     * Evitamos clics simples.
+     * Evitamos clics/toques simples.
      *
      * 1 segundo mínimo.
      */
@@ -369,6 +367,80 @@ export default function InteractiveTimeChart({
     setSelectionStart(null);
     setSelectionEnd(null);
     setIsSelecting(false);
+  };
+
+  /*
+   * =========================================================
+   * MOUSE UP
+   * =========================================================
+   */
+
+  const finishSelection = (event?: React.MouseEvent<HTMLDivElement>) => {
+    if (!isSelecting) {
+      return;
+    }
+
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+
+    const endTimestamp = event
+      ? getTimestampFromMouseEvent(event)
+      : selectionEnd;
+
+    finishSelectionAt(endTimestamp);
+  };
+
+  /*
+   * =========================================================
+   * TOUCH START / MOVE / END
+   * =========================================================
+   * Mismos gestos que con mouse, pero para dedo. No usamos
+   * preventDefault en touchstart/touchmove (React los trata
+   * como listeners pasivos y tira warning); en cambio, el
+   * overlay tiene `touch-action: none` en CSS para evitar
+   * que la página haga scroll mientras se arrastra.
+   */
+
+  const handleSelectionTouchStart = (
+    event: React.TouchEvent<HTMLDivElement>,
+  ) => {
+    const timestamp = getTimestampFromTouchEvent(event);
+
+    if (timestamp === null) {
+      return;
+    }
+
+    setSelectionStart(timestamp);
+    setSelectionEnd(timestamp);
+    setIsSelecting(true);
+  };
+
+  const handleSelectionTouchMove = (
+    event: React.TouchEvent<HTMLDivElement>,
+  ) => {
+    if (!isSelecting) {
+      return;
+    }
+
+    const timestamp = getTimestampFromTouchEvent(event);
+
+    if (timestamp === null) {
+      return;
+    }
+
+    setSelectionEnd(timestamp);
+  };
+
+  const finishTouchSelection = (
+    event?: React.TouchEvent<HTMLDivElement>,
+  ) => {
+    const endTimestamp = event
+      ? getTimestampFromTouchEvent(event)
+      : selectionEnd;
+
+    finishSelectionAt(endTimestamp);
   };
 
   /*
@@ -403,9 +475,13 @@ export default function InteractiveTimeChart({
     };
 
     window.addEventListener("mouseup", handleWindowMouseUp);
+    window.addEventListener("touchend", handleWindowMouseUp);
+    window.addEventListener("touchcancel", handleWindowMouseUp);
 
     return () => {
       window.removeEventListener("mouseup", handleWindowMouseUp);
+      window.removeEventListener("touchend", handleWindowMouseUp);
+      window.removeEventListener("touchcancel", handleWindowMouseUp);
     };
   }, [isSelecting, selectionStart, selectionEnd]);
 
@@ -593,7 +669,13 @@ export default function InteractiveTimeChart({
    */
 
   return (
-    <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm relative">
+    <div
+      className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm relative [&_*:focus]:outline-none [&_*:focus-visible]:outline-none [&_svg]:outline-none"
+      style={{
+        WebkitTapHighlightColor: "transparent",
+        WebkitTouchCallout: "none",
+      }}
+    >
       {/* HEADER */}
 
       <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-2 mb-4">
@@ -603,10 +685,7 @@ export default function InteractiveTimeChart({
           <p className="text-xs text-slate-400 mt-1">
             <span className="font-semibold text-blue-600">{periodLabel}</span>
 
-            {/* En mobile ocultamos la instrucción de arrastre: es guía para mouse, no aporta en touch */}
-            <span className="hidden sm:inline">
-              {" · Seleccioná y arrastrá sobre el gráfico para ampliar."}
-            </span>
+            {" · Seleccioná y arrastrá sobre el gráfico para ampliar."}
           </p>
         </div>
 
@@ -757,11 +836,18 @@ export default function InteractiveTimeChart({
             cursor: isSelecting ? "col-resize" : "crosshair",
             userSelect: "none",
             WebkitUserSelect: "none",
+            WebkitTapHighlightColor: "transparent",
+            // Evita que el navegador haga scroll de la página al
+            // arrastrar el dedo sobre el gráfico para seleccionar.
+            touchAction: "none",
             background: "transparent",
           }}
           onMouseDown={handleSelectionMouseDown}
           onMouseMove={handleSelectionMouseMove}
           onMouseUp={finishSelection}
+          onTouchStart={handleSelectionTouchStart}
+          onTouchMove={handleSelectionTouchMove}
+          onTouchEnd={finishTouchSelection}
         >
           {/* SELECCIÓN VISUAL */}
 
