@@ -11,11 +11,12 @@ import type {
   DeviceElectrode,
 } from "../types/sensor";
 
-import { LogOut, Radio, RefreshCw, Menu, X } from "lucide-react";
+import { LogOut, RefreshCw, Menu, X, Building2 } from "lucide-react";
 
 // Importación de nuestros componentes modulares
 import DeviceSidebar from "../components/dashboard/DeviceSidebar";
 import PeriodSelector from "../components/dashboard/PeriodSelector";
+import DevicesMap from "../components/dashboard/DevicesMap";
 import B01Panel from "../components/sensors/b01/B01Panel";
 import C01Panel from "../components/sensors/c01/C01Panel";
 
@@ -32,13 +33,18 @@ export default function Dashboard() {
 
   // Estados Globales
   const [devices, setDevices] = useState<DeviceWithStatus[]>([]);
+  
+  // Establecimiento activo por defecto
+  const [selectedFarm, setSelectedFarm] = useState<string | null>(null);
+  
+  // Sensor seleccionado individualmente
   const [selectedDevice, setSelectedDevice] = useState<DeviceWithStatus | null>(
     null,
   );
+  
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState("");
 
-  // Estado para mostrar/ocultar el sidebar (responsive y control manual en PC)
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
   // Estados de Datos del Sensor
@@ -54,7 +60,6 @@ export default function Dashboard() {
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo] = useState("");
 
-  // Funciones de Fecha
   const startOfLocalDayISO = (date: Date): string => {
     const d = new Date(date);
     d.setHours(0, 0, 0, 0);
@@ -139,18 +144,38 @@ export default function Dashboard() {
     }
   }, [period]);
 
-  // Carga de Dispositivos
+  const devicesByFarm = useMemo(() => {
+    const groups: Record<string, DeviceWithStatus[]> = {};
+    devices.forEach(device => {
+      const farm = device.name_farm || "Sin establecimiento asignado";
+      if (!groups[farm]) groups[farm] = [];
+      groups[farm].push(device);
+    });
+    return groups;
+  }, [devices]);
+
   const loadDevices = async () => {
     try {
       setLoading(true);
       setErrorMsg("");
       const data = await deviceService.getDevices();
       setDevices(data);
+      
       if (data.length > 0) {
-        setSelectedDevice((current) =>
-          current ? data.find((d) => d.id === current.id) || data[0] : data[0],
-        );
+        const groups: Record<string, DeviceWithStatus[]> = {};
+        data.forEach(d => {
+          const farm = d.name_farm || "Sin establecimiento asignado";
+          if (!groups[farm]) groups[farm] = [];
+          groups[farm].push(d);
+        });
+
+        const farmNames = Object.keys(groups);
+        if (farmNames.length > 0) {
+          setSelectedFarm(farmNames[0]);
+        }
+        setSelectedDevice(null);
       } else {
+        setSelectedFarm(null);
         setSelectedDevice(null);
       }
     } catch (err: any) {
@@ -167,7 +192,6 @@ export default function Dashboard() {
     loadDevices();
   }, []);
 
-  // Carga de Datos del Sensor
   useEffect(() => {
     if (!selectedDevice) return;
 
@@ -214,6 +238,11 @@ export default function Dashboard() {
     fetchDeviceData();
   }, [selectedDevice, getDateRange.from, getDateRange.to]);
 
+  const currentFarmDevices = useMemo(() => {
+    if (!selectedFarm) return devices;
+    return devicesByFarm[selectedFarm] || devices;
+  }, [selectedFarm, devicesByFarm, devices]);
+
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col">
       <header
@@ -226,7 +255,6 @@ export default function Dashboard() {
           `,
         }}
       >
-        {/* Izquierda: Botón Menú / Ocultar Sidebar + Logos */}
         <div className="flex items-center space-x-3 sm:space-x-6">
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -252,7 +280,6 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Centro: Título principal */}
         <div className="hidden md:flex flex-col items-center">
           <h2 className="text-sm sm:text-base font-bold tracking-wider uppercase text-slate-200">
             Panel de Monitoreo y Análisis
@@ -262,7 +289,6 @@ export default function Dashboard() {
           </p>
         </div>
 
-        {/* Derecha: Usuario y Salir */}
         <div className="flex items-center space-x-3">
           <span className="text-xs text-slate-300 hidden lg:inline">
             {user?.email}
@@ -278,7 +304,6 @@ export default function Dashboard() {
       </header>
 
       <div className="flex-1 flex overflow-hidden relative">
-        {/* Backdrop para móviles cuando el sidebar está abierto */}
         {sidebarOpen && (
           <div 
             className="fixed inset-0 bg-black/40 z-20 md:hidden backdrop-blur-xs"
@@ -286,7 +311,6 @@ export default function Dashboard() {
           />
         )}
 
-        {/* Panel Lateral con soporte para colapsar en PC y ocultar/flotar en móvil */}
         <div
           className={`absolute md:relative z-30 inset-y-0 left-0 transition-transform duration-300 ease-in-out ${
             sidebarOpen ? "translate-x-0" : "-translate-x-full md:hidden"
@@ -299,7 +323,9 @@ export default function Dashboard() {
             errorMsg={errorMsg}
             onSelectDevice={(device) => {
               setSelectedDevice(device);
-              // En pantallas móviles, al elegir un sensor se oculta el menú automáticamente
+              if (device.name_farm) {
+                setSelectedFarm(device.name_farm);
+              }
               if (window.innerWidth < 768) {
                 setSidebarOpen(false);
               }
@@ -308,7 +334,8 @@ export default function Dashboard() {
           />
         </div>
 
-        <main className="flex-1 bg-slate-50 p-4 sm:p-6 overflow-y-auto space-y-6">
+        {/* Contenedor principal que se extiende y ocupa todo el alto disponible */}
+        <main className="flex-1 bg-slate-50 p-4 sm:p-6 overflow-y-auto flex flex-col space-y-6">
           <PeriodSelector
             period={period}
             setPeriod={setPeriod}
@@ -318,8 +345,42 @@ export default function Dashboard() {
             setCustomTo={setCustomTo}
           />
 
+          {!selectedDevice && !loading && devices.length > 0 && (
+            <div className="flex-1 flex flex-col space-y-4 min-h-[500px]">
+              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl">
+                    <Building2 size={22} />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold text-slate-800">
+                      {selectedFarm || "Establecimiento General"}
+                    </h2>
+                    <p className="text-xs text-slate-500">
+                      Visualizando red de nodos sensores geolocalizados del establecimiento.
+                    </p>
+                  </div>
+                </div>
+                <span className="text-xs font-semibold bg-slate-100 text-slate-700 px-3 py-1 rounded-full">
+                  {currentFarmDevices.length} {currentFarmDevices.length === 1 ? "nodo activo" : "nodos activos"}
+                </span>
+              </div>
+
+              <div className="flex-1 flex flex-col">
+                <DevicesMap
+                  devices={currentFarmDevices}
+                  selectedDevice={selectedDevice}
+                  onSelectDevice={(device) => {
+                    setSelectedDevice(device);
+                    if (device.name_farm) setSelectedFarm(device.name_farm);
+                  }}
+                />
+              </div>
+            </div>
+          )}
+
           {loadingData ? (
-            <div className="bg-white p-12 rounded-2xl border border-slate-200 shadow-sm flex flex-col items-center justify-center">
+            <div className="bg-white p-12 rounded-2xl border border-slate-200 shadow-sm flex flex-col items-center justify-center flex-1">
               <RefreshCw
                 className="animate-spin text-blue-600 mb-3"
                 size={32}
@@ -329,8 +390,22 @@ export default function Dashboard() {
               </p>
             </div>
           ) : selectedDevice ? (
-            <>
-              {/* Resumen del dispositivo activo */}
+            <div className="flex flex-col space-y-6">
+              <div className="flex justify-between items-center bg-white px-5 py-3 rounded-xl border border-slate-200 shadow-sm">
+                <div className="flex items-center space-x-2">
+                  <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Establecimiento:</span>
+                  <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-lg">
+                    {selectedDevice.name_farm || "Sin asignar"}
+                  </span>
+                </div>
+                <button
+                  onClick={() => setSelectedDevice(null)}
+                  className="text-xs font-semibold text-slate-600 hover:text-blue-600 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-lg transition-colors"
+                >
+                  ← Volver a vista general del establecimiento
+                </button>
+              </div>
+
               <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
                   <div className="flex items-center space-x-2 mb-1">
@@ -352,7 +427,6 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              {/* Paneles Dinámicos */}
               {selectedDevice.type === "B01" && (
                 <B01Panel
                   readings={readingsB01}
@@ -369,21 +443,8 @@ export default function Dashboard() {
                   periodLabel={periodLabel}
                 />
               )}
-            </>
-          ) : (
-            <div className="h-full flex flex-col items-center justify-center text-center p-8">
-              <div className="bg-slate-200 p-4 rounded-full text-slate-500 mb-3">
-                <Radio size={32} />
-              </div>
-              <h3 className="text-base font-semibold text-slate-700">
-                Ningún sensor seleccionado
-              </h3>
-              <p className="text-sm text-slate-400 mt-1">
-                Selecciona un nodo de la lista lateral para ver sus registros
-                y tendencias.
-              </p>
             </div>
-          )}
+          ) : null}
         </main>
       </div>
     </div>
