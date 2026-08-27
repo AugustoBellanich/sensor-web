@@ -33,15 +33,15 @@ export default function Dashboard() {
 
   // Estados Globales
   const [devices, setDevices] = useState<DeviceWithStatus[]>([]);
-  
+
   // Establecimiento activo por defecto
   const [selectedFarm, setSelectedFarm] = useState<string | null>(null);
-  
+
   // Sensor seleccionado individualmente
   const [selectedDevice, setSelectedDevice] = useState<DeviceWithStatus | null>(
     null,
   );
-  
+
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState("");
 
@@ -146,7 +146,7 @@ export default function Dashboard() {
 
   const devicesByFarm = useMemo(() => {
     const groups: Record<string, DeviceWithStatus[]> = {};
-    devices.forEach(device => {
+    devices.forEach((device) => {
       const farm = device.name_farm || "Sin establecimiento asignado";
       if (!groups[farm]) groups[farm] = [];
       groups[farm].push(device);
@@ -160,10 +160,10 @@ export default function Dashboard() {
       setErrorMsg("");
       const data = await deviceService.getDevices();
       setDevices(data);
-      
+
       if (data.length > 0) {
         const groups: Record<string, DeviceWithStatus[]> = {};
-        data.forEach(d => {
+        data.forEach((d) => {
           const farm = d.name_farm || "Sin establecimiento asignado";
           if (!groups[farm]) groups[farm] = [];
           groups[farm].push(d);
@@ -259,7 +259,9 @@ export default function Dashboard() {
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
             className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors border border-slate-700"
-            title={sidebarOpen ? "Ocultar panel lateral" : "Mostrar panel lateral"}
+            title={
+              sidebarOpen ? "Ocultar panel lateral" : "Mostrar panel lateral"
+            }
           >
             {sidebarOpen ? <X size={18} /> : <Menu size={18} />}
           </button>
@@ -305,20 +307,21 @@ export default function Dashboard() {
 
       <div className="flex-1 flex overflow-hidden relative">
         {sidebarOpen && (
-          <div 
+          <div
             className="fixed inset-0 bg-black/40 z-20 md:hidden backdrop-blur-xs"
             onClick={() => setSidebarOpen(false)}
           />
         )}
 
         <div
-          className={`absolute md:relative z-30 inset-y-0 left-0 transition-transform duration-300 ease-in-out ${
+          className={`absolute md:relative z-40 inset-y-0 left-0 transition-transform duration-300 ease-in-out ${
             sidebarOpen ? "translate-x-0" : "-translate-x-full md:hidden"
           }`}
         >
           <DeviceSidebar
             devices={devices}
             selectedDevice={selectedDevice}
+            selectedFarm={selectedFarm}
             loading={loading}
             errorMsg={errorMsg}
             onSelectDevice={(device) => {
@@ -331,6 +334,13 @@ export default function Dashboard() {
               }
             }}
             onRefresh={loadDevices}
+            onSelectFarm={(farmName) => {
+              setSelectedFarm(farmName);
+              setSelectedDevice(null); // Al hacer clic en el GPS del establecimiento, pasamos a su vista general de mapa
+              if (window.innerWidth < 768) {
+                setSidebarOpen(false);
+              }
+            }}
           />
         </div>
 
@@ -357,12 +367,16 @@ export default function Dashboard() {
                       {selectedFarm || "Establecimiento General"}
                     </h2>
                     <p className="text-xs text-slate-500">
-                      Visualizando red de nodos sensores geolocalizados del establecimiento.
+                      Visualizando red de nodos sensores geolocalizados del
+                      establecimiento.
                     </p>
                   </div>
                 </div>
                 <span className="text-xs font-semibold bg-slate-100 text-slate-700 px-3 py-1 rounded-full">
-                  {currentFarmDevices.length} {currentFarmDevices.length === 1 ? "nodo activo" : "nodos activos"}
+                  {currentFarmDevices.length}{" "}
+                  {currentFarmDevices.length === 1
+                    ? "nodo activo"
+                    : "nodos activos"}
                 </span>
               </div>
 
@@ -393,7 +407,9 @@ export default function Dashboard() {
             <div className="flex flex-col space-y-6">
               <div className="flex justify-between items-center bg-white px-5 py-3 rounded-xl border border-slate-200 shadow-sm">
                 <div className="flex items-center space-x-2">
-                  <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Establecimiento:</span>
+                  <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                    Establecimiento:
+                  </span>
                   <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-lg">
                     {selectedDevice.name_farm || "Sin asignar"}
                   </span>

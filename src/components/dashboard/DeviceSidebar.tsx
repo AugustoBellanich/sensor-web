@@ -7,26 +7,31 @@ import {
   Sun, 
   Droplets, 
   Wifi, 
-  Radio 
+  Radio,
+  MapPin
 } from "lucide-react";
 import type { DeviceWithStatus } from "../../types/sensor";
 
 interface DeviceSidebarProps {
   devices: DeviceWithStatus[];
   selectedDevice: DeviceWithStatus | null;
+  selectedFarm: string | null; // <-- Recibimos la finca activa
   loading: boolean;
   errorMsg: string;
   onSelectDevice: (device: DeviceWithStatus) => void;
   onRefresh: () => void;
+  onSelectFarm?: (farmName: string) => void;
 }
 
 export default function DeviceSidebar({
   devices,
   selectedDevice,
+  selectedFarm,
   loading,
   errorMsg,
   onSelectDevice,
   onRefresh,
+  onSelectFarm,
 }: DeviceSidebarProps) {
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
 
@@ -49,11 +54,9 @@ export default function DeviceSidebar({
     return groups;
   }, [devices]);
 
-  // Estilo de etiquetas: Bordes oscuros, relleno claro y letras oscuras
   const getDeviceCategoryMeta = (type: string) => {
     const t = type.toUpperCase();
     if (t.startsWith("B")) {
-      // Suelo: Azul oscuro (borde y texto), relleno azul muy claro
       return { 
         label: "Suelo", 
         color: "bg-blue-100 text-blue-950 border-blue-900 font-bold", 
@@ -61,7 +64,6 @@ export default function DeviceSidebar({
       };
     }
     if (t.startsWith("C")) {
-      // Clima: Naranja oscuro (borde y texto), relleno ámbar muy claro
       return { 
         label: "Clima", 
         color: "bg-amber-100 text-amber-950 border-amber-800 font-bold", 
@@ -69,7 +71,6 @@ export default function DeviceSidebar({
       };
     }
     if (t.startsWith("A")) {
-      // Agua: Azul clásico (borde y texto), relleno celeste claro
       return { 
         label: "Agua", 
         color: "bg-sky-100 text-sky-950 border-sky-800 font-bold", 
@@ -77,7 +78,6 @@ export default function DeviceSidebar({
       };
     }
     if (t.startsWith("N")) {
-      // Antena: Verde oscuro (borde y texto), relleno esmeralda claro
       return { 
         label: "Antena", 
         color: "bg-emerald-100 text-emerald-950 border-emerald-800 font-bold", 
@@ -132,16 +132,38 @@ export default function DeviceSidebar({
 
         {Object.entries(groupedDevices).map(([farmName, farmDevices]) => {
           const isCollapsed = collapsedGroups[farmName];
+          // Detecta si este establecimiento es el que tiene el foco activo general (sin sensor individual seleccionado)
+          const isFarmFocused = selectedFarm === farmName && selectedDevice === null;
 
           return (
             <div key={farmName} className="space-y-1.5">
-              <button
-                onClick={() => toggleGroup(farmName)}
-                className="w-full flex items-center justify-between px-2 py-1.5 text-xs font-bold text-slate-500 hover:text-slate-800 transition-colors uppercase tracking-wider bg-slate-100/60 rounded-lg"
-              >
-                <span className="truncate">{farmName} ({farmDevices.length})</span>
-                {isCollapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
-              </button>
+              <div className={`w-full flex items-center justify-between px-2.5 py-2 text-xs font-bold uppercase tracking-wider rounded-xl transition-all ${
+                isFarmFocused 
+                  ? "bg-blue-100/80 text-blue-900 border border-blue-300 shadow-xs" 
+                  : "bg-slate-100/60 text-slate-600 hover:bg-slate-100"
+              }`}>
+                <button
+                  onClick={() => toggleGroup(farmName)}
+                  className="flex-1 flex items-center justify-between text-left truncate pr-2 transition-colors"
+                >
+                  <span className="truncate">{farmName} ({farmDevices.length})</span>
+                  {isCollapsed ? <ChevronRight size={14} className="shrink-0 ml-1" /> : <ChevronDown size={14} className="shrink-0 ml-1" />}
+                </button>
+
+                {/* Botón GPS del establecimiento */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (onSelectFarm) onSelectFarm(farmName);
+                  }}
+                  className={`p-1 rounded-md transition-all ${
+                    isFarmFocused ? "text-blue-700 bg-white shadow-xs" : "text-slate-400 hover:text-blue-600 hover:bg-white"
+                  }`}
+                  title={`Ver mapa general de ${farmName}`}
+                >
+                  <MapPin size={14} />
+                </button>
+              </div>
 
               {!isCollapsed && (
                 <div className="space-y-2 pl-1">
@@ -164,7 +186,6 @@ export default function DeviceSidebar({
                             {device.alias || device.id}
                           </span>
 
-                          {/* Etiqueta con bordes oscuros, relleno claro y texto oscuro */}
                           <span className={`text-[10px] px-2 py-0.5 rounded-md border-[1.5px] flex items-center shrink-0 shadow-2xs ${meta.color}`}>
                             {meta.icon}
                             {meta.label}

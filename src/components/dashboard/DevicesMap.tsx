@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import L from "leaflet";
 import {
   MapContainer,
@@ -8,7 +8,7 @@ import {
   useMap,
 } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
-import { MapPin } from "lucide-react";
+import { MapPin, Layers } from "lucide-react";
 
 import type { DeviceWithStatus } from "../../types/sensor";
 
@@ -27,31 +27,26 @@ const hasValidLocation = (
   Number.isFinite(device.lng) &&
   !(device.lat === 0 && device.lng === 0);
 
-/*
- * Ícono limpio basado en texto/sigla (B, C, N, etc.)
- * Evita cualquier conflicto de SVG o caché de Leaflet.
- */
 const buildIcon = (type: string, isSelected: boolean) => {
   const t = (type || "S").toUpperCase();
-  const firstLetter = t.charAt(0); // Toma la letra inicial (B, C, N...)
+  const firstLetter = t.charAt(0);
   const size = isSelected ? 40 : 32;
 
-  // Colores diferenciados por tipo
-  let bgColor = "#2563eb"; // Azul para B (Suelo)
+  let bgColor = "#2563eb"; 
   let ringColor = "#93c5fd";
 
   if (firstLetter === "C") {
-    bgColor = "#d97706"; // Naranja para C (Clima)
+    bgColor = "#d97706"; 
     ringColor = "#fcd34d";
   } else if (firstLetter === "N") {
-    bgColor = "#0d9488"; // Teal/Verde oscuro para N
+    bgColor = "#0d9488"; 
     ringColor = "#5eead4";
   }
 
   const activeScale = isSelected ? "transform: scale(1.15); z-index: 1000;" : "";
 
   return L.divIcon({
-    className: "custom-device-marker", // Clase propia para aislar estilos de Leaflet por defecto
+    className: "custom-device-marker",
     html: `
       <div style="position:relative; width:${size}px; height:${size}px; ${activeScale} transition: transform 0.2s;">
         <div style="
@@ -99,6 +94,8 @@ export default function DevicesMap({
   selectedDevice,
   onSelectDevice,
 }: DevicesMapProps) {
+  const [mapType, setMapType] = useState<"streets" | "satellite">("streets");
+
   const located = useMemo(() => devices.filter(hasValidLocation), [devices]);
 
   const points = useMemo<[number, number][]>(
@@ -132,19 +129,43 @@ export default function DevicesMap({
   }
 
   return (
-    <div className="rounded-2xl overflow-hidden border border-slate-200 shadow-sm relative w-full flex-1 flex flex-col min-h-[500px]">
+    <div className="rounded-2xl overflow-hidden border border-slate-200 shadow-sm relative w-full flex-1 flex flex-col min-h-[500px] z-10">
       <style>{`
         @keyframes sensor-pulse {
           0% { transform: scale(0.6); opacity: 0.6; }
           100% { transform: scale(1.9); opacity: 0; }
         }
-        /* Elimina por completo cualquier residuo de íconos por defecto de Leaflet */
         .custom-device-marker {
           background: transparent !important;
           border: none !important;
         }
-        .leaflet-container { font-family: inherit; width: 100%; height: 100%; }
+        .leaflet-container { font-family: inherit; width: 100%; height: 100%; z-index: 10; }
       `}</style>
+
+      {/* Botón flotante para alternar entre Mapa Callejero y Satelital con z-index alto */}
+      <div className="absolute top-3 right-3 z-[450] bg-white/95 backdrop-blur-sm p-1 rounded-xl border border-slate-200 shadow-md flex items-center gap-1">
+        <button
+          onClick={() => setMapType("streets")}
+          className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+            mapType === "streets" 
+              ? "bg-blue-600 text-white shadow-xs" 
+              : "text-slate-700 hover:bg-slate-100"
+          }`}
+        >
+          Mapa
+        </button>
+        <button
+          onClick={() => setMapType("satellite")}
+          className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5 ${
+            mapType === "satellite" 
+              ? "bg-blue-600 text-white shadow-xs" 
+              : "text-slate-700 hover:bg-slate-100"
+          }`}
+        >
+          <Layers size={14} />
+          Satelital
+        </button>
+      </div>
 
       <MapContainer
         center={centroid}
@@ -153,10 +174,17 @@ export default function DevicesMap({
         style={{ width: "100%", height: "100%", flex: 1 }}
         attributionControl={false}
       >
-        <TileLayer
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-        />
+        {mapType === "streets" ? (
+          <TileLayer
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+          />
+        ) : (
+          <TileLayer
+            url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+            attribution='Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+          />
+        )}
 
         <FitToDevices points={points} />
 
@@ -179,7 +207,7 @@ export default function DevicesMap({
       </MapContainer>
 
       {unlocatedCount > 0 && (
-        <div className="absolute bottom-3 right-3 bg-white/95 backdrop-blur-sm text-xs text-slate-600 px-3 py-1.5 rounded-xl border border-slate-200 shadow-sm flex items-center gap-1.5 z-[400]">
+        <div className="absolute bottom-3 right-3 bg-white/95 backdrop-blur-sm text-xs text-slate-600 px-3 py-1.5 rounded-xl border border-slate-200 shadow-sm flex items-center gap-1.5 z-[450]">
           <MapPin size={14} className="text-amber-600" />
           {unlocatedCount} sin ubicación
         </div>
