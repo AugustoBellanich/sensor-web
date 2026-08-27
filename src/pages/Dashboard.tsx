@@ -11,9 +11,9 @@ import type {
   DeviceElectrode,
 } from "../types/sensor";
 
-import { LogOut, Radio, RefreshCw } from "lucide-react";
+import { LogOut, Radio, RefreshCw, Menu, X } from "lucide-react";
 
-// Importación de nuestros nuevos componentes modulares
+// Importación de nuestros componentes modulares
 import DeviceSidebar from "../components/dashboard/DeviceSidebar";
 import PeriodSelector from "../components/dashboard/PeriodSelector";
 import B01Panel from "../components/sensors/b01/B01Panel";
@@ -37,6 +37,9 @@ export default function Dashboard() {
   );
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState("");
+
+  // Estado para mostrar/ocultar el sidebar (responsive y control manual en PC)
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   // Estados de Datos del Sensor
   const [readingsB01, setReadingsB01] = useState<ReadingB01[]>([]);
@@ -214,43 +217,53 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col">
       <header
-        className="text-white px-6 py-3 flex justify-between items-center shadow-lg relative overflow-hidden border-b border-slate-800"
+        className="text-white px-4 sm:px-6 py-3 flex justify-between items-center shadow-lg relative overflow-hidden border-b border-slate-800 z-20"
         style={{
           backgroundColor: "#0b0f19",
           backgroundImage: `
-      radial-gradient(circle at 20% 150%, rgba(37, 99, 235, 0.15) 0%, transparent 50%),
-      radial-gradient(circle at 80% -50%, rgba(20, 83, 112, 0.43) 0%, transparent 50%)
-    `,
+            radial-gradient(circle at 20% 150%, rgba(37, 99, 235, 0.15) 0%, transparent 50%),
+            radial-gradient(circle at 80% -50%, rgba(20, 83, 112, 0.43) 0%, transparent 50%)
+          `,
         }}
       >
-        {/* Izquierda: Logos institucionales */}
-        <div className="flex items-center space-x-6">
-          <img
-            src="/branding/logo-inta.svg"
-            alt="INTA"
-            className="h-12 object-contain filter brightness-0 invert"
-          />
-          <div className="border-l border-slate-800 pl-6">
+        {/* Izquierda: Botón Menú / Ocultar Sidebar + Logos */}
+        <div className="flex items-center space-x-3 sm:space-x-6">
+          <button
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors border border-slate-700"
+            title={sidebarOpen ? "Ocultar panel lateral" : "Mostrar panel lateral"}
+          >
+            {sidebarOpen ? <X size={18} /> : <Menu size={18} />}
+          </button>
+
+          <div className="flex items-center space-x-3 sm:space-x-6">
             <img
-              src="/branding/isologotipo-blanco.svg"
-              alt="Isotipo Sensor Web"
-              className="h-10 w-auto object-contain filter brightness-0 invert"
+              src="/branding/logo-inta.svg"
+              alt="INTA"
+              className="h-10 sm:h-12 object-contain filter brightness-0 invert"
             />
+            <div className="border-l border-slate-800 pl-4 sm:pl-6 hidden sm:block">
+              <img
+                src="/branding/isologotipo-blanco.svg"
+                alt="Isotipo Sensor Web"
+                className="h-10 w-auto object-contain filter brightness-0 invert"
+              />
+            </div>
           </div>
         </div>
 
-        {/* Centro: Título o leyenda principal del panel */}
+        {/* Centro: Título principal */}
         <div className="hidden md:flex flex-col items-center">
-          <h2 className="text-m font-bold tracking-wider uppercase text-slate-200">
+          <h2 className="text-sm sm:text-base font-bold tracking-wider uppercase text-slate-200">
             Panel de Monitoreo y Análisis
           </h2>
-          <p className="text-xs text-slate-400 tracking-wide">
+          <p className="text-[11px] text-slate-400 tracking-wide">
             Red de Sensores IoT Agroambientales - INTA EEA Catamarca
           </p>
         </div>
 
         {/* Derecha: Usuario y Salir */}
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-3">
           <span className="text-xs text-slate-300 hidden lg:inline">
             {user?.email}
           </span>
@@ -259,22 +272,43 @@ export default function Dashboard() {
             className="flex items-center space-x-1 bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border border-slate-700"
           >
             <LogOut size={16} />
-            <span>Salir</span>
+            <span className="hidden sm:inline">Salir</span>
           </button>
         </div>
       </header>
 
-      <div className="flex-1 flex overflow-hidden">
-        <DeviceSidebar
-          devices={devices}
-          selectedDevice={selectedDevice}
-          loading={loading}
-          errorMsg={errorMsg}
-          onSelectDevice={setSelectedDevice}
-          onRefresh={loadDevices}
-        />
+      <div className="flex-1 flex overflow-hidden relative">
+        {/* Backdrop para móviles cuando el sidebar está abierto */}
+        {sidebarOpen && (
+          <div 
+            className="fixed inset-0 bg-black/40 z-20 md:hidden backdrop-blur-xs"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
 
-        <main className="flex-1 bg-slate-50 p-6 overflow-y-auto space-y-6">
+        {/* Panel Lateral con soporte para colapsar en PC y ocultar/flotar en móvil */}
+        <div
+          className={`absolute md:relative z-30 inset-y-0 left-0 transition-transform duration-300 ease-in-out ${
+            sidebarOpen ? "translate-x-0" : "-translate-x-full md:hidden"
+          }`}
+        >
+          <DeviceSidebar
+            devices={devices}
+            selectedDevice={selectedDevice}
+            loading={loading}
+            errorMsg={errorMsg}
+            onSelectDevice={(device) => {
+              setSelectedDevice(device);
+              // En pantallas móviles, al elegir un sensor se oculta el menú automáticamente
+              if (window.innerWidth < 768) {
+                setSidebarOpen(false);
+              }
+            }}
+            onRefresh={loadDevices}
+          />
+        </div>
+
+        <main className="flex-1 bg-slate-50 p-4 sm:p-6 overflow-y-auto space-y-6">
           <PeriodSelector
             period={period}
             setPeriod={setPeriod}
@@ -345,7 +379,7 @@ export default function Dashboard() {
                 Ningún sensor seleccionado
               </h3>
               <p className="text-sm text-slate-400 mt-1">
-                Selecciona un nodo de la lista izquierda para ver sus registros
+                Selecciona un nodo de la lista lateral para ver sus registros
                 y tendencias.
               </p>
             </div>

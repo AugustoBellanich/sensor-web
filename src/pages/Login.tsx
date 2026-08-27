@@ -1,14 +1,14 @@
 import React, { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
-import { Mail, Lock, ArrowRight, Eye, EyeOff } from "lucide-react";
+import { Mail, Lock, ArrowRight, Eye, EyeOff, FlaskConical, BadgeCheck } from "lucide-react";
 
-// Nodos: Posición, tamaño del punto y timing de la animación de pulso
+// Nodos / Estrellas distribuidos en el panel izquierdo
 const NODES = [
   { top: 25, left: 20, size: 4, delay: "0s", duration: "4s" },
   { top: 40, left: 45, size: 5, delay: "1.5s", duration: "3s" },
   { top: 30, left: 75, size: 3, delay: "0.5s", duration: "4.5s" },
-  { top: 70, left: 30, size: 4.5, delay: "2.5s", duration: "6s" },
+  { top: 60, left: 30, size: 4.5, delay: "2.5s", duration: "5s" },
   { top: 75, left: 65, size: 5, delay: "1s", duration: "3.5s" },
   { top: 50, left: 88, size: 3.5, delay: "2s", duration: "4s" },
 ];
@@ -57,13 +57,11 @@ export default function Login() {
       }}
     >
       <style>{`
-        /* Efecto de anillo que se expande y desvanece sutilmente */
         @keyframes pulse-ring {
           0% { transform: translate(-50%, -50%) scale(1); opacity: 0.6; }
           80%, 100% { transform: translate(-50%, -50%) scale(3.5); opacity: 0; }
         }
         
-        /* Efecto de brillo suave en el núcleo del punto */
         @keyframes glow-dot {
           0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.7; }
           50% { transform: translate(-50%, -50%) scale(1.15); opacity: 1; }
@@ -84,10 +82,9 @@ export default function Login() {
         }
       `}</style>
 
-      {/* PANEL IZQUIERDO — Gráfica nocturna y nodos sutiles */}
+      {/* PANEL IZQUIERDO */}
       <div className="hidden lg:flex lg:w-[45%] relative overflow-hidden flex-col justify-between p-12 border-r border-slate-800/60">
         
-        {/* Capas de montañas oscuras */}
         <svg
           className="absolute inset-0 w-full h-full pointer-events-none opacity-30"
           viewBox="0 0 400 900"
@@ -97,7 +94,6 @@ export default function Login() {
           <path d="M0,520 C100,470 200,530 300,480 C350,455 400,490 400,490 L400,900 L0,900 Z" fill="#0b0f19" opacity="0.8" />
         </svg>
 
-        {/* Nodos de telemetría con pulsos */}
         {NODES.map((n, i) => (
           <div
             key={i}
@@ -107,7 +103,6 @@ export default function Login() {
               left: `${n.left}%`,
             }}
           >
-            {/* Anillo de pulso expansivo */}
             <div
               className="absolute rounded-full ring-animation border border-sky-400"
               style={{
@@ -118,7 +113,6 @@ export default function Login() {
                 "--duration": n.duration,
               } as React.CSSProperties}
             />
-            {/* Punto sólido central */}
             <div
               className="absolute rounded-full bg-sky-400 dot-animation"
               style={{
@@ -132,7 +126,6 @@ export default function Login() {
           </div>
         ))}
 
-        {/* Gateway central destacado (antena principal) */}
         <div
           className="absolute pointer-events-none"
           style={{ top: "35%", left: "55%" }}
@@ -175,12 +168,15 @@ export default function Login() {
           </h2>
         </div>
 
-        {/* Pie de página izquierdo */}
+        {/* Pie de página izquierdo con iconos actualizados */}
         <div className="relative z-10 flex items-center justify-between font-mono text-[11px] text-slate-400">
-          <span className="flex items-center gap-1.5 uppercase tracking-wider text-sky-400">
-            
+          <span className="flex items-center gap-2 uppercase tracking-wider text-sky-400 font-semibold">
+            <FlaskConical size={14} className="text-sky-400" /> 
+            LABORATORIO AGTECH - INTA EEA CATAMARCA 
           </span>
-          <span>PROYECTO SENSOR</span>
+          <span className="flex items-center gap-1 text-sky-400 font-semibold">
+            <BadgeCheck size={13} /> PROYECTO SENSOR®
+          </span>
         </div>
       </div>
 
@@ -198,7 +194,7 @@ export default function Login() {
               Iniciar Sesión
             </h1>
             <p className="text-xs text-slate-500 leading-relaxed">
-              Acceso al panel de control y análisis de datos
+              Estación Experimental Agropecuaria Catamarca · Panel de control de nodos sensores.
             </p>
           </div>
 
@@ -278,7 +274,7 @@ export default function Login() {
 
           <div className="mt-10 pt-6 border-t border-slate-100 text-center space-y-2">
             <p className="text-[11px] font-medium text-slate-500">
-              Instituto Nacional de Tecnología Agropecuaria
+              Laboratorio AGTECH · EEA Catamarca · INTA
             </p>
             <p className="text-[11px] text-slate-400">
               Al ingresar, aceptás nuestra{" "}
