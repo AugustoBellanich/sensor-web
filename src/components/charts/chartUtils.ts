@@ -51,6 +51,7 @@ export const formatChartDate = (
     {
       dateStyle: "medium",
       timeStyle: "short",
+      hour12: false,
     }
   );
 };

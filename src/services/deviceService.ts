@@ -2,7 +2,63 @@ import { supabase } from "../lib/supabase";
 import type {
   Device,
   DeviceWithStatus,
+  GatewayStatus,
 } from "../types/sensor";
+
+// Heartbeat esperado cada 5 min (ver firmware). Usamos los mismos
+// múltiplos que para los sensores (1.5x / 4x) para mantener el
+// mismo criterio visual de online/warning/offline en toda la app.
+const GATEWAY_HEARTBEAT_MINUTES = 5;
+
+async function resolveGatewayStatus(
+  device: Device
+): Promise<DeviceWithStatus> {
+  const { data: gwStatus, error } = await supabase
+    .from("gateway_status")
+    .select("*")
+    .eq("device_id", device.id)
+    .maybeSingle();
+
+  if (error) {
+    console.error(
+      `Error obteniendo heartbeat de ${device.id}:`,
+      error.message
+    );
+  }
+
+  const status = gwStatus as GatewayStatus | null;
+
+  if (!status?.last_heartbeat) {
+    return {
+      ...device,
+      lastReadingTime: null,
+      battery: null,
+      status: "offline" as const,
+    };
+  }
+
+  const lastTime = new Date(status.last_heartbeat);
+  const now = new Date();
+  const diffMinutes =
+    (now.getTime() - lastTime.getTime()) / (1000 * 60);
+
+  let resolvedStatus: "online" | "warning" | "offline";
+
+  if (diffMinutes <= GATEWAY_HEARTBEAT_MINUTES * 1.5) {
+    resolvedStatus = "online";
+  } else if (diffMinutes <= GATEWAY_HEARTBEAT_MINUTES * 4) {
+    resolvedStatus = "warning";
+  } else {
+    resolvedStatus = "offline";
+  }
+
+  return {
+    ...device,
+    lastReadingTime: status.last_heartbeat,
+    battery: status.battery_pct ?? null,
+    status: resolvedStatus,
+  };
+}
 
 export const deviceService = {
 
@@ -38,6 +94,16 @@ export const deviceService = {
 
         devices.map(
           async (device: Device) => {
+
+            // --------------------------------------------------
+            // GATEWAYS (N01): el estado sale de gateway_status,
+            // no de readings_b01/readings_c01 (no generan lecturas
+            // propias, solo transportan las de los sensores B01/C01)
+            // --------------------------------------------------
+
+            if (device.type === "N01") {
+              return await resolveGatewayStatus(device);
+            }
 
             const tableName =
               device.type === "B01"

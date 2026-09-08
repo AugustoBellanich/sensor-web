@@ -8,6 +8,7 @@ import {
   Tooltip,
   Legend,
 } from "recharts";
+import { formatTimeOnly } from "../../../lib/format";
 
 import type { IngestLog } from "../../../types/sensor";
 
@@ -17,10 +18,7 @@ interface Props {
 
 export default function N01SensorChart({ logs }: Props) {
   const chartData = logs.map((log) => ({
-    time: new Date(log.received_at).toLocaleTimeString("es-AR", {
-      hour: "2-digit",
-      minute: "2-digit",
-    }),
+    time: formatTimeOnly(log.received_at),
 
     sensores: log.sensors_count ?? 0,
 

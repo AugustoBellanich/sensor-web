@@ -38,6 +38,7 @@ export default function B01Panel({
     return new Date(isoString).toLocaleString("es-AR", {
       dateStyle: "medium",
       timeStyle: "short",
+      hour12: false,
     });
   };
 

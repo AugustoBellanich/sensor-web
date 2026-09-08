@@ -85,6 +85,30 @@ export interface DeviceWithStatus extends Device {
   status: "online" | "warning" | "offline";
 }
 
+// Estado más reciente reportado por el gateway vía heartbeat
+// (tabla gateway_status, 1 fila por device_id, se pisa con upsert)
+export interface GatewayStatus {
+  device_id: string;
+  last_heartbeat: string;
+
+  fw_version: string | null;
+  wifi_status: "ONLINE" | "LOCAL" | "OFFLINE" | null;
+
+  battery_pct: number | null;
+  battery_mv: number | null;
+
+  uptime_s: number | null;
+  free_heap: number | null;
+
+  lora_ready: boolean | null;
+  pending_batches: number | null;
+
+  last_lora_rx: string | null;
+  rssi: number | null;
+
+  updated_at: string | null;
+}
+
 export interface IngestLog {
   id: string;
   device_id: string;

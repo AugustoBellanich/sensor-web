@@ -94,7 +94,7 @@ export default function DevicesMap({
   selectedDevice,
   onSelectDevice,
 }: DevicesMapProps) {
-  const [mapType, setMapType] = useState<"streets" | "satellite">("streets");
+    const [mapType, setMapType] = useState<"streets" | "satellite">("satellite");
 
   const located = useMemo(() => devices.filter(hasValidLocation), [devices]);
 
@@ -120,8 +120,7 @@ export default function DevicesMap({
 
   if (located.length === 0) {
     return (
-      <div className="bg-white border border-dashed border-slate-200 rounded-2xl p-8 text-center h-[380px] flex flex-col items-center justify-center">
-        <p className="text-sm text-slate-500">
+      <div className="bg-white border border-dashed border-slate-200 rounded-2xl p-8 text-center h-[420px] flex flex-col items-center justify-center">        <p className="text-sm text-slate-500">
           Ninguno de tus nodos tiene ubicación asignada todavía.
         </p>
       </div>
@@ -129,8 +128,7 @@ export default function DevicesMap({
   }
 
   return (
-    <div className="rounded-2xl overflow-hidden border border-slate-200 shadow-sm relative w-full h-[400px] lg:h-[calc(100vh-17rem)] min-h-[360px] flex flex-col z-10 bg-white">
-      <style>{`
+    <div className="rounded-2xl overflow-hidden border border-slate-200 shadow-sm relative w-full h-[460px] lg:h-[calc(100vh-15rem)] min-h-[400px] flex flex-col z-10 bg-white">      <style>{`
         @keyframes sensor-pulse {
           0% { transform: scale(0.6); opacity: 0.6; }
           100% { transform: scale(1.9); opacity: 0; }

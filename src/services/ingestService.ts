@@ -1,7 +1,28 @@
 import { supabase } from "../lib/supabase";
-import type { IngestLog } from "../types/sensor";
+import type { GatewayStatus, IngestLog } from "../types/sensor";
 
 export const ingestService = {
+  async getGatewayStatus(
+    deviceId: string
+  ): Promise<GatewayStatus | null> {
+    const { data, error } = await supabase
+      .from("gateway_status")
+      .select("*")
+      .eq("device_id", deviceId)
+      .maybeSingle();
+
+    if (error) {
+      console.error(
+        "Error al obtener estado del gateway:",
+        error.message
+      );
+
+      throw new Error(error.message);
+    }
+
+    return data as GatewayStatus | null;
+  },
+
   async getLogs(
     deviceId: string,
     from: string,
