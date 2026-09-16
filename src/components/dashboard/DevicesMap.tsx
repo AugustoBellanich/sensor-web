@@ -4,13 +4,15 @@ import {
   MapContainer,
   TileLayer,
   Marker,
+  Circle,
   Tooltip as LeafletTooltip,
   useMap,
 } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
-import { MapPin, Layers } from "lucide-react";
+import { MapPin, Layers, Radio } from "lucide-react";
 
 import type { DeviceWithStatus } from "../../types/sensor";
+import { LORA_COVERAGE_RADIUS_M } from "../../lib/loraSignal";
 
 interface DevicesMapProps {
   devices: DeviceWithStatus[];
@@ -116,6 +118,11 @@ export default function DevicesMap({
     return [sumLat / points.length, sumLng / points.length];
   }, [points]);
 
+  const n01Devices = useMemo(
+    () => located.filter((d) => (d.type || "").toUpperCase() === "N01"),
+    [located]
+  );
+
   const unlocatedCount = devices.length - located.length;
 
   if (located.length === 0) {
@@ -186,6 +193,28 @@ export default function DevicesMap({
 
         <FitToDevices points={points} />
 
+        {/* ======================================================
+            COBERTURA LoRa ESTIMADA DE CADA GATEWAY N01
+            ======================================================
+            Un único círculo de referencia (no una medición real
+            del enlace) para ubicar equipos. `interactive={false}`
+            para que no capture los clicks del mapa. */}
+
+        {n01Devices.map((device) => (
+          <Circle
+            key={`coverage-${device.id}`}
+            center={[device.lat, device.lng]}
+            radius={LORA_COVERAGE_RADIUS_M}
+            interactive={false}
+            pathOptions={{
+              color: "#0d9488",
+              weight: 1.5,
+              fillOpacity: 0.08,
+              opacity: 0.5,
+            }}
+          />
+        ))}
+
         {located.map((device) => (
           <Marker
             key={device.id}
@@ -203,6 +232,13 @@ export default function DevicesMap({
           </Marker>
         ))}
       </MapContainer>
+
+      {n01Devices.length > 0 && (
+        <div className="absolute bottom-3 left-3 z-[450] flex items-center gap-1.5 rounded-full border border-slate-200 bg-white/95 px-3 py-1.5 text-[11px] font-medium text-slate-600 shadow-md backdrop-blur-sm">
+          <Radio size={12} className="text-teal-600" />
+          Alcance LoRa estimado (~{LORA_COVERAGE_RADIUS_M} m)
+        </div>
+      )}
 
       {unlocatedCount > 0 && (
         <div className="absolute bottom-3 right-3 bg-white/95 backdrop-blur-sm text-xs text-slate-600 px-3 py-1.5 rounded-xl border border-slate-200 shadow-sm flex items-center gap-1.5 z-[450]">

@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
+import { Info } from "lucide-react";
 import { ingestService } from "../../../services/ingestService";
 import type { GatewayStatus } from "../../../types/sensor";
 import { formatDateTime } from "../../../lib/format";
+import { interpretRssi } from "../../../lib/loraSignal";
 
 interface N01HeartbeatCardProps {
   deviceId: string;
@@ -11,9 +13,7 @@ interface N01HeartbeatCardProps {
 // aunque la última fila diga ONLINE (puede haberse apagado el gateway).
 const STALE_AFTER_MS = 10 * 60 * 1000; // 10 minutos
 
-export default function N01HeartbeatCard({
-  deviceId,
-}: N01HeartbeatCardProps) {
+export default function N01HeartbeatCard({ deviceId }: N01HeartbeatCardProps) {
   const [status, setStatus] = useState<GatewayStatus | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -59,6 +59,8 @@ export default function N01HeartbeatCard({
           ? "WIFI SIN INTERNET"
           : "DESCONOCIDO";
 
+  const rssiInfo = interpretRssi(status?.rssi);
+
   const colorClass = isStale
     ? "bg-slate-100 text-slate-600"
     : status?.wifi_status === "ONLINE"
@@ -69,12 +71,10 @@ export default function N01HeartbeatCard({
     <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm text-slate-500">
-            Estado del gateway
-          </p>
+          <p className="text-sm text-slate-500">Estado del gateway</p>
 
           <p className="mt-1 text-lg font-semibold text-slate-900">
-                        {status
+            {status
               ? formatDateTime(status.last_heartbeat)
               : loading
                 ? "Cargando..."
@@ -93,22 +93,16 @@ export default function N01HeartbeatCard({
         <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
           <MiniStat
             label="Batería"
-            value={
-              status.battery_pct != null
-                ? `${status.battery_pct}%`
-                : "-"
-            }
+            value={status.battery_pct != null ? `${status.battery_pct}%` : "-"}
           />
 
           <MiniStat
             label="RSSI"
             value={status.rssi != null ? `${status.rssi} dBm` : "-"}
+            badge={rssiInfo}
           />
 
-          <MiniStat
-            label="LoRa"
-            value={status.lora_ready ? "OK" : "Error"}
-          />
+          <MiniStat label="LoRa" value={status.lora_ready ? "OK" : "Error"} />
 
           <MiniStat
             label="Lotes pendientes"
@@ -119,9 +113,8 @@ export default function N01HeartbeatCard({
 
       {!status && !loading && (
         <p className="mt-3 text-xs text-slate-400">
-          Este gateway todavía no envió ningún heartbeat, o el
-          firmware instalado es anterior a la versión con soporte de
-          heartbeat.
+          Este gateway todavía no envió ningún heartbeat, o el firmware
+          instalado es anterior a la versión con soporte de heartbeat.
         </p>
       )}
     </div>
@@ -131,17 +124,30 @@ export default function N01HeartbeatCard({
 interface MiniStatProps {
   label: string;
   value: string;
+  badge?: {
+    label: string;
+    description: string;
+    badgeClass: string;
+    dotClass: string;
+  };
 }
 
-function MiniStat({ label, value }: MiniStatProps) {
+function MiniStat({ label, value, badge }: MiniStatProps) {
   return (
     <div>
-      <p className="text-xs uppercase tracking-wide text-slate-500">
-        {label}
-      </p>
-      <p className="mt-0.5 text-sm font-semibold text-slate-900">
-        {value}
-      </p>
+      <p className="text-xs uppercase tracking-wide text-slate-500">{label}</p>
+      <p className="mt-0.5 text-sm font-semibold text-slate-900">{value}</p>
+
+      {badge && (
+        <span
+          title={badge.description}
+          className={`mt-1 inline-flex cursor-help items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${badge.badgeClass}`}
+        >
+          <span className={`h-1.5 w-1.5 rounded-full ${badge.dotClass}`} />
+          {badge.label}
+          <Info size={11} className="opacity-60" />
+        </span>
+      )}
     </div>
   );
 }

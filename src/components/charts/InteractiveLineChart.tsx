@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 
 import {
   LineChart,
@@ -8,6 +8,7 @@ import {
   CartesianGrid,
   Tooltip,
   Legend,
+  ReferenceLine,
   ResponsiveContainer,
 } from "recharts";
 
@@ -36,6 +37,18 @@ interface InteractiveLineChartProps {
   emptyMessage?: string;
 
   tooltipFormatter?: (value: any, name: any) => [any, any];
+
+  /**
+   * Líneas horizontales de referencia (ej: umbrales agronómicos
+   * fijos como punto de marchitez o capacidad de campo). Se
+   * dibujan sobre el eje "left".
+   */
+  referenceLines?: {
+    y: number;
+    label?: string;
+    color?: string;
+    dash?: string;
+  }[];
 }
 
 export default function InteractiveTimeChart({
@@ -48,6 +61,7 @@ export default function InteractiveTimeChart({
   dualAxis = false,
   emptyMessage = "No hay mediciones para el período seleccionado.",
   tooltipFormatter,
+  referenceLines = [],
 }: InteractiveLineChartProps) {
   /*
    * =========================================================
@@ -82,36 +96,6 @@ export default function InteractiveTimeChart({
 
   /*
    * =========================================================
-   * ZOOM
-   * =========================================================
-   */
-
-  const [zoomLeft, setZoomLeft] = useState<number | "dataMin">("dataMin");
-
-  const [zoomRight, setZoomRight] = useState<number | "dataMax">("dataMax");
-
-  /*
-   * =========================================================
-   * SELECCIÓN
-   * =========================================================
-   */
-
-  const [selectionStart, setSelectionStart] = useState<number | null>(null);
-
-  const [selectionEnd, setSelectionEnd] = useState<number | null>(null);
-
-  const [isSelecting, setIsSelecting] = useState(false);
-
-  /*
-   * =========================================================
-   * REFERENCIA AL ÁREA DEL GRÁFICO
-   * =========================================================
-   */
-
-  const chartContainerRef = useRef<HTMLDivElement | null>(null);
-
-  /*
-   * =========================================================
    * PREPARAR DATOS
    * =========================================================
    */
@@ -135,35 +119,16 @@ export default function InteractiveTimeChart({
 
   /*
    * =========================================================
-   * RESET CUANDO CAMBIA EL RANGO REAL
+   * TICKS DEL EJE X
    * =========================================================
    */
-
-  useEffect(() => {
-    setZoomLeft("dataMin");
-    setZoomRight("dataMax");
-
-    setSelectionStart(null);
-    setSelectionEnd(null);
-    setIsSelecting(false);
-  }, [dataMin, dataMax]);
-
-  /*
-   * =========================================================
-   * DOMINIO VISIBLE
-   * =========================================================
-   */
-
-  const visibleMin = zoomLeft === "dataMin" ? dataMin : zoomLeft;
-
-  const visibleMax = zoomRight === "dataMax" ? dataMax : zoomRight;
 
   const visibleTicks = useMemo(() => {
     if (
       chartData.length === 0 ||
-      !Number.isFinite(visibleMin) ||
-      !Number.isFinite(visibleMax) ||
-      visibleMax <= visibleMin
+      !Number.isFinite(dataMin) ||
+      !Number.isFinite(dataMax) ||
+      dataMax <= dataMin
     ) {
       return [];
     }
@@ -175,10 +140,9 @@ export default function InteractiveTimeChart({
      * período visible (por ejemplo, mucha más densidad de
      * datos en los últimos días), varios ticks cayeran
      * casi en el mismo instante y terminaran colapsando en
-     * uno solo tras deduplicar — eso es lo que se veía en
-     * mobile. Como el eje es numérico con scale="time",
-     * podemos ubicar un tick en cualquier instante, exista
-     * o no un dato exacto ahí.
+     * uno solo tras deduplicar. Como el eje es numérico con
+     * scale="time", podemos ubicar un tick en cualquier
+     * instante, exista o no un dato exacto ahí.
      *
      * En desktop dejamos ~8 etiquetas. En mobile, con menos
      * ancho disponible, bajamos a 4 para que las etiquetas
@@ -188,317 +152,15 @@ export default function InteractiveTimeChart({
     const maxTicks = isMobile ? 4 : 8;
 
     if (maxTicks <= 1) {
-      return [visibleMin];
+      return [dataMin];
     }
 
-    const step = (visibleMax - visibleMin) / (maxTicks - 1);
+    const step = (dataMax - dataMin) / (maxTicks - 1);
 
     return Array.from({ length: maxTicks }, (_, i) =>
-      Math.round(visibleMin + i * step),
+      Math.round(dataMin + i * step),
     );
-  }, [chartData.length, visibleMin, visibleMax, isMobile]);
-
-  /*
-   * =========================================================
-   * CONVERTIR POSICIÓN X -> TIMESTAMP
-   * =========================================================
-   */
-
-  const getTimestampFromClientX = (clientX: number): number | null => {
-    const container = chartContainerRef.current;
-
-    if (!container) {
-      return null;
-    }
-
-    const rect = container.getBoundingClientRect();
-
-    if (rect.width <= 0) {
-      return null;
-    }
-
-    /*
-     * Posición horizontal relativa
-     * al contenedor.
-     */
-
-    let x = clientX - rect.left;
-
-    /*
-     * Limitamos la posición al área
-     * del contenedor.
-     */
-
-    x = Math.max(0, Math.min(x, rect.width));
-
-    /*
-     * Convertimos X -> porcentaje.
-     */
-
-    const ratio = x / rect.width;
-
-    /*
-     * Convertimos porcentaje -> timestamp.
-     */
-
-    const timestamp = visibleMin + ratio * (visibleMax - visibleMin);
-
-    if (!Number.isFinite(timestamp)) {
-      return null;
-    }
-
-    return timestamp;
-  };
-
-  const getTimestampFromMouseEvent = (
-    event: React.MouseEvent<HTMLDivElement>,
-  ): number | null => getTimestampFromClientX(event.clientX);
-
-  const getTimestampFromTouchEvent = (
-    event: React.TouchEvent<HTMLDivElement>,
-  ): number | null => {
-    const touch = event.touches[0] ?? event.changedTouches[0];
-
-    if (!touch) {
-      return null;
-    }
-
-    return getTimestampFromClientX(touch.clientX);
-  };
-
-  /*
-   * =========================================================
-   * MOUSE DOWN
-   * =========================================================
-   */
-
-  const handleSelectionMouseDown = (
-    event: React.MouseEvent<HTMLDivElement>,
-  ) => {
-    /*
-     * Solo botón izquierdo.
-     */
-
-    if (event.button !== 0) {
-      return;
-    }
-
-    event.preventDefault();
-    event.stopPropagation();
-
-    const timestamp = getTimestampFromMouseEvent(event);
-
-    if (timestamp === null) {
-      return;
-    }
-
-    setSelectionStart(timestamp);
-    setSelectionEnd(timestamp);
-    setIsSelecting(true);
-  };
-
-  /*
-   * =========================================================
-   * MOUSE MOVE
-   * =========================================================
-   */
-
-  const handleSelectionMouseMove = (
-    event: React.MouseEvent<HTMLDivElement>,
-  ) => {
-    if (!isSelecting) {
-      return;
-    }
-
-    event.preventDefault();
-    event.stopPropagation();
-
-    const timestamp = getTimestampFromMouseEvent(event);
-
-    if (timestamp === null) {
-      return;
-    }
-
-    setSelectionEnd(timestamp);
-  };
-
-  /*
-   * =========================================================
-   * CIERRE DE SELECCIÓN (compartido por mouse y touch)
-   * =========================================================
-   */
-
-  const finishSelectionAt = (endTimestamp: number | null) => {
-    if (!isSelecting) {
-      return;
-    }
-
-    if (selectionStart === null || endTimestamp === null) {
-      setSelectionStart(null);
-      setSelectionEnd(null);
-      setIsSelecting(false);
-      return;
-    }
-
-    const left = Math.min(selectionStart, endTimestamp);
-
-    const right = Math.max(selectionStart, endTimestamp);
-
-    /*
-     * Evitamos clics/toques simples.
-     *
-     * 1 segundo mínimo.
-     */
-
-    if (right - left < 1000) {
-      setSelectionStart(null);
-      setSelectionEnd(null);
-      setIsSelecting(false);
-      return;
-    }
-
-    /*
-     * Aplicamos zoom.
-     */
-
-    setZoomLeft(left);
-    setZoomRight(right);
-
-    setSelectionStart(null);
-    setSelectionEnd(null);
-    setIsSelecting(false);
-  };
-
-  /*
-   * =========================================================
-   * MOUSE UP
-   * =========================================================
-   */
-
-  const finishSelection = (event?: React.MouseEvent<HTMLDivElement>) => {
-    if (!isSelecting) {
-      return;
-    }
-
-    if (event) {
-      event.preventDefault();
-      event.stopPropagation();
-    }
-
-    const endTimestamp = event
-      ? getTimestampFromMouseEvent(event)
-      : selectionEnd;
-
-    finishSelectionAt(endTimestamp);
-  };
-
-  /*
-   * =========================================================
-   * TOUCH START / MOVE / END
-   * =========================================================
-   * Mismos gestos que con mouse, pero para dedo. No usamos
-   * preventDefault en touchstart/touchmove (React los trata
-   * como listeners pasivos y tira warning); en cambio, el
-   * overlay tiene `touch-action: none` en CSS para evitar
-   * que la página haga scroll mientras se arrastra.
-   */
-
-  const handleSelectionTouchStart = (
-    event: React.TouchEvent<HTMLDivElement>,
-  ) => {
-    const timestamp = getTimestampFromTouchEvent(event);
-
-    if (timestamp === null) {
-      return;
-    }
-
-    setSelectionStart(timestamp);
-    setSelectionEnd(timestamp);
-    setIsSelecting(true);
-  };
-
-  const handleSelectionTouchMove = (
-    event: React.TouchEvent<HTMLDivElement>,
-  ) => {
-    if (!isSelecting) {
-      return;
-    }
-
-    const timestamp = getTimestampFromTouchEvent(event);
-
-    if (timestamp === null) {
-      return;
-    }
-
-    setSelectionEnd(timestamp);
-  };
-
-  const finishTouchSelection = (
-    event?: React.TouchEvent<HTMLDivElement>,
-  ) => {
-    const endTimestamp = event
-      ? getTimestampFromTouchEvent(event)
-      : selectionEnd;
-
-    finishSelectionAt(endTimestamp);
-  };
-
-  /*
-   * =========================================================
-   * MOUSE UP GLOBAL
-   * =========================================================
-   */
-
-  useEffect(() => {
-    if (!isSelecting) {
-      return;
-    }
-
-    const handleWindowMouseUp = () => {
-      if (selectionStart === null || selectionEnd === null) {
-        setIsSelecting(false);
-        return;
-      }
-
-      const left = Math.min(selectionStart, selectionEnd);
-
-      const right = Math.max(selectionStart, selectionEnd);
-
-      if (right - left >= 1000) {
-        setZoomLeft(left);
-        setZoomRight(right);
-      }
-
-      setSelectionStart(null);
-      setSelectionEnd(null);
-      setIsSelecting(false);
-    };
-
-    window.addEventListener("mouseup", handleWindowMouseUp);
-    window.addEventListener("touchend", handleWindowMouseUp);
-    window.addEventListener("touchcancel", handleWindowMouseUp);
-
-    return () => {
-      window.removeEventListener("mouseup", handleWindowMouseUp);
-      window.removeEventListener("touchend", handleWindowMouseUp);
-      window.removeEventListener("touchcancel", handleWindowMouseUp);
-    };
-  }, [isSelecting, selectionStart, selectionEnd]);
-
-  /*
-   * =========================================================
-   * RESTAURAR ZOOM
-   * =========================================================
-   */
-
-  const zoomOut = () => {
-    setZoomLeft("dataMin");
-    setZoomRight("dataMax");
-
-    setSelectionStart(null);
-    setSelectionEnd(null);
-    setIsSelecting(false);
-  };
+  }, [chartData.length, dataMin, dataMax, isMobile]);
 
   /*
    * =========================================================
@@ -633,86 +295,30 @@ export default function InteractiveTimeChart({
 
   /*
    * =========================================================
-   * SELECCIÓN VISUAL
-   * =========================================================
-   */
-
-  const selectionLeft =
-    selectionStart !== null && selectionEnd !== null
-      ? Math.min(selectionStart, selectionEnd)
-      : null;
-
-  const selectionRight =
-    selectionStart !== null && selectionEnd !== null
-      ? Math.max(selectionStart, selectionEnd)
-      : null;
-
-  /*
-   * Convertimos la selección
-   * temporal a porcentaje visual.
-   */
-
-  const selectionLeftPercent =
-    selectionLeft !== null && visibleMax > visibleMin
-      ? ((selectionLeft - visibleMin) / (visibleMax - visibleMin)) * 100
-      : null;
-
-  const selectionWidthPercent =
-    selectionLeft !== null && selectionRight !== null && visibleMax > visibleMin
-      ? ((selectionRight - selectionLeft) / (visibleMax - visibleMin)) * 100
-      : null;
-
-  /*
-   * =========================================================
    * RENDER
    * =========================================================
    */
 
   return (
-    <div
-      className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm relative [&_*:focus]:outline-none [&_*:focus-visible]:outline-none [&_svg]:outline-none"
-      style={{
-        WebkitTapHighlightColor: "transparent",
-        WebkitTouchCallout: "none",
-      }}
-    >
+    <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm relative [&_*:focus]:outline-none [&_*:focus-visible]:outline-none [&_svg]:outline-none">
       {/* HEADER */}
 
-      <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-2 mb-4">
-        <div>
-          <h3 className="text-sm font-bold text-slate-800">{title}</h3>
+      <div className="mb-4">
+        <h3 className="text-sm font-bold text-slate-800">{title}</h3>
 
-          <p className="text-xs text-slate-400 mt-1">
-            <span className="font-semibold text-blue-600">{periodLabel}</span>
-
-            {" · Seleccioná y arrastrá sobre el gráfico para ampliar."}
-          </p>
-        </div>
-
-        {zoomLeft !== "dataMin" && (
-          <button
-            type="button"
-            onClick={zoomOut}
-            className="bg-blue-100 hover:bg-blue-200 text-blue-700 text-xs font-bold px-3 py-1.5 rounded-lg transition-colors border border-blue-200"
-          >
-            Restaurar Zoom
-          </button>
-        )}
+        <p className="text-xs text-slate-400 mt-1">
+          <span className="font-semibold text-blue-600">{periodLabel}</span>
+        </p>
       </div>
 
       {/* ÁREA DEL GRÁFICO */}
 
       <div
-        ref={chartContainerRef}
-        className="relative w-full select-none"
+        className="relative w-full"
         style={{
           height,
-          userSelect: "none",
-          WebkitUserSelect: "none",
         }}
       >
-        {/* RECHARTS */}
-
         <ResponsiveContainer width="100%" height="100%">
           <LineChart
             data={chartData}
@@ -735,12 +341,11 @@ export default function InteractiveTimeChart({
               dataKey="numericTime"
               type="number"
               scale="time"
-              domain={[visibleMin, visibleMax]}
+              domain={["dataMin", "dataMax"]}
               ticks={visibleTicks}
               tick={<CustomXAxisTick />}
               minTickGap={40}
               height={45}
-              allowDataOverflow
             />
 
             {/* EJES Y */}
@@ -781,11 +386,24 @@ export default function InteractiveTimeChart({
               />
             )}
 
-            {/* TOOLTIP */}
+            {/* TOOLTIP + CROSSHAIR */}
+            {/*
+             * El cursor es la línea vertical que marca, sobre
+             * cada serie, el punto exacto donde cruza al pasar
+             * el mouse o tocar la pantalla. `activeDot` en cada
+             * <Line> es lo que dibuja el punto resaltado sobre
+             * la línea en esa posición.
+             */}
 
             <Tooltip
               labelFormatter={(label) => formatChartDate(Number(label))}
               formatter={formatTooltip}
+              cursor={{
+                stroke: "#94a3b8",
+                strokeWidth: 1,
+                strokeDasharray: "4 4",
+              }}
+              isAnimationActive={false}
             />
 
             {/* LEYENDA */}
@@ -805,6 +423,31 @@ export default function InteractiveTimeChart({
               />
             )}
 
+            {/* LÍNEAS DE REFERENCIA */}
+
+            {referenceLines.map((ref, index) => (
+              <ReferenceLine
+                key={`ref-${index}-${ref.y}`}
+                yAxisId="left"
+                y={ref.y}
+                stroke={ref.color ?? "#94a3b8"}
+                strokeDasharray={ref.dash ?? "4 3"}
+                strokeWidth={1.25}
+                ifOverflow="extendDomain"
+                label={
+                  ref.label
+                    ? {
+                        value: ref.label,
+                        position: "insideTopRight",
+                        fill: ref.color ?? "#94a3b8",
+                        fontSize: isMobile ? 9 : 10,
+                        fontWeight: 600,
+                      }
+                    : undefined
+                }
+              />
+            ))}
+
             {/* SERIES */}
 
             {safeSeries.map((item) => (
@@ -817,56 +460,13 @@ export default function InteractiveTimeChart({
                 stroke={item.stroke ?? "#2563eb"}
                 strokeWidth={2}
                 dot={false}
+                activeDot={{ r: 5, strokeWidth: 2, stroke: "#fff" }}
                 hide={hiddenSeries[item.key] ?? item.hidden ?? false}
                 isAnimationActive={false}
               />
             ))}
           </LineChart>
         </ResponsiveContainer>
-
-        {/* =================================================
-            OVERLAY DE SELECCIÓN
-            ================================================= */}
-
-        <div
-          className="absolute left-0 right-0 z-10"
-          style={{
-            top: "46px",
-            bottom: "65px",
-            cursor: isSelecting ? "col-resize" : "crosshair",
-            userSelect: "none",
-            WebkitUserSelect: "none",
-            WebkitTapHighlightColor: "transparent",
-            // Evita que el navegador haga scroll de la página al
-            // arrastrar el dedo sobre el gráfico para seleccionar.
-            touchAction: "none",
-            background: "transparent",
-          }}
-          onMouseDown={handleSelectionMouseDown}
-          onMouseMove={handleSelectionMouseMove}
-          onMouseUp={finishSelection}
-          onTouchStart={handleSelectionTouchStart}
-          onTouchMove={handleSelectionTouchMove}
-          onTouchEnd={finishTouchSelection}
-        >
-          {/* SELECCIÓN VISUAL */}
-
-          {selectionLeftPercent !== null &&
-            selectionWidthPercent !== null &&
-            selectionWidthPercent > 0 && (
-              <div
-                className="absolute top-0 bottom-0"
-                style={{
-                  left: `${selectionLeftPercent}%`,
-                  width: `${selectionWidthPercent}%`,
-                  background: "rgba(59, 130, 246, 0.18)",
-                  borderLeft: "1px solid rgba(37, 99, 235, 0.7)",
-                  borderRight: "1px solid rgba(37, 99, 235, 0.7)",
-                  pointerEvents: "none",
-                }}
-              />
-            )}
-        </div>
       </div>
     </div>
   );

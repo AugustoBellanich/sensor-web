@@ -14,6 +14,12 @@ import type {
 import ElectrodeConfiguration from "./ElectrodeConfiguration";
 import B01SoilMoistureChart from "./B01SoilMoistureChart";
 import B01SoilTemperatureChart from "./B01SoilTemperatureChart";
+import B01SoilTempSummary from "./B01SoilTempSummary";
+import B01DailySoilTempChart from "./B01DailySoilTempChart";
+import {
+  getElectrodeReferences,
+  computeWaterStatus,
+} from "../../../lib/soilReferences";
 
 interface B01PanelProps {
   device: DeviceWithStatus;
@@ -33,6 +39,13 @@ export default function B01Panel({
   periodLabel,
 }: B01PanelProps) {
   const [varType, setVarType] = useState<B01Variable>("hv");
+
+  const hasWaterReferences = [1, 2, 3].some((index) =>
+    getElectrodeReferences(
+      electrodes.find((el) => el.electrode_index === index),
+      varType,
+    ),
+  );
 
   const formatLongDate = (isoString: string) => {
     return new Date(isoString).toLocaleString("es-AR", {
@@ -153,11 +166,37 @@ export default function B01Panel({
             </span>
           </div>
 
+          {hasWaterReferences && (
+            <p className="text-[11px] text-slate-400 -mt-2 mb-3">
+              La barra bajo cada valor ubica la lectura entre el punto de
+              marchitez (izquierda) y saturación (derecha); la marca
+              vertical señala la capacidad de campo. "AW" es el % de agua
+              útil disponible (0% = marchitez, 100% = capacidad de campo).
+            </p>
+          )}
+
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             {[1, 2, 3].map((index) => {
               const key = `e${index}_${varType}` as keyof ReadingB01;
               const value = latestReading[key];
               const electrode = electrodes.find((el) => el.electrode_index === index);
+
+              const refs = getElectrodeReferences(electrode, varType);
+              const status =
+                refs && typeof value === "number"
+                  ? computeWaterStatus(value, refs)
+                  : null;
+
+              // Posición del marcador en el gauge (0-100%), recortada
+              // a los bordes para que siempre quede visible aunque el
+              // valor real esté fuera del rango PMP-SAT calibrado.
+              const gaugePercent = status
+                ? Math.min(100, Math.max(0, status.fraction * 100))
+                : null;
+
+              const ccGaugePercent = status
+                ? Math.min(100, Math.max(0, status.ccFraction * 100))
+                : null;
 
               return (
                 <div key={index} className="bg-slate-50 border border-slate-100 rounded-xl p-3">
@@ -174,6 +213,27 @@ export default function B01Panel({
                       : "Profundidad N/D"}
                     {electrode?.texture ? ` · ${electrode.texture}` : ""}
                   </p>
+
+                  {status && gaugePercent !== null && ccGaugePercent !== null && (
+                    <div className="mt-2.5">
+                      <div className="relative h-1.5 rounded-full bg-slate-200 overflow-hidden">
+                        <div
+                          className={`absolute inset-y-0 left-0 ${status.barColorClass} transition-all`}
+                          style={{ width: `${gaugePercent}%` }}
+                        />
+                        {/* Marca de Capacidad de Campo dentro del gauge */}
+                        <div
+                          className="absolute inset-y-0 w-px bg-slate-500/60"
+                          style={{ left: `${ccGaugePercent}%` }}
+                        />
+                      </div>
+                      <p className={`text-[11px] font-semibold mt-1 ${status.textColorClass}`}>
+                        {status.label}
+                        {Number.isFinite(status.availableWaterPercent) &&
+                          ` · ${Math.round(status.availableWaterPercent)}% AW`}
+                      </p>
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -245,7 +305,12 @@ export default function B01Panel({
       </div>
 
       <B01SoilMoistureChart data={readings} electrodes={electrodes} b01VarType={varType} periodLabel={periodLabel} />
+
+      <B01SoilTempSummary readings={readings} periodLabel={periodLabel} />
+
       <B01SoilTemperatureChart data={readings} periodLabel={periodLabel} />
+
+      <B01DailySoilTempChart data={readings} periodLabel={periodLabel} />
     </div>
   );
 }

@@ -7,6 +7,8 @@ import {
 import type { ReadingC01, DeviceWithStatus } from "../../../types/sensor";
 
 import C01EnvironmentalChart from "./C01EnvironmentalChart";
+import C01AgroSummary from "./C01AgroSummary";
+import C01DailyExtremesChart from "./C01DailyExtremesChart";
 
 interface C01PanelProps {
   device: DeviceWithStatus;
@@ -168,7 +170,11 @@ const handleDownloadExcel = () => {
         </button>
       </div>
 
+      <C01AgroSummary readings={readings} periodLabel={periodLabel} />
+
       <C01EnvironmentalChart data={readings} periodLabel={periodLabel} />
+
+      <C01DailyExtremesChart data={readings} periodLabel={periodLabel} />
     </div>
   );
 }
