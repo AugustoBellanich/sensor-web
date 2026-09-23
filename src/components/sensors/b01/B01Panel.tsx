@@ -3,6 +3,9 @@ import {
   Clock3,
   CalendarDays,
   Download,
+  ArrowUp,
+  ArrowDown,
+  Minus,
 } from "lucide-react";
 
 import type {
@@ -20,6 +23,7 @@ import {
   getElectrodeReferences,
   computeWaterStatus,
 } from "../../../lib/soilReferences";
+import { computeMoistureTrend } from "../../../lib/soilMoistureTrend";
 
 interface B01PanelProps {
   device: DeviceWithStatus;
@@ -167,13 +171,20 @@ export default function B01Panel({
           </div>
 
           {hasWaterReferences && (
-            <p className="text-[11px] text-slate-400 -mt-2 mb-3">
+            <p className="text-[11px] text-slate-400 -mt-2 mb-1">
               La barra bajo cada valor ubica la lectura entre el punto de
               marchitez (izquierda) y saturación (derecha); la marca
               vertical señala la capacidad de campo. "AW" es el % de agua
               útil disponible (0% = marchitez, 100% = capacidad de campo).
             </p>
           )}
+
+          <p className="text-[11px] text-slate-400 -mt-2 mb-3">
+            <ArrowUp size={10} className="inline text-emerald-600" /> se está
+            mojando · <ArrowDown size={10} className="inline text-red-600" />{" "}
+            se está secando · <Minus size={10} className="inline text-slate-400" />{" "}
+            sin cambios relevantes, comparado con hace 6 horas.
+          </p>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             {[1, 2, 3].map((index) => {
@@ -186,6 +197,14 @@ export default function B01Panel({
                 refs && typeof value === "number"
                   ? computeWaterStatus(value, refs)
                   : null;
+
+              const trend = computeMoistureTrend(
+                readings,
+                index,
+                varType,
+                typeof value === "number" ? value : null,
+                latestReading.timestamp,
+              );
 
               // Posición del marcador en el gauge (0-100%), recortada
               // a los bordes para que siempre quede visible aunque el
@@ -201,12 +220,35 @@ export default function B01Panel({
               return (
                 <div key={index} className="bg-slate-50 border border-slate-100 rounded-xl p-3">
                   <p className="text-sm font-bold text-blue-600">Electrodo {index}</p>
-                  <p className="text-lg font-bold text-slate-800 mt-1">
-                    {typeof value === "number" ? value.toFixed(varType === "mv" ? 0 : 1) : "N/D"}
-                    <span className="text-xs font-normal text-slate-500 ml-1">
-                      {varType === "mv" ? "mV" : "%"}
-                    </span>
-                  </p>
+                  <div className="flex items-center gap-1.5 mt-1">
+                    <p className="text-lg font-bold text-slate-800">
+                      {typeof value === "number" ? value.toFixed(varType === "mv" ? 0 : 1) : "N/D"}
+                      <span className="text-xs font-normal text-slate-500 ml-1">
+                        {varType === "mv" ? "mV" : "%"}
+                      </span>
+                    </p>
+
+                    {trend && (
+                      <span
+                        title={
+                          trend.direction === "stable"
+                            ? "Sin cambios relevantes en las últimas 6 h"
+                            : `${trend.direction === "wetting" ? "Se está mojando" : "Se está secando"} · ${trend.delta > 0 ? "+" : ""}${trend.delta.toFixed(varType === "mv" ? 0 : 1)}${varType === "mv" ? " mV" : " pp"} en 6 h`
+                        }
+                        className={`flex items-center gap-0.5 text-[11px] font-semibold px-1.5 py-0.5 rounded-full cursor-help ${
+                          trend.direction === "wetting"
+                            ? "bg-emerald-100 text-emerald-700"
+                            : trend.direction === "drying"
+                              ? "bg-red-100 text-red-700"
+                              : "bg-slate-200 text-slate-500"
+                        }`}
+                      >
+                        {trend.direction === "wetting" && <ArrowUp size={11} />}
+                        {trend.direction === "drying" && <ArrowDown size={11} />}
+                        {trend.direction === "stable" && <Minus size={11} />}
+                      </span>
+                    )}
+                  </div>
                   <p className="text-[11px] text-slate-500 mt-1">
                     {electrode?.depth !== null && electrode?.depth !== undefined
                       ? `${electrode.depth} cm`
