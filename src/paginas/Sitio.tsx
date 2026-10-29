@@ -9,11 +9,11 @@ import { HaceCorto, IconoFamilia } from "@/componentes/familia";
 import { Grafico, type Serie } from "@/componentes/Grafico";
 import { Medidor } from "@/componentes/Medidor";
 import { Aviso, Boton, Cargando, Segmento, Tarjeta } from "@/componentes/ui";
-import { estadoHidrico, horas, num, referencias, ZONAS, type Referencias, resumenClima, resumenSuelo, UNIDADES, unidadesDisponibles, type Dia, type Unidad } from "@/datos/agro";
+import { aguaUtilPerfil, estadoHidrico, fraseSobreCC, horas, num, referencias, ZONAS, type Referencias, resumenClima, resumenSuelo, UNIDADES, unidadesDisponibles, type Dia, type Unidad } from "@/datos/agro";
 import { aliasPropio, familiaDeModelo, FAMILIAS } from "@/datos/familias";
 import { fechaHoraArg, PERIODOS, rango, textoIntervalo, type Periodo } from "@/datos/grafico";
 import { ESCALA_DPV, ESCALA_ROCIO, escalaSuelo, fraseSuelo } from "@/datos/medidor";
-import { aguaPerfil, capasSuelo, unidadDelSitio } from "@/datos/perfil";
+import { capasSuelo, unidadDelSitio } from "@/datos/perfil";
 import { descargarCsv, diarioSitio, infoSitio, serieSitio, type InfoSitio, type PuntoSerie } from "@/datos/series";
 import { aguaSitio, type AguaSitio } from "@/datos/sitios";
 import { useConsulta } from "@/datos/useConsulta";
@@ -220,7 +220,9 @@ function PerfilSuelo({ info }: { info: InfoSitio }) {
   const capas = useMemo(() => capasSuelo(info), [info]);
   const unidad = unidadDelSitio(info);
   const u = UNIDADES[unidad];
-  const agua = aguaPerfil(capas);
+  const perfil = aguaUtilPerfil(capas);
+  const agua = perfil.pct;
+  const sobreCC = fraseSobreCC(perfil.sobreCC);
   if (!ult) return null;
   return (
     <Tarjeta className="min-w-0 flex-[1_1_360px]" titulo="Último dato" derecha={<HaceCorto fecha={ult.t} />}>
@@ -232,7 +234,10 @@ function PerfilSuelo({ info }: { info: InfoSitio }) {
                 {Math.round(agua)}
                 <span className="text-[22px] font-medium text-texto-2"> %</span>
               </span>
-              <span className="text-[13px] text-texto-2">Agua útil del perfil</span>
+              <span className="text-[13px] text-texto-2" title="Cada profundidad cuenta entre 0 % (PMP) y 100 % (CC), según el agua que puede guardar.">
+                Agua útil del perfil
+              </span>
+              {sobreCC ? <span className="text-xs font-medium text-[#0369a1]">{sobreCC}</span> : null}
             </>
           ) : (
             <>

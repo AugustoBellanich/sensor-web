@@ -72,6 +72,39 @@ export function estadoHidrico(valor: number | null | undefined, r: Referencias) 
   return { fraccion, ccFraccion, aguaUtil, zona };
 }
 
+/** Una capa del perfil para sumar agua útil: su valor y sus referencias (null si no está calibrada). */
+export type CapaPerfil = { valor: number | null | undefined; refs: Referencias | null; profundidad?: number | null };
+
+/**
+ * Agua útil del perfil (D-84). Cada capa se acota a 0–100 %: sobre CC el agua drena y el cultivo casi
+ * no la aprovecha; bajo PMP no está disponible. Cada capa pesa según su capacidad, |CC − PMP|, como
+ * una lámina (agua disponible sobre capacidad total, criterio FAO-56), con el mismo espesor para cada
+ * electrodo. Las capas sobre CC se devuelven aparte para avisarlo. `pct` es null si ninguna capa está
+ * calibrada.
+ */
+export function aguaUtilPerfil(capas: CapaPerfil[]): { pct: number | null; sobreCC: CapaPerfil[] } {
+  let util = 0;
+  let capacidad = 0;
+  const sobreCC: CapaPerfil[] = [];
+  for (const c of capas) {
+    const est = c.refs ? estadoHidrico(c.valor, c.refs) : null;
+    if (!c.refs || !est || !Number.isFinite(est.aguaUtil)) continue;
+    const cap = Math.abs(c.refs.cc - c.refs.pmp);
+    util += Math.min(100, Math.max(0, est.aguaUtil)) * cap;
+    capacidad += cap;
+    if (est.zona === "exceso" || est.zona === "saturado") sobreCC.push(c);
+  }
+  return { pct: capacidad > 0 ? util / capacidad : null, sobreCC };
+}
+
+/** "1 capa sobre CC (60 cm)", "2 capas sobre CC (20 y 60 cm)"; null si ninguna. */
+export function fraseSobreCC(capas: CapaPerfil[]): string | null {
+  if (!capas.length) return null;
+  const prof = capas.map((c) => c.profundidad).filter((p): p is number => p != null);
+  const lista = prof.length ? ` (${prof.length > 1 ? `${prof.slice(0, -1).join(", ")} y ${prof.at(-1)}` : prof[0]} cm)` : "";
+  return `${capas.length} ${capas.length === 1 ? "capa" : "capas"} sobre CC${lista}`;
+}
+
 /** Cambio mínimo para hablar de tendencia y no de ruido del sensor. */
 const UMBRAL_TENDENCIA: Record<Unidad, number> = { hv: 0.3, hg: 0.3, mv: 5 };
 

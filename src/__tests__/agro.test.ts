@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  aguaUtilPerfil,
   estadoHidrico,
+  fraseSobreCC,
   frioPor,
   horas,
   inicioTemporadaFrio,
@@ -147,5 +149,42 @@ describe("clima", () => {
     expect(horas(2.999)).toBe("3 h");
     expect(num(13.14)).toBe("13,1");
     expect(num(null)).toBe("—");
+  });
+});
+
+describe("aguaUtilPerfil (D-84)", () => {
+  const r = { pmp: 10, cc: 30, sat: 45 };
+  it("acota cada capa a 0–100 % antes de sumar", () => {
+    // 4 %, 52 % y una capa saturada: antes daba 88 %, ahora 52 %.
+    const capas = [
+      { valor: 10.8, refs: r, profundidad: 20 },
+      { valor: 20.4, refs: r, profundidad: 40 },
+      { valor: 47, refs: r, profundidad: 60 },
+    ];
+    const res = aguaUtilPerfil(capas);
+    expect(res.pct).toBeCloseTo((4 + 52 + 100) / 3, 5);
+    expect(res.sobreCC.map((c) => c.profundidad)).toEqual([60]);
+  });
+  it("una capa bajo PMP aporta 0, no negativo", () => {
+    expect(aguaUtilPerfil([{ valor: 5, refs: r }, { valor: 30, refs: r }]).pct).toBeCloseTo(50, 5);
+  });
+  it("pesa cada capa por su capacidad (CC − PMP)", () => {
+    const arenosa = { pmp: 5, cc: 15, sat: 35 }; // capacidad 10
+    const franca = { pmp: 10, cc: 40, sat: 50 }; // capacidad 30
+    // arenosa llena (100 %), franca vacía (0 %): 10 de 40 = 25 %
+    expect(aguaUtilPerfil([{ valor: 15, refs: arenosa }, { valor: 10, refs: franca }]).pct).toBeCloseTo(25, 5);
+  });
+  it("sirve con escalas que bajan (mV)", () => {
+    const mv = { pmp: 1200, cc: 800, sat: 600 };
+    expect(aguaUtilPerfil([{ valor: 1000, refs: mv }]).pct).toBeCloseTo(50, 5);
+  });
+  it("sin capas calibradas no hay número", () => {
+    expect(aguaUtilPerfil([{ valor: 20, refs: null }]).pct).toBeNull();
+  });
+  it("frase de capas sobre CC", () => {
+    expect(fraseSobreCC([])).toBeNull();
+    expect(fraseSobreCC([{ valor: 40, refs: r, profundidad: 60 }])).toBe("1 capa sobre CC (60 cm)");
+    expect(fraseSobreCC([{ valor: 40, refs: r, profundidad: 20 }, { valor: 40, refs: r, profundidad: 60 }])).toBe("2 capas sobre CC (20 y 60 cm)");
+    expect(fraseSobreCC([{ valor: 40, refs: r }])).toBe("1 capa sobre CC");
   });
 });

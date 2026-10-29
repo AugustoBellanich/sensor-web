@@ -1,7 +1,7 @@
 // Estado de ahora de un sitio a partir de site_data_info: las capas de suelo con su estado
 // hídrico y el agua útil del perfil (misma cuenta que sensor-app/src/componentes/datos/PerfilSuelo),
 // y el resumen de una línea para tablas. Funciones puras: se prueban con vitest.
-import { estadoHidrico, referencias, tendencia, unidadesDisponibles, type Referencias, type Tendencia, type Unidad } from "./agro";
+import { aguaUtilPerfil, estadoHidrico, referencias, tendencia, unidadesDisponibles, type Referencias, type Tendencia, type Unidad } from "./agro";
 import type { InfoSitio } from "./series";
 
 export type Capa = {
@@ -42,10 +42,9 @@ export function capasSuelo(info: InfoSitio, unidad: Unidad = unidadDelSitio(info
   });
 }
 
-/** Promedio del agua útil de las capas calibradas (0 % = PMP, 100 % = CC); null si ninguna. */
+/** Agua útil del perfil (D-84, `aguaUtilPerfil`): capas acotadas a 0–100 % y pesadas por capacidad. */
 export function aguaPerfil(capas: Capa[]): number | null {
-  const con = capas.filter((c) => c.aguaUtil != null);
-  return con.length ? con.reduce((a, c) => a + c.aguaUtil!, 0) / con.length : null;
+  return aguaUtilPerfil(capas).pct;
 }
 
 /** Lo principal de ahora, para una tabla: agua útil y temperatura del suelo, o aire. */
