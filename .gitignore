@@ -24,3 +24,8 @@ dist-ssr
 *.sw?
 
 .env'
+
+# Variables de entorno (ver .env.example)
+.env
+.env.local
+*.tsbuildinfo
