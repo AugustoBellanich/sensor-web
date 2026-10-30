@@ -9,6 +9,7 @@ import {
   FileText,
   LoaderCircle,
   MapPin,
+  Settings2,
 } from "lucide-react";
 import { useCallback, useMemo, useState, type ReactNode } from "react";
 import { Link, useParams } from "react-router";
@@ -153,6 +154,16 @@ export function Sitio() {
           { texto: info?.name ?? "Sitio" },
         ]}
       >
+        {info?.establishment_id ? (
+          <Link
+            to={`/sitio/${info.id}/gestion`}
+            title="Cambiar el sitio o su equipo"
+            className="inline-flex h-[34px] items-center gap-1.5 rounded-lg border border-linea bg-white px-3 text-[13px] font-medium text-texto-2 no-underline hover:bg-fondo hover:text-tinta"
+          >
+            <Settings2 size={15} strokeWidth={1.9} aria-hidden />
+            Sitio
+          </Link>
+        ) : null}
         {d ? (
           <Link
             to={`/equipo/${d.id}`}

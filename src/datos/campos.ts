@@ -388,3 +388,131 @@ export async function quitarDelCampo(
     ? { ok: false, mensaje: mensajeBase(error.message) }
     : { ok: true };
 }
+
+// ---------------------------------------------------------------- sitios
+
+/** ¿El punto cae dentro del polígono? (anillo [lat, lng], par-impar). */
+export function dentroDe(
+  p: { lat: number; lng: number },
+  anilloLatLng: [number, number][],
+): boolean {
+  let adentro = false;
+  for (
+    let i = 0, j = anilloLatLng.length - 1;
+    i < anilloLatLng.length;
+    j = i++
+  ) {
+    const [aLat, aLng] = anilloLatLng[i];
+    const [bLat, bLng] = anilloLatLng[j];
+    if (
+      aLat > p.lat !== bLat > p.lat &&
+      p.lng < ((bLng - aLng) * (p.lat - aLat)) / (bLat - aLat) + aLng
+    )
+      adentro = !adentro;
+  }
+  return adentro;
+}
+
+/** El lote donde cae el punto, si cae en alguno. */
+export function loteDelPunto(
+  campo: DetalleCampo,
+  p: { lat: number; lng: number },
+): string | null {
+  return (
+    campo.plots.find((l) => l.boundary && dentroDe(p, anillo(l.boundary)))
+      ?.id ?? null
+  );
+}
+
+export async function crearSitio(
+  campo: string,
+  nombre: string,
+  punto: { lat: number; lng: number },
+  lote: string | null,
+  descripcion: string,
+): Promise<
+  | { ok: true; id: string; dentroDelLote: boolean | null }
+  | { ok: false; mensaje: string }
+> {
+  if (!nombre.trim())
+    return { ok: false, mensaje: "Escribí un nombre para el sitio." };
+  const { data, error } = await supabase.rpc("create_site", {
+    p_establishment_id: campo,
+    p_name: nombre.trim(),
+    p_lat: punto.lat,
+    p_lng: punto.lng,
+    p_plot_id: lote,
+    p_description: descripcion.trim() || null,
+  });
+  if (error) return { ok: false, mensaje: mensajeBase(error.message) };
+  const r = data as { id: string; inside_plot: boolean | null };
+  return { ok: true, id: r.id, dentroDelLote: r.inside_plot };
+}
+
+export async function editarSitio(
+  id: string,
+  cambios: {
+    name?: string;
+    description?: string | null;
+    lat?: number;
+    lng?: number;
+    plot_id?: string | null;
+  },
+): Promise<Resultado> {
+  const { error, count } = await supabase
+    .from("sites")
+    .update(cambios, { count: "exact" })
+    .eq("id", id);
+  if (error) return { ok: false, mensaje: mensajeBase(error.message) };
+  return count
+    ? { ok: true }
+    : { ok: false, mensaje: "No tenés permiso para cambiar este sitio." };
+}
+
+export type PasoPorSitio = {
+  device_id: string;
+  device_type: string;
+  device_alias: string | null;
+  start_at: string;
+  end_at: string | null;
+};
+
+export async function historialSitio(
+  sitio: string,
+): Promise<ConError<{ pasos: PasoPorSitio[] }>> {
+  const { data, error } = await supabase.rpc("site_device_history", {
+    p_site_id: sitio,
+  });
+  return { pasos: (data ?? []) as PasoPorSitio[], error: fallo(error) };
+}
+
+const inicioDelDia = (iso: string) => `${iso}T00:00:00-03:00`;
+
+/** Pone el equipo en el sitio desde esa fecha; si estaba en otro, esa ubicación se cierra. */
+export async function ubicarEquipo(
+  equipo: string,
+  sitio: string,
+  desde: string,
+): Promise<Resultado> {
+  const { error } = await supabase.rpc("reassign_device_to_site", {
+    p_device_id: equipo,
+    p_site_id: sitio,
+    p_at: inicioDelDia(desde),
+  });
+  return error
+    ? { ok: false, mensaje: mensajeBase(error.message) }
+    : { ok: true };
+}
+
+export async function quitarEquipo(
+  equipo: string,
+  hasta: string,
+): Promise<Resultado> {
+  const { error } = await supabase.rpc("unassign_device_from_site", {
+    p_device_id: equipo,
+    p_at: inicioDelDia(hasta),
+  });
+  return error
+    ? { ok: false, mensaje: mensajeBase(error.message) }
+    : { ok: true };
+}

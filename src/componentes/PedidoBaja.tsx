@@ -18,7 +18,7 @@ export function PedidoBaja() {
   const [motivo, setMotivo] = useState("");
   const [trabajando, setTrabajando] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const pedido = c.datos?.pedido ?? null;
+  const pedido = c.datos?.pedido?.requested_at ? c.datos.pedido : null;
   if (c.cargando && !c.datos) return null;
 
   if (pedido) {

@@ -1,14 +1,16 @@
-// Marcar un punto en el mapa satelital (ubicación de un campo): un clic pone el pin y se puede
-// arrastrar; "Usar mi ubicación" toma la del navegador si la persona lo permite. Se ven el
-// perímetro y los lotes del campo, si los hay, como referencia.
+// Marcar un punto en el mapa satelital (ubicación de un campo o de un sitio): un clic pone el pin y
+// se puede arrastrar; "Usar mi ubicación" toma la del navegador si la persona lo permite. Se ven el
+// perímetro y los lotes del campo, si los hay, y otros puntos (sitios) como referencia.
 import L from "leaflet";
 import { Crosshair } from "lucide-react";
 import { useEffect, useState } from "react";
 import {
+  CircleMarker,
   MapContainer,
   Marker,
   Polygon,
   TileLayer,
+  Tooltip,
   useMap,
   useMapEvents,
 } from "react-leaflet";
@@ -32,14 +34,26 @@ function AlHacerClic({ alElegir }: { alElegir: (p: Punto) => void }) {
   return null;
 }
 
-function Centrar({ punto, zoom }: { punto: Punto | null; zoom: number }) {
+/** Encuadra al abrir (todo lo que hay) y cuando se pide centrar (GPS). */
+function Encuadrar({
+  todo,
+  centrar,
+}: {
+  todo: [number, number][];
+  centrar: Punto | null;
+}) {
   const mapa = useMap();
   useEffect(() => {
-    if (punto)
-      mapa.setView([punto.lat, punto.lng], Math.max(mapa.getZoom(), zoom));
-    // Solo cuando se pide centrar (GPS o carga inicial).
+    if (todo.length > 1)
+      mapa.fitBounds(L.latLngBounds(todo), { padding: [30, 30], maxZoom: 18 });
+    else if (todo.length === 1) mapa.setView(todo[0], 16);
+    // Solo al abrir.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [punto?.lat, punto?.lng]);
+  }, []);
+  useEffect(() => {
+    if (centrar)
+      mapa.setView([centrar.lat, centrar.lng], Math.max(mapa.getZoom(), 16));
+  }, [centrar, mapa]);
   return null;
 }
 
@@ -47,16 +61,24 @@ export function UbicadorMapa({
   valor,
   alCambiar,
   referencias = [],
+  otros = [],
   alto = 360,
 }: {
   valor: Punto | null;
   alCambiar: (p: Punto) => void;
   referencias?: [number, number][][];
+  /** Otros puntos para orientarse (por ejemplo, los sitios que ya hay). */
+  otros?: { lat: number; lng: number; nombre: string }[];
   alto?: number;
 }) {
-  const [centrar, setCentrar] = useState<Punto | null>(valor);
+  const [centrar, setCentrar] = useState<Punto | null>(null);
   const [buscando, setBuscando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const todo: [number, number][] = [
+    ...(valor ? [[valor.lat, valor.lng] as [number, number]] : []),
+    ...referencias.flat(),
+    ...otros.map((o) => [o.lat, o.lng] as [number, number]),
+  ];
   return (
     <div className="flex flex-col gap-2">
       <div
@@ -64,8 +86,8 @@ export function UbicadorMapa({
         style={{ height: alto }}
       >
         <MapContainer
-          center={valor ? [valor.lat, valor.lng] : CATAMARCA}
-          zoom={valor ? 15 : 9}
+          center={todo[0] ?? CATAMARCA}
+          zoom={todo.length ? 16 : 9}
           scrollWheelZoom
           className="h-full w-full cursor-crosshair bg-noche"
           aria-label="Mapa para marcar la ubicación"
@@ -76,7 +98,7 @@ export function UbicadorMapa({
             maxZoom={19}
           />
           <AlHacerClic alElegir={alCambiar} />
-          <Centrar punto={centrar} zoom={15} />
+          <Encuadrar todo={todo} centrar={centrar} />
           {referencias.map((r, i) => (
             <Polygon
               key={i}
@@ -84,6 +106,21 @@ export function UbicadorMapa({
               pathOptions={{ color: "#7dd3fc", weight: 1.5, fillOpacity: 0.08 }}
               interactive={false}
             />
+          ))}
+          {otros.map((o) => (
+            <CircleMarker
+              key={`${o.lat},${o.lng}`}
+              center={[o.lat, o.lng]}
+              radius={5}
+              pathOptions={{
+                color: "#ffffff",
+                weight: 1.5,
+                fillColor: "#94a3b8",
+                fillOpacity: 1,
+              }}
+            >
+              <Tooltip direction="top">{o.nombre}</Tooltip>
+            </CircleMarker>
           ))}
           {valor ? (
             <Marker
@@ -132,7 +169,7 @@ export function UbicadorMapa({
         </Boton>
         <span className="text-xs text-texto-3">
           {valor
-            ? `${valor.lat.toFixed(5)}, ${valor.lng.toFixed(5)} · podés arrastrar el pin`
+            ? `${valor.lat.toFixed(6)}, ${valor.lng.toFixed(6)} · podés arrastrar el pin`
             : "Hacé clic en el mapa para marcarla."}
         </span>
       </div>

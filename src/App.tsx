@@ -14,6 +14,7 @@ import { CargarAgua } from "@/paginas/CargarAgua";
 import { CrearCuenta, Ingresar, Recuperar } from "@/paginas/Cuenta";
 import { EditarCampo, NuevoCampo } from "@/paginas/EditarCampo";
 import { Equipo } from "@/paginas/Equipo";
+import { GestionSitio, NuevoSitio } from "@/paginas/GestionSitio";
 import { Equipos } from "@/paginas/Equipos";
 import { Lote } from "@/paginas/Lote";
 import { Mapa } from "@/paginas/Mapa";
@@ -60,6 +61,8 @@ export function App() {
           <Route path="/campo/:campo/agua" element={<ConSesion><CargarAgua /></ConSesion>} />
           <Route path="/campo/:campo/lote/:id/copa" element={<ConSesion><CopaLote /></ConSesion>} />
           <Route path="/campo/:campo/lote/:id/riego" element={<ConSesion><RiegoLote /></ConSesion>} />
+          <Route path="/campo/:campo/sitio/nuevo" element={<ConSesion><NuevoSitio /></ConSesion>} />
+          <Route path="/sitio/:id/gestion" element={<ConSesion><GestionSitio /></ConSesion>} />
           <Route path="/sitio/:id" element={<ConSesion><Sitio /></ConSesion>} />
           <Route path="/sitio/:id/calibracion" element={<ConSesion><Calibracion /></ConSesion>} />
           <Route path="/admin/:seccion?" element={<ConSesion><Admin /></ConSesion>} />

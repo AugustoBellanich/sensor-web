@@ -384,7 +384,19 @@ export function Campo() {
                     </p>
                   )}
                 </Tarjeta>
-                <Tarjeta titulo={`Sitios (${k.sites.length})`}>
+                <Tarjeta
+                  titulo={`Sitios (${k.sites.length})`}
+                  derecha={
+                    k.can_edit ? (
+                      <Link
+                        to={`/campo/${k.id}/sitio/nuevo`}
+                        className="text-[13px] font-medium text-acento-oscuro no-underline hover:underline"
+                      >
+                        Nuevo sitio
+                      </Link>
+                    ) : null
+                  }
+                >
                   {k.sites.length ? (
                     k.sites.map((s) => (
                       <FilaSitio key={s.id} s={s} info={info.get(s.id)} />
