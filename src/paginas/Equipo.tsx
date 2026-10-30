@@ -1,7 +1,15 @@
 // Ficha de un equipo, como en la app: su estado (lo calcula la base, network_health), dónde estuvo,
 // el nombre y quién tiene acceso (dueño o admin comparten). Bluetooth, la tarjeta SD y la
 // calibración se hacen desde la app, en el campo.
-import { Battery, CalendarClock, Clock, Gauge, MapPin, RadioTower, UserRound } from "lucide-react";
+import {
+  Battery,
+  CalendarClock,
+  Clock,
+  Gauge,
+  MapPin,
+  RadioTower,
+  UserRound,
+} from "lucide-react";
 import { useCallback, useState, type FormEvent } from "react";
 import { Link, useParams } from "react-router";
 
@@ -9,9 +17,24 @@ import { ConAyuda } from "@/componentes/Ayuda";
 import { FraseEstado } from "@/componentes/EstadoEquipo";
 import { FamiliaYCodigo, IconoFam } from "@/componentes/familia";
 import { Barra, Contenido } from "@/componentes/Marco";
-import { Aviso, Boton, Cargando, Estado, FilaDato, Tarjeta, Titulo } from "@/componentes/ui";
+import {
+  Aviso,
+  Boton,
+  Cargando,
+  Estado,
+  FilaDato,
+  Tarjeta,
+  Titulo,
+} from "@/componentes/ui";
+import { nuevoCodigo } from "@/datos/administracion";
 import { historialEquipo } from "@/datos/campos";
-import { compartir, estadoEquipos, miembros, quitarAcceso, renombrarEquipo } from "@/datos/equipos";
+import {
+  compartir,
+  estadoEquipos,
+  miembros,
+  quitarAcceso,
+  renombrarEquipo,
+} from "@/datos/equipos";
 import { duracion, hace } from "@/datos/estado";
 import { aliasPropio, familiaDeModelo, tituloEquipo } from "@/datos/familias";
 import { fechaHoraArg } from "@/datos/grafico";
@@ -21,28 +44,47 @@ import { useConsulta } from "@/datos/useConsulta";
 import { useSesion } from "@/sesion/SesionContexto";
 
 const ROL = { owner: "Dueño", editor: "Editor", viewer: "Solo ver" } as const;
-const fecha = (t: string) => fechaHoraArg(t).slice(0, 10).split("-").reverse().join("/");
+const fecha = (t: string) =>
+  fechaHoraArg(t).slice(0, 10).split("-").reverse().join("/");
 
 export function Equipo() {
   const { id = "" } = useParams();
   const { esAdmin, sesion } = useSesion();
   const c = useConsulta(
     useCallback(async () => {
-      const [e, h, p] = await Promise.all([estadoEquipos(), saludRed(), historialEquipo(id)]);
-      return { e: e.equipos.find((x) => x.id === id) ?? null, s: h.equipos.find((x) => x.device_id === id) ?? null, pasos: p.pasos, error: e.error ?? h.error ?? p.error };
+      const [e, h, p] = await Promise.all([
+        estadoEquipos(),
+        saludRed(),
+        historialEquipo(id),
+      ]);
+      return {
+        e: e.equipos.find((x) => x.id === id) ?? null,
+        s: h.equipos.find((x) => x.device_id === id) ?? null,
+        pasos: p.pasos,
+        error: e.error ?? h.error ?? p.error,
+      };
     }, [id]),
   );
   const e = c.datos?.e ?? null;
   const s = c.datos?.s ?? null;
   const familia = e ? familiaDeModelo(e.type) : null;
-  const puedeEditar = esAdmin || e?.my_role === "owner" || e?.my_role === "editor";
+  const puedeEditar =
+    esAdmin || e?.my_role === "owner" || e?.my_role === "editor";
   const puedeCompartir = esAdmin || e?.my_role === "owner";
 
   return (
     <>
-      <Barra migas={[{ texto: "Equipos", a: "/" }, { texto: e ? tituloEquipo(e) : id }]}>
+      <Barra
+        migas={[
+          { texto: "Equipos", a: "/" },
+          { texto: e ? tituloEquipo(e) : id },
+        ]}
+      >
         {e?.site_id ? (
-          <Link to={`/sitio/${e.site_id}`} className="inline-flex h-[34px] items-center rounded-lg border border-tinta bg-tinta px-3 text-[13px] font-medium text-white no-underline hover:bg-[#1e293b]">
+          <Link
+            to={`/sitio/${e.site_id}`}
+            className="inline-flex h-[34px] items-center rounded-lg border border-tinta bg-tinta px-3 text-[13px] font-medium text-white no-underline hover:bg-[#1e293b]"
+          >
             Ver datos
           </Link>
         ) : null}
@@ -50,7 +92,12 @@ export function Equipo() {
       <Contenido ancho={1200}>
         <Aviso mensaje={c.error} />
         {c.cargando && !e ? <Cargando texto="Leyendo el equipo…" /> : null}
-        {!c.cargando && !e && !c.error ? <Aviso tipo="aviso" mensaje="No tenés acceso a este equipo o no existe." /> : null}
+        {!c.cargando && !e && !c.error ? (
+          <Aviso
+            tipo="aviso"
+            mensaje="No tenés acceso a este equipo o no existe."
+          />
+        ) : null}
         {e ? (
           <>
             <Titulo
@@ -65,14 +112,26 @@ export function Equipo() {
                   <FamiliaYCodigo familia={familia} codigo={e.id} />
                   {e.site_name ? (
                     <span className="inline-flex items-center gap-1.5">
-                      <MapPin size={14} strokeWidth={1.9} className="text-texto-3" aria-hidden />
-                      {[e.site_name, e.plot_name, e.establishment_name].filter(Boolean).join(", ")}
+                      <MapPin
+                        size={14}
+                        strokeWidth={1.9}
+                        className="text-texto-3"
+                        aria-hidden
+                      />
+                      {[e.site_name, e.plot_name, e.establishment_name]
+                        .filter(Boolean)
+                        .join(", ")}
                     </span>
                   ) : null}
                 </>
               }
             />
-            {e.activity === "retired" ? <Aviso tipo="aviso" mensaje="Equipo retirado: no carga datos ni se puede ubicar en un sitio. Sus datos quedan." /> : null}
+            {e.activity === "retired" ? (
+              <Aviso
+                tipo="aviso"
+                mensaje="Equipo retirado: no carga datos ni se puede ubicar en un sitio. Sus datos quedan."
+              />
+            ) : null}
             <div className="flex flex-wrap items-start gap-4">
               <div className="flex min-w-0 flex-[1_1_420px] flex-col gap-4">
                 {s && e.activity !== "retired" ? (
@@ -82,19 +141,38 @@ export function Equipo() {
                         s.causes.map((k) => (
                           <div key={k.code} className="flex flex-col gap-0.5">
                             <FraseEstado s={{ ...s, causes: [k] }} />
-                            {detalleCausa(k) ? <span className="pl-3 text-xs text-texto-3">{detalleCausa(k)}</span> : null}
+                            {detalleCausa(k) ? (
+                              <span className="pl-3 text-xs text-texto-3">
+                                {detalleCausa(k)}
+                              </span>
+                            ) : null}
                           </div>
                         ))
                       ) : (
-                        <Estado tipo={nivel(s) === "gris" ? "gris" : "ok"}>{TEXTO_ESTADO[s.state] ?? s.state}</Estado>
+                        <Estado tipo={nivel(s) === "gris" ? "gris" : "ok"}>
+                          {TEXTO_ESTADO[s.state] ?? s.state}
+                        </Estado>
                       )}
                     </div>
                     <FilaDato icono={Clock} etiqueta="Último dato">
-                      {s.last_reading_at ? hace(s.last_reading_at) : "Sin datos"}
+                      {s.last_reading_at
+                        ? hace(s.last_reading_at)
+                        : "Sin datos"}
                     </FilaDato>
                     {s.completeness_24h != null ? (
-                      <FilaDato icono={Gauge} etiqueta={<ConAyuda que="lecturas en 24 h" texto={AYUDA.lecturas24h}>Lecturas en 24 h</ConAyuda>}>
-                        {Math.round(s.completeness_24h * 100)} % de las esperadas
+                      <FilaDato
+                        icono={Gauge}
+                        etiqueta={
+                          <ConAyuda
+                            que="lecturas en 24 h"
+                            texto={AYUDA.lecturas24h}
+                          >
+                            Lecturas en 24 h
+                          </ConAyuda>
+                        }
+                      >
+                        {Math.round(s.completeness_24h * 100)} % de las
+                        esperadas
                       </FilaDato>
                     ) : null}
                     {s.gateway_id ? (
@@ -103,13 +181,25 @@ export function Equipo() {
                       </FilaDato>
                     ) : null}
                     {s.clock_offset_s != null ? (
-                      <FilaDato icono={CalendarClock} etiqueta="Reloj del equipo">
-                        {Math.abs(s.clock_offset_s) < 60 ? "En hora" : `Corrido ${duracion(Math.abs(s.clock_offset_s))}`}
+                      <FilaDato
+                        icono={CalendarClock}
+                        etiqueta="Reloj del equipo"
+                      >
+                        {Math.abs(s.clock_offset_s) < 60
+                          ? "En hora"
+                          : `Corrido ${duracion(Math.abs(s.clock_offset_s))}`}
                       </FilaDato>
                     ) : null}
                     {e.type !== "N01" ? (
                       <FilaDato icono={Battery} etiqueta="Batería">
-                        {[s.battery_pct != null ? `${s.battery_pct} %` : null, s.battery_mv != null ? `${(s.battery_mv / 1000).toFixed(2).replace(".", ",")} V` : null].filter(Boolean).join(" · ") || "Sin dato"}
+                        {[
+                          s.battery_pct != null ? `${s.battery_pct} %` : null,
+                          s.battery_mv != null
+                            ? `${(s.battery_mv / 1000).toFixed(2).replace(".", ",")} V`
+                            : null,
+                        ]
+                          .filter(Boolean)
+                          .join(" · ") || "Sin dato"}
                       </FilaDato>
                     ) : null}
                   </Tarjeta>
@@ -117,18 +207,39 @@ export function Equipo() {
                 <Tarjeta titulo="Dónde estuvo">
                   {c.datos?.pasos.length ? (
                     c.datos.pasos.map((p) => (
-                      <FilaDato key={`${p.site_id}-${p.start_at}`} icono={MapPin} etiqueta={[p.site_name, p.establishment_name].filter(Boolean).join(", ")}>
-                        {p.end_at ? `${fecha(p.start_at)} a ${fecha(p.end_at)}` : `desde ${fecha(p.start_at)}`}
+                      <FilaDato
+                        key={`${p.site_id}-${p.start_at}`}
+                        icono={MapPin}
+                        etiqueta={[p.site_name, p.establishment_name]
+                          .filter(Boolean)
+                          .join(", ")}
+                      >
+                        {p.end_at
+                          ? `${fecha(p.start_at)} a ${fecha(p.end_at)}`
+                          : `desde ${fecha(p.start_at)}`}
                       </FilaDato>
                     ))
                   ) : (
-                    <p className="text-[13px] text-texto-2">Todavía no estuvo en ningún sitio.</p>
+                    <p className="text-[13px] text-texto-2">
+                      Todavía no estuvo en ningún sitio.
+                    </p>
                   )}
                 </Tarjeta>
               </div>
               <div className="flex min-w-0 flex-[1_1_420px] flex-col gap-4">
-                {puedeEditar ? <Nombre id={e.id} actual={aliasPropio(e.alias, e.id)} alCambiar={c.actualizar} /> : null}
-                {puedeCompartir ? <Accesos id={e.id} miId={sesion?.user.id ?? ""} /> : null}
+                {esAdmin && !e.claimed && e.activity !== "retired" ? (
+                  <CodigoNuevo id={e.id} />
+                ) : null}
+                {puedeEditar ? (
+                  <Nombre
+                    id={e.id}
+                    actual={aliasPropio(e.alias, e.id)}
+                    alCambiar={c.actualizar}
+                  />
+                ) : null}
+                {puedeCompartir ? (
+                  <Accesos id={e.id} miId={sesion?.user.id ?? ""} />
+                ) : null}
                 {e.my_role && !puedeCompartir ? (
                   <Tarjeta titulo="Tu acceso">
                     <p className="text-[13px] text-texto-2">{ROL[e.my_role]}</p>
@@ -136,7 +247,10 @@ export function Equipo() {
                 ) : null}
               </div>
             </div>
-            <p className="text-xs text-texto-3">Conectar por Bluetooth, bajar la tarjeta SD y calibrar se hacen desde la app, en el campo.</p>
+            <p className="text-xs text-texto-3">
+              Conectar por Bluetooth, bajar la tarjeta SD y calibrar se hacen
+              desde la app, en el campo.
+            </p>
           </>
         ) : null}
       </Contenido>
@@ -144,7 +258,15 @@ export function Equipo() {
   );
 }
 
-function Nombre({ id, actual, alCambiar }: { id: string; actual: string | null; alCambiar: () => void }) {
+function Nombre({
+  id,
+  actual,
+  alCambiar,
+}: {
+  id: string;
+  actual: string | null;
+  alCambiar: () => void;
+}) {
   const [texto, setTexto] = useState(actual ?? "");
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -167,7 +289,12 @@ function Nombre({ id, actual, alCambiar }: { id: string; actual: string | null; 
           placeholder="Opcional: si no tiene, se ve el sitio"
           className="h-[34px] min-w-0 flex-1 rounded-lg border border-linea px-2.5 text-[13px] text-tinta outline-none focus:border-acento-oscuro"
         />
-        <Boton type="submit" variante="secundario" cargando={guardando} disabled={texto.trim() === (actual ?? "")}>
+        <Boton
+          type="submit"
+          variante="secundario"
+          cargando={guardando}
+          disabled={texto.trim() === (actual ?? "")}
+        >
           Guardar
         </Boton>
       </form>
@@ -181,7 +308,10 @@ function Accesos({ id, miId }: { id: string; miId: string }) {
   const [correo, setCorreo] = useState("");
   const [rol, setRol] = useState<"viewer" | "editor">("viewer");
   const [enviando, setEnviando] = useState(false);
-  const [mensaje, setMensaje] = useState<{ tipo: "error" | "bien"; texto: string } | null>(null);
+  const [mensaje, setMensaje] = useState<{
+    tipo: "error" | "bien";
+    texto: string;
+  } | null>(null);
   async function enviar(ev: FormEvent) {
     ev.preventDefault();
     setEnviando(true);
@@ -197,11 +327,23 @@ function Accesos({ id, miId }: { id: string; miId: string }) {
     <Tarjeta titulo="Quién tiene acceso">
       {c.cargando ? <Cargando /> : null}
       {(c.datos?.miembros ?? []).map((m) => (
-        <div key={m.user_id} className="flex items-center gap-2.5 border-t border-separador py-2 text-[13px] first:border-t-0">
-          <UserRound size={15} strokeWidth={1.9} className="text-texto-3" aria-hidden />
+        <div
+          key={m.user_id}
+          className="flex items-center gap-2.5 border-t border-separador py-2 text-[13px] first:border-t-0"
+        >
+          <UserRound
+            size={15}
+            strokeWidth={1.9}
+            className="text-texto-3"
+            aria-hidden
+          />
           <span className="flex min-w-0 flex-1 flex-col">
-            <span className="truncate text-tinta">{m.full_name ?? m.email}</span>
-            {m.full_name ? <span className="truncate text-xs text-texto-3">{m.email}</span> : null}
+            <span className="truncate text-tinta">
+              {m.full_name ?? m.email}
+            </span>
+            {m.full_name ? (
+              <span className="truncate text-xs text-texto-3">{m.email}</span>
+            ) : null}
           </span>
           <span className="text-texto-3">{ROL[m.role]}</span>
           {m.role !== "owner" && m.user_id !== miId ? (
@@ -241,8 +383,54 @@ function Accesos({ id, miId }: { id: string; miId: string }) {
           Compartir
         </Boton>
       </form>
-      <p className="mt-2 text-xs text-texto-3">Editor: ve los datos y puede ubicar, calibrar y configurar el equipo. Solo ver: ve el equipo y sus datos.</p>
-      {mensaje ? <p className={`mt-1 text-xs ${mensaje.tipo === "error" ? "text-error" : "text-[#047857]"}`}>{mensaje.texto}</p> : null}
+      <p className="mt-2 text-xs text-texto-3">
+        Editor: ve los datos y puede ubicar, calibrar y configurar el equipo.
+        Solo ver: ve el equipo y sus datos.
+      </p>
+      {mensaje ? (
+        <p
+          className={`mt-1 text-xs ${mensaje.tipo === "error" ? "text-error" : "text-[#047857]"}`}
+        >
+          {mensaje.texto}
+        </p>
+      ) : null}
+    </Tarjeta>
+  );
+}
+
+/** Equipo sin dueño (solo admin y staff): generar otro código de vinculación si se perdió. */
+function CodigoNuevo({ id }: { id: string }) {
+  const [codigo, setCodigo] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [cargando, setCargando] = useState(false);
+  return (
+    <Tarjeta titulo="Código de vinculación">
+      <p className="text-[13px] text-texto-2">
+        Este equipo todavía no tiene dueño. Si se perdió el código, generá uno
+        nuevo: el anterior deja de servir.
+      </p>
+      <Aviso mensaje={error} />
+      {codigo ? (
+        <p className="py-3 text-center font-mono text-[28px] font-bold tracking-[0.2em] text-tinta select-all">
+          {codigo}
+        </p>
+      ) : null}
+      <div className="mt-3">
+        <Boton
+          variante="secundario"
+          cargando={cargando}
+          onClick={async () => {
+            setCargando(true);
+            setError(null);
+            const r = await nuevoCodigo(id);
+            setCargando(false);
+            if (r.ok) setCodigo(r.codigo);
+            else setError(r.mensaje);
+          }}
+        >
+          Generar código nuevo
+        </Boton>
+      </div>
     </Tarjeta>
   );
 }

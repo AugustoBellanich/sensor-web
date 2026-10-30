@@ -5,6 +5,7 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router";
 
 import { Marco } from "@/componentes/Marco";
 import { Cargando } from "@/componentes/ui";
+import { Admin } from "@/paginas/Admin";
 import { Calibracion } from "@/paginas/Calibracion";
 import { Campo } from "@/paginas/Campo";
 import { Campos } from "@/paginas/Campos";
@@ -51,6 +52,7 @@ export function App() {
           <Route path="/campo/:campo/lote/:id" element={<ConSesion><Lote /></ConSesion>} />
           <Route path="/sitio/:id" element={<ConSesion><Sitio /></ConSesion>} />
           <Route path="/sitio/:id/calibracion" element={<ConSesion><Calibracion /></ConSesion>} />
+          <Route path="/admin/:seccion?" element={<ConSesion><Admin /></ConSesion>} />
           <Route path="/cuenta" element={<ConSesion><MiCuenta /></ConSesion>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

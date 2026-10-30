@@ -1,23 +1,24 @@
 // Marco de las pantallas con sesión: barra noche arriba con INTA | SENSOR, las secciones de la app
 // (Equipos, Mapa, Campos) y la cuenta; debajo, la barra con el camino (Campos › Campo › Lote › Sitio)
 // y el contenido a todo el ancho. Sin menú lateral: son pocas secciones y así queda espacio.
-import { ChevronRight, Cpu, LogOut, Map, MapPinned, type LucideIcon } from "lucide-react";
+import { ChevronRight, Cpu, LogOut, Map, MapPinned, ShieldCheck, type LucideIcon } from "lucide-react";
 import type { PropsWithChildren, ReactNode } from "react";
 import { Link, NavLink } from "react-router";
 
 import { cerrarSesion } from "@/datos/cuenta";
 import { useSesion } from "@/sesion/SesionContexto";
 
-const SECCIONES: { ruta: string; texto: string; icono: LucideIcon; fin?: boolean }[] = [
+const SECCIONES: { ruta: string; texto: string; icono: LucideIcon; fin?: boolean; admin?: boolean }[] = [
   { ruta: "/", texto: "Equipos", icono: Cpu, fin: true },
   { ruta: "/mapa", texto: "Mapa", icono: MapPinned },
   { ruta: "/campos", texto: "Campos", icono: Map },
+  { ruta: "/admin", texto: "Administración", icono: ShieldCheck, admin: true },
 ];
 
 const ROL = { user: "Usuario", staff: "Equipo del proyecto", admin: "Administrador" } as const;
 
 export function Marco({ children }: PropsWithChildren) {
-  const { perfil, sesion } = useSesion();
+  const { perfil, sesion, esAdmin } = useSesion();
   const nombre = perfil?.nombre ?? sesion?.user.email ?? "";
   const iniciales = nombre
     .split(/[\s@.]+/)
@@ -33,9 +34,9 @@ export function Marco({ children }: PropsWithChildren) {
           <span aria-hidden className="h-8 w-px bg-[#334155]" />
           <img src="/branding/isologotipo-blanco.svg" alt="SENSOR" className="h-10 w-auto" />
         </Link>
-        <nav aria-label="Secciones" className="order-3 w-full sm:order-none sm:w-auto">
-          <ul className="flex gap-1">
-            {SECCIONES.map(({ ruta, texto, icono: Icono, fin }) => (
+        <nav aria-label="Secciones" className="relative order-3 w-full overflow-x-auto sm:order-none sm:w-auto">
+          <ul className="flex gap-1 whitespace-nowrap">
+            {SECCIONES.filter((x) => !x.admin || esAdmin).map(({ ruta, texto, icono: Icono, fin }) => (
               <li key={ruta}>
                 <NavLink
                   to={ruta}
