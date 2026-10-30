@@ -7,7 +7,11 @@ import { Boton, FilaDato, Tarjeta, Titulo } from "@/componentes/ui";
 import { cerrarSesion } from "@/datos/cuenta";
 import { useSesion } from "@/sesion/SesionContexto";
 
-const ROL = { user: "Usuario", staff: "Equipo del proyecto", admin: "Administrador" } as const;
+const ROL = {
+  user: "Usuario",
+  staff: "Equipo del proyecto",
+  admin: "Administrador",
+} as const;
 
 export function MiCuenta() {
   const { perfil, sesion } = useSesion();
@@ -28,7 +32,11 @@ export function MiCuenta() {
           </FilaDato>
         </Tarjeta>
         <div>
-          <Boton variante="secundario" icono={LogOut} onClick={() => void cerrarSesion()}>
+          <Boton
+            variante="secundario"
+            icono={LogOut}
+            onClick={() => void cerrarSesion()}
+          >
             Cerrar sesión
           </Boton>
         </div>

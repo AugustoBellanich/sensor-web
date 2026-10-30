@@ -17,7 +17,9 @@ import {
 import { configurada } from "@/datos/supabase";
 
 function SinConfiguracion() {
-  return configurada ? null : <Aviso mensaje="Falta configurar la base (VITE_SUPABASE_URL y VITE_SUPABASE_PUBLISHABLE_KEY)." />;
+  return configurada ? null : (
+    <Aviso mensaje="Falta configurar la base (VITE_SUPABASE_URL y VITE_SUPABASE_PUBLISHABLE_KEY)." />
+  );
 }
 
 export function Ingresar() {
@@ -39,9 +41,13 @@ export function Ingresar() {
     else setError(r.mensaje);
   }
 
-  if (confirmar) return <Confirmar correo={correo} alVolver={() => setConfirmar(false)} />;
+  if (confirmar)
+    return <Confirmar correo={correo} alVolver={() => setConfirmar(false)} />;
   return (
-    <PantallaCuenta titulo="Ingresar" bajada="Al panel de datos de PROYECTO SENSOR.">
+    <PantallaCuenta
+      titulo="Ingresar"
+      bajada="Al panel de datos de PROYECTO SENSOR."
+    >
       <form onSubmit={enviar} className="flex flex-col gap-5" noValidate>
         <SinConfiguracion />
         <Aviso mensaje={error} />
@@ -66,10 +72,21 @@ export function Ingresar() {
           required
         />
         <div className="mt-1 flex flex-col gap-3">
-          <Boton tamano="grande" type="submit" cargando={cargando} iconoFin={ArrowRight} className="h-12">
+          <Boton
+            tamano="grande"
+            type="submit"
+            cargando={cargando}
+            iconoFin={ArrowRight}
+            className="h-12"
+          >
             Ingresar al panel
           </Boton>
-          <Boton tamano="grande" variante="secundario" className="h-12" onClick={() => navegar("/crear-cuenta")}>
+          <Boton
+            tamano="grande"
+            variante="secundario"
+            className="h-12"
+            onClick={() => navegar("/crear-cuenta")}
+          >
             Crear una cuenta
           </Boton>
         </div>
@@ -96,14 +113,31 @@ export function CrearCuenta() {
     if (r.confirmar) setConfirmar(true);
   }
 
-  if (confirmar) return <Confirmar correo={correo} alVolver={() => setConfirmar(false)} />;
+  if (confirmar)
+    return <Confirmar correo={correo} alVolver={() => setConfirmar(false)} />;
   return (
-    <PantallaCuenta titulo="Crear cuenta" bajada="Para ver tus equipos y sumarlos a la red.">
+    <PantallaCuenta
+      titulo="Crear cuenta"
+      bajada="Para ver tus equipos y sumarlos a la red."
+    >
       <form onSubmit={enviar} className="flex flex-col gap-4" noValidate>
         <SinConfiguracion />
         <Aviso mensaje={error} />
-        <Campo etiqueta="Nombre y apellido" autoComplete="name" icono={UserRound} value={nombre} onChange={(e) => setNombre(e.target.value)} />
-        <Campo etiqueta="Correo electrónico" type="email" autoComplete="email" icono={Mail} value={correo} onChange={(e) => setCorreo(e.target.value)} />
+        <Campo
+          etiqueta="Nombre y apellido"
+          autoComplete="name"
+          icono={UserRound}
+          value={nombre}
+          onChange={(e) => setNombre(e.target.value)}
+        />
+        <Campo
+          etiqueta="Correo electrónico"
+          type="email"
+          autoComplete="email"
+          icono={Mail}
+          value={correo}
+          onChange={(e) => setCorreo(e.target.value)}
+        />
         <Campo
           etiqueta="Contraseña"
           type="password"
@@ -113,7 +147,12 @@ export function CrearCuenta() {
           value={contrasena}
           onChange={(e) => setContrasena(e.target.value)}
         />
-        <Boton tamano="grande" type="submit" cargando={cargando} className="mt-1">
+        <Boton
+          tamano="grande"
+          type="submit"
+          cargando={cargando}
+          className="mt-1"
+        >
           Crear cuenta
         </Boton>
       </form>
@@ -124,7 +163,13 @@ export function CrearCuenta() {
   );
 }
 
-function Confirmar({ correo, alVolver }: { correo: string; alVolver: () => void }) {
+function Confirmar({
+  correo,
+  alVolver,
+}: {
+  correo: string;
+  alVolver: () => void;
+}) {
   const [codigo, setCodigo] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
@@ -140,11 +185,21 @@ function Confirmar({ correo, alVolver }: { correo: string; alVolver: () => void 
   }
 
   return (
-    <PantallaCuenta titulo="Confirmá tu correo" bajada={`Código enviado a ${correo}`}>
+    <PantallaCuenta
+      titulo="Confirmá tu correo"
+      bajada={`Código enviado a ${correo}`}
+    >
       <form onSubmit={enviar} className="flex flex-col gap-4" noValidate>
         <Aviso mensaje={error} />
         <Aviso tipo="bien" mensaje={aviso} />
-        <Campo etiqueta="Código" inputMode="numeric" autoComplete="one-time-code" icono={KeyRound} value={codigo} onChange={(e) => setCodigo(e.target.value)} />
+        <Campo
+          etiqueta="Código"
+          inputMode="numeric"
+          autoComplete="one-time-code"
+          icono={KeyRound}
+          value={codigo}
+          onChange={(e) => setCodigo(e.target.value)}
+        />
         <Boton tamano="grande" type="submit" cargando={cargando}>
           Confirmar
         </Boton>
@@ -155,13 +210,20 @@ function Confirmar({ correo, alVolver }: { correo: string; alVolver: () => void 
           className="text-acento-oscuro hover:underline"
           onClick={async () => {
             const r = await reenviarCodigoDeAlta(correo);
-            if (r.ok) setAviso("Código nuevo enviado. Revisá también el correo no deseado.");
+            if (r.ok)
+              setAviso(
+                "Código nuevo enviado. Revisá también el correo no deseado.",
+              );
             else setError(r.mensaje);
           }}
         >
           Reenviar código
         </button>
-        <button type="button" className="text-acento-oscuro hover:underline" onClick={alVolver}>
+        <button
+          type="button"
+          className="text-acento-oscuro hover:underline"
+          onClick={alVolver}
+        >
           Volver a ingresar
         </button>
       </div>
@@ -199,11 +261,25 @@ export function Recuperar() {
   }
 
   return (
-    <PantallaCuenta titulo="Recuperar contraseña" bajada={enviado ? `Código enviado a ${correo}` : "Te llega un código para elegir una contraseña nueva."}>
+    <PantallaCuenta
+      titulo="Recuperar contraseña"
+      bajada={
+        enviado
+          ? `Código enviado a ${correo}`
+          : "Te llega un código para elegir una contraseña nueva."
+      }
+    >
       {!enviado ? (
         <form onSubmit={pedir} className="flex flex-col gap-4" noValidate>
           <Aviso mensaje={error} />
-          <Campo etiqueta="Correo electrónico" type="email" autoComplete="email" icono={Mail} value={correo} onChange={(e) => setCorreo(e.target.value)} />
+          <Campo
+            etiqueta="Correo electrónico"
+            type="email"
+            autoComplete="email"
+            icono={Mail}
+            value={correo}
+            onChange={(e) => setCorreo(e.target.value)}
+          />
           <Boton tamano="grande" type="submit" cargando={cargando}>
             Enviar código
           </Boton>
@@ -211,7 +287,14 @@ export function Recuperar() {
       ) : (
         <form onSubmit={cambiar} className="flex flex-col gap-4" noValidate>
           <Aviso mensaje={error} />
-          <Campo etiqueta="Código" inputMode="numeric" autoComplete="one-time-code" icono={KeyRound} value={codigo} onChange={(e) => setCodigo(e.target.value)} />
+          <Campo
+            etiqueta="Código"
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            icono={KeyRound}
+            value={codigo}
+            onChange={(e) => setCodigo(e.target.value)}
+          />
           <Campo
             etiqueta="Contraseña nueva"
             type="password"
@@ -224,7 +307,11 @@ export function Recuperar() {
           <Boton tamano="grande" type="submit" cargando={cargando}>
             Guardar y entrar
           </Boton>
-          <button type="button" className="self-start text-sm text-acento-oscuro hover:underline" onClick={() => void pedirCodigoDeRecuperacion(correo)}>
+          <button
+            type="button"
+            className="self-start text-sm text-acento-oscuro hover:underline"
+            onClick={() => void pedirCodigoDeRecuperacion(correo)}
+          >
             Reenviar código
           </button>
         </form>

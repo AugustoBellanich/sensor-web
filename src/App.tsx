@@ -11,6 +11,7 @@ import { Campo } from "@/paginas/Campo";
 import { Campos } from "@/paginas/Campos";
 import { CargarAgua } from "@/paginas/CargarAgua";
 import { CrearCuenta, Ingresar, Recuperar } from "@/paginas/Cuenta";
+import { EditarCampo, NuevoCampo } from "@/paginas/EditarCampo";
 import { Equipo } from "@/paginas/Equipo";
 import { Equipos } from "@/paginas/Equipos";
 import { Lote } from "@/paginas/Lote";
@@ -51,6 +52,8 @@ export function App() {
           <Route path="/equipo/:id" element={<ConSesion><Equipo /></ConSesion>} />
           <Route path="/mapa" element={<ConSesion><Mapa /></ConSesion>} />
           <Route path="/campos" element={<ConSesion><Campos /></ConSesion>} />
+          <Route path="/campos/nuevo" element={<ConSesion><NuevoCampo /></ConSesion>} />
+          <Route path="/campo/:id/editar" element={<ConSesion><EditarCampo /></ConSesion>} />
           <Route path="/campo/:id" element={<ConSesion><Campo /></ConSesion>} />
           <Route path="/campo/:campo/lote/:id" element={<ConSesion><Lote /></ConSesion>} />
           <Route path="/campo/:campo/agua" element={<ConSesion><CargarAgua /></ConSesion>} />

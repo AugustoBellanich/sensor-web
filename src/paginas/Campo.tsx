@@ -3,14 +3,17 @@
 // Dibujar lotes, ubicar sitios, cargar lluvias y dar permisos se hace en la app.
 import {
   ChevronRight,
+  Pencil,
   CloudRain,
   Droplets,
   MapPin,
   Spline,
   Users,
 } from "lucide-react";
-import { useCallback } from "react";
+import { useCallback, useState, type FormEvent } from "react";
 import { Link, useParams } from "react-router";
+
+import { ConAyuda } from "@/componentes/Ayuda";
 
 import { IconoEstado } from "@/componentes/EstadoEquipo";
 import { FamiliaYCodigo, HaceCorto, IconoFam } from "@/componentes/familia";
@@ -21,11 +24,21 @@ import {
 } from "@/componentes/MapaCampo";
 import { Barra, Contenido } from "@/componentes/Marco";
 import { PasarA } from "@/componentes/PasarA";
-import { Aviso, Cargando, Dato, Tarjeta, Titulo } from "@/componentes/ui";
+import {
+  Aviso,
+  Boton,
+  Cargando,
+  Dato,
+  Tarjeta,
+  Titulo,
+} from "@/componentes/ui";
 import {
   anillo,
   detalleCampo,
+  compartirCampo,
   miembrosCampo,
+  quitarDelCampo,
+  type MiembroCampo,
   NOMBRE_METODO,
   textoHa,
   type Lote,
@@ -35,6 +48,7 @@ import { familiaDeModelo } from "@/datos/familias";
 import { ahoraSitio } from "@/datos/perfil";
 import { fraseResumen, nivel, ordenar, resumen, saludRed } from "@/datos/salud";
 import { infoSitio, type InfoSitio } from "@/datos/series";
+import { AYUDA } from "@/datos/textos";
 import { useConsulta } from "@/datos/useConsulta";
 import { useSesion } from "@/sesion/SesionContexto";
 
@@ -138,7 +152,7 @@ export function FilaSitio({
 
 export function Campo() {
   const { id = "" } = useParams();
-  const { esAdmin } = useSesion();
+  const { esAdmin, sesion } = useSesion();
   const c = useConsulta(
     useCallback(async () => {
       const [d, h, m] = await Promise.all([
@@ -210,6 +224,15 @@ export function Campo() {
           { texto: k?.name ?? "Campo" },
         ]}
       >
+        {k?.can_edit ? (
+          <Link
+            to={`/campo/${k.id}/editar`}
+            className="inline-flex h-[34px] items-center gap-1.5 rounded-lg border border-linea bg-white px-3 text-[13px] font-medium text-texto-2 no-underline hover:bg-fondo hover:text-tinta"
+          >
+            <Pencil size={15} strokeWidth={1.9} aria-hidden />
+            Editar
+          </Link>
+        ) : null}
         {k?.can_edit && k.plots.length ? (
           <>
             <Link
@@ -370,20 +393,14 @@ export function Campo() {
                     <p className="text-[13px] text-texto-2">Sin sitios.</p>
                   )}
                 </Tarjeta>
-                {c.datos?.miembros.length ? (
-                  <Tarjeta titulo="Personas">
-                    {c.datos.miembros.map((m) => (
-                      <div
-                        key={m.user_id}
-                        className="flex items-center gap-2.5 border-t border-separador py-2 text-[13px] first:border-t-0"
-                      >
-                        <span className="min-w-0 flex-1 truncate text-tinta">
-                          {m.full_name ?? m.email}
-                        </span>
-                        <span className="text-texto-3">{ROL[m.role]}</span>
-                      </div>
-                    ))}
-                  </Tarjeta>
+                {c.datos?.miembros.length || k.is_owner || esAdmin ? (
+                  <Personas
+                    campo={k.id}
+                    miembros={c.datos?.miembros ?? []}
+                    gestiona={k.is_owner || esAdmin}
+                    miId={sesion?.user.id ?? ""}
+                    alCambiar={c.actualizar}
+                  />
                 ) : null}
                 {esAdmin ? (
                   <PasarA
@@ -399,5 +416,118 @@ export function Campo() {
         ) : null}
       </Contenido>
     </>
+  );
+}
+
+/** Personas con acceso al campo; el dueño (o admin) suma editores o lectores y los quita. */
+function Personas({
+  campo,
+  miembros,
+  gestiona,
+  miId,
+  alCambiar,
+}: {
+  campo: string;
+  miembros: MiembroCampo[];
+  gestiona: boolean;
+  miId: string;
+  alCambiar: () => void;
+}) {
+  const [correo, setCorreo] = useState("");
+  const [rol, setRol] = useState<"viewer" | "editor">("viewer");
+  const [enviando, setEnviando] = useState(false);
+  const [mensaje, setMensaje] = useState<{
+    tipo: "error" | "bien";
+    texto: string;
+  } | null>(null);
+  async function enviar(ev: FormEvent) {
+    ev.preventDefault();
+    setEnviando(true);
+    setMensaje(null);
+    const r = await compartirCampo(campo, correo, rol);
+    setEnviando(false);
+    if (!r.ok) return setMensaje({ tipo: "error", texto: r.mensaje });
+    setCorreo("");
+    setMensaje({ tipo: "bien", texto: "Listo: ya tiene acceso al campo." });
+    alCambiar();
+  }
+  return (
+    <Tarjeta
+      titulo={
+        <ConAyuda que="miembros" texto={AYUDA.miembros}>
+          Personas
+        </ConAyuda>
+      }
+    >
+      {miembros.map((m) => (
+        <div
+          key={m.user_id}
+          className="flex items-center gap-2.5 border-t border-separador py-2 text-[13px] first:border-t-0"
+        >
+          <span className="flex min-w-0 flex-1 flex-col">
+            <span className="truncate text-tinta">
+              {m.full_name ?? m.email}
+            </span>
+            {m.full_name && gestiona ? (
+              <span className="truncate text-xs text-texto-3">{m.email}</span>
+            ) : null}
+          </span>
+          <span className="text-texto-3">{ROL[m.role]}</span>
+          {gestiona && m.role !== "owner" && m.user_id !== miId ? (
+            <button
+              type="button"
+              onClick={async () => {
+                const r = await quitarDelCampo(campo, m.user_id);
+                if (!r.ok) setMensaje({ tipo: "error", texto: r.mensaje });
+                alCambiar();
+              }}
+              className="text-xs text-error hover:underline"
+            >
+              Quitar
+            </button>
+          ) : null}
+        </div>
+      ))}
+      {gestiona ? (
+        <>
+          <form onSubmit={enviar} className="mt-3 flex flex-wrap gap-2">
+            <input
+              type="email"
+              value={correo}
+              onChange={(e) => setCorreo(e.target.value)}
+              placeholder="Correo de la persona"
+              aria-label="Correo de la persona"
+              className="h-[34px] min-w-[180px] flex-1 rounded-lg border border-linea px-2.5 text-[13px] outline-none focus:ring-2 focus:ring-acento-oscuro"
+            />
+            <select
+              value={rol}
+              onChange={(e) => setRol(e.target.value as "viewer" | "editor")}
+              aria-label="Permiso"
+              className="h-[34px] rounded-lg border border-linea bg-white px-2 text-[13px]"
+            >
+              <option value="viewer">Solo ver</option>
+              <option value="editor">Editor</option>
+            </select>
+            <Boton
+              type="submit"
+              variante="secundario"
+              cargando={enviando}
+              disabled={!correo.includes("@")}
+            >
+              Sumar
+            </Boton>
+          </form>
+          {mensaje ? (
+            <div className="mt-2">
+              <Aviso tipo={mensaje.tipo} mensaje={mensaje.texto} />
+            </div>
+          ) : null}
+          <p className="mt-2 text-xs text-texto-3">
+            Editor: dibuja lotes, crea sitios, ubica equipos y carga cultivos y
+            riegos. Solo ver: ve el campo y sus datos, sin cambiar nada.
+          </p>
+        </>
+      ) : null}
+    </Tarjeta>
   );
 }

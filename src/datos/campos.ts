@@ -1,6 +1,8 @@
 // Subconjunto de sensor-app/src/datos/campos.ts, riego.ts, copa.ts y geo.ts (misma lógica en app y
 // web, D-83): lo que la web lee de campos, lotes, sitios, riegos y lluvias, copa y miembros.
-// Cargar riegos, dibujar lotes y calibrar siguen en la app. Cambiar en los dos.
+// Crear y editar campos y sus miembros también se hace acá; dibujar lotes y calibrar siguen en la
+// app. Cambiar en los dos.
+import type { Resultado } from "./cuenta";
 import { mensajeBase } from "./errores";
 import { supabase } from "./supabase";
 
@@ -46,13 +48,25 @@ export const NOMBRE_ACTIVIDAD: Record<Actividad["activity_type"], string> = {
   other: "Otro",
 };
 
-export const NOMBRE_CUBIERTA: Record<NonNullable<Actividad["inter_row_cover"]>, string> = {
+export const NOMBRE_CUBIERTA: Record<
+  NonNullable<Actividad["inter_row_cover"]>,
+  string
+> = {
   suelo_desnudo: "Suelo desnudo",
   cubierta_vegetal: "Cubierta vegetal",
   mulch: "Mulch",
 };
 
-export type MetodoRiego = "goteo" | "goteo_subterraneo" | "microaspersion" | "aspersion" | "pivote" | "surco" | "manto_melga" | "secano" | "otro";
+export type MetodoRiego =
+  | "goteo"
+  | "goteo_subterraneo"
+  | "microaspersion"
+  | "aspersion"
+  | "pivote"
+  | "surco"
+  | "manto_melga"
+  | "secano"
+  | "otro";
 
 export const NOMBRE_METODO: Record<MetodoRiego, string> = {
   goteo: "Goteo",
@@ -85,7 +99,12 @@ export type SitioCampo = {
   lat: number | null;
   lng: number | null;
   plot_id: string | null;
-  device: { id: string; type: string; alias: string | null; since: string } | null;
+  device: {
+    id: string;
+    type: string;
+    alias: string | null;
+    since: string;
+  } | null;
 };
 
 export type DetalleCampo = {
@@ -107,36 +126,72 @@ export type DetalleCampo = {
 };
 
 type ConError<T> = T & { error: string | null };
-const fallo = (e: { message: string } | null) => (e ? mensajeBase(e.message) : null);
+const fallo = (e: { message: string } | null) =>
+  e ? mensajeBase(e.message) : null;
 
 export async function misCampos(): Promise<ConError<{ campos: Campo[] }>> {
   const { data, error } = await supabase.rpc("my_establishments");
   return { campos: (data ?? []) as Campo[], error: fallo(error) };
 }
 
-export async function detalleCampo(id: string): Promise<ConError<{ campo: DetalleCampo | null }>> {
-  const { data, error } = await supabase.rpc("establishment_detail", { p_establishment_id: id });
+export async function detalleCampo(
+  id: string,
+): Promise<ConError<{ campo: DetalleCampo | null }>> {
+  const { data, error } = await supabase.rpc("establishment_detail", {
+    p_establishment_id: id,
+  });
   return { campo: (data as DetalleCampo) ?? null, error: fallo(error) };
 }
 
-export type FormaLote = { id: string; valid_from: string; valid_to: string | null; area_ha: number; boundary: PoligonoGeoJson; created_by_name: string | null };
+export type FormaLote = {
+  id: string;
+  valid_from: string;
+  valid_to: string | null;
+  area_ha: number;
+  boundary: PoligonoGeoJson;
+  created_by_name: string | null;
+};
 
-export async function historialLote(lote: string): Promise<ConError<{ formas: FormaLote[] }>> {
-  const { data, error } = await supabase.rpc("plot_history", { p_plot_id: lote });
+export async function historialLote(
+  lote: string,
+): Promise<ConError<{ formas: FormaLote[] }>> {
+  const { data, error } = await supabase.rpc("plot_history", {
+    p_plot_id: lote,
+  });
   return { formas: (data ?? []) as FormaLote[], error: fallo(error) };
 }
 
-export type PasoDeEquipo = { site_id: string; site_name: string; establishment_name: string | null; start_at: string; end_at: string | null };
+export type PasoDeEquipo = {
+  site_id: string;
+  site_name: string;
+  establishment_name: string | null;
+  start_at: string;
+  end_at: string | null;
+};
 
-export async function historialEquipo(equipo: string): Promise<ConError<{ pasos: PasoDeEquipo[] }>> {
-  const { data, error } = await supabase.rpc("device_site_history", { p_device_id: equipo });
+export async function historialEquipo(
+  equipo: string,
+): Promise<ConError<{ pasos: PasoDeEquipo[] }>> {
+  const { data, error } = await supabase.rpc("device_site_history", {
+    p_device_id: equipo,
+  });
   return { pasos: (data ?? []) as PasoDeEquipo[], error: fallo(error) };
 }
 
-export type MiembroCampo = { user_id: string; full_name: string | null; email: string; role: RolCampo; created_at: string };
+export type MiembroCampo = {
+  user_id: string;
+  full_name: string | null;
+  email: string;
+  role: RolCampo;
+  created_at: string;
+};
 
-export async function miembrosCampo(campo: string): Promise<ConError<{ miembros: MiembroCampo[] }>> {
-  const { data, error } = await supabase.rpc("establishment_members", { p_establishment_id: campo });
+export async function miembrosCampo(
+  campo: string,
+): Promise<ConError<{ miembros: MiembroCampo[] }>> {
+  const { data, error } = await supabase.rpc("establishment_members", {
+    p_establishment_id: campo,
+  });
   return { miembros: (data ?? []) as MiembroCampo[], error: fallo(error) };
 }
 
@@ -158,8 +213,14 @@ export type SistemaRiego = {
   notes: string | null;
 };
 
-export async function sistemasRiego(lote: string): Promise<ConError<{ sistemas: SistemaRiego[] }>> {
-  const { data, error } = await supabase.from("plot_irrigation_systems").select("*").eq("plot_id", lote).order("valid_from", { ascending: false });
+export async function sistemasRiego(
+  lote: string,
+): Promise<ConError<{ sistemas: SistemaRiego[] }>> {
+  const { data, error } = await supabase
+    .from("plot_irrigation_systems")
+    .select("*")
+    .eq("plot_id", lote)
+    .order("valid_from", { ascending: false });
   return { sistemas: (data ?? []) as SistemaRiego[], error: fallo(error) };
 }
 
@@ -176,8 +237,17 @@ export type EventoAgua = {
   net_mm: number | null;
 };
 
-export async function aguaLote(lote: string, desde: string, hasta: string): Promise<ConError<{ eventos: EventoAgua[] }>> {
-  const { data, error } = await supabase.rpc("plot_water", { p_plot_id: lote, p_from: desde, p_to: hasta, p_include_voided: false });
+export async function aguaLote(
+  lote: string,
+  desde: string,
+  hasta: string,
+): Promise<ConError<{ eventos: EventoAgua[] }>> {
+  const { data, error } = await supabase.rpc("plot_water", {
+    p_plot_id: lote,
+    p_from: desde,
+    p_to: hasta,
+    p_include_voided: false,
+  });
   return { eventos: (data ?? []) as EventoAgua[], error: fallo(error) };
 }
 
@@ -191,15 +261,28 @@ export function textoDuracion(min: number | null): string {
 
 /** mm con coma; "—" si no hay. */
 export function mm(v: number | null | undefined, decimales = 1): string {
-  return v == null ? "—" : `${v.toLocaleString("es-AR", { maximumFractionDigits: decimales })} mm`;
+  return v == null
+    ? "—"
+    : `${v.toLocaleString("es-AR", { maximumFractionDigits: decimales })} mm`;
 }
 
 // ---------------------------------------------------------------- copa
 
-export type MedicionCopa = { id: string; measured_on: string; fc: number | null; height_m: number | null; notes: string | null };
+export type MedicionCopa = {
+  id: string;
+  measured_on: string;
+  fc: number | null;
+  height_m: number | null;
+  notes: string | null;
+};
 
-export async function medicionesCopa(lote: string): Promise<ConError<{ mediciones: MedicionCopa[] }>> {
-  const { data, error } = await supabase.rpc("plot_canopy", { p_plot_id: lote, p_include_voided: false });
+export async function medicionesCopa(
+  lote: string,
+): Promise<ConError<{ mediciones: MedicionCopa[] }>> {
+  const { data, error } = await supabase.rpc("plot_canopy", {
+    p_plot_id: lote,
+    p_include_voided: false,
+  });
   return { mediciones: (data ?? []) as MedicionCopa[], error: fallo(error) };
 }
 
@@ -213,6 +296,95 @@ export function textoHa(ha: number | null | undefined): string {
 }
 
 /** Anillo exterior de un polígono GeoJSON como [lat, lng] para Leaflet. */
-export function anillo(g: PoligonoGeoJson | null | undefined): [number, number][] {
-  return (g?.coordinates?.[0] ?? []).map(([lng, lat]) => [lat, lng] as [number, number]);
+export function anillo(
+  g: PoligonoGeoJson | null | undefined,
+): [number, number][] {
+  return (g?.coordinates?.[0] ?? []).map(
+    ([lng, lat]) => [lat, lng] as [number, number],
+  );
+}
+
+// ---------------------------------------------------------------- gestión del campo
+
+export async function crearCampo(
+  nombre: string,
+  descripcion: string,
+  ubicacion: { lat: number; lng: number } | null,
+): Promise<{ ok: true; id: string } | { ok: false; mensaje: string }> {
+  if (!nombre.trim()) return { ok: false, mensaje: "Escribí un nombre." };
+  const { data, error } = await supabase.rpc("create_establishment", {
+    p_name: nombre.trim(),
+    p_description: descripcion.trim() || null,
+    p_lat: ubicacion?.lat ?? null,
+    p_lng: ubicacion?.lng ?? null,
+  });
+  if (error) return { ok: false, mensaje: mensajeBase(error.message) };
+  return { ok: true, id: data as string };
+}
+
+export async function editarCampo(
+  id: string,
+  cambios: {
+    name?: string;
+    description?: string | null;
+    province?: string | null;
+    department?: string | null;
+    lat?: number;
+    lng?: number;
+  },
+): Promise<Resultado> {
+  const { error, count } = await supabase
+    .from("establishments")
+    .update(cambios, { count: "exact" })
+    .eq("id", id);
+  if (error) return { ok: false, mensaje: mensajeBase(error.message) };
+  return count
+    ? { ok: true }
+    : { ok: false, mensaje: "No tenés permiso para cambiar este campo." };
+}
+
+/** Marca "del proyecto" (D-37). Solo admin y staff. */
+export async function marcarDelProyecto(
+  tipo: "device" | "establishment",
+  id: string,
+  valor: boolean,
+): Promise<Resultado> {
+  const { error } = await supabase.rpc("set_project_flag", {
+    p_kind: tipo,
+    p_id: id,
+    p_value: valor,
+  });
+  return error
+    ? { ok: false, mensaje: mensajeBase(error.message) }
+    : { ok: true };
+}
+
+export async function compartirCampo(
+  campo: string,
+  correo: string,
+  rol: "editor" | "viewer",
+): Promise<Resultado> {
+  if (!correo.trim())
+    return { ok: false, mensaje: "Escribí el correo de la persona." };
+  const { data, error } = await supabase.rpc("share_establishment", {
+    p_establishment_id: campo,
+    p_email: correo.trim().toLowerCase(),
+    p_role: rol,
+  });
+  if (error) return { ok: false, mensaje: mensajeBase(error.message) };
+  const r = data as { ok: boolean; error?: string };
+  return r.ok ? { ok: true } : { ok: false, mensaje: mensajeBase(r.error) };
+}
+
+export async function quitarDelCampo(
+  campo: string,
+  usuario: string,
+): Promise<Resultado> {
+  const { error } = await supabase.rpc("unshare_establishment", {
+    p_establishment_id: campo,
+    p_user_id: usuario,
+  });
+  return error
+    ? { ok: false, mensaje: mensajeBase(error.message) }
+    : { ok: true };
 }
