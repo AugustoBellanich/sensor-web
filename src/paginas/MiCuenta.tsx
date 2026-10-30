@@ -1,8 +1,9 @@
 // Cuenta, como la pestaña de la app: nombre, correo, rol y salir. Cambiar la contraseña se hace con
-// "¿Olvidaste tu contraseña?" en el inicio de sesión; borrar la cuenta, desde la app.
+// "¿Olvidaste tu contraseña?" en el inicio de sesión. Desde acá se pide la baja (la ejecuta un admin).
 import { LogOut, Mail, Shield, UserRound } from "lucide-react";
 
 import { Barra, Contenido } from "@/componentes/Marco";
+import { PedidoBaja } from "@/componentes/PedidoBaja";
 import { Boton, FilaDato, Tarjeta, Titulo } from "@/componentes/ui";
 import { cerrarSesion } from "@/datos/cuenta";
 import { useSesion } from "@/sesion/SesionContexto";
@@ -40,6 +41,7 @@ export function MiCuenta() {
             Cerrar sesión
           </Boton>
         </div>
+        <PedidoBaja />
       </Contenido>
     </>
   );
