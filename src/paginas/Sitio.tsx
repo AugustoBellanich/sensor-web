@@ -1,16 +1,33 @@
-// Datos de un sitio (D-39, D-40): cabecera noche con el equipo, el período y la descarga; abajo,
-// cómo está ahora (perfil de suelo o clima), los gráficos del período y la lectura agronómica.
-// La serie es del sitio: si se cambia el equipo, sigue. Cada uno ve lo que sus permisos dejan (D-11).
-import { ArrowLeft, CalendarRange, Database, Download, Droplets, MapPin, Thermometer } from "lucide-react";
+// Datos de un sitio (D-39, D-40), como en la app: primero cómo está ahora (perfil de suelo o
+// clima), después el período con su lectura y los gráficos, y la descarga. En la web "Ahora" queda
+// en una columna angosta a la izquierda y el período ocupa el resto. La serie es del sitio: si se
+// cambia el equipo, sigue. Cada uno ve lo que sus permisos le dejan (D-11).
+import { CalendarRange, Cpu, Database, Download, Droplets, MapPin, Thermometer } from "lucide-react";
 import { useCallback, useMemo, useState, type ReactNode } from "react";
 import { Link, useParams } from "react-router";
 
-import { HaceCorto, IconoFamilia } from "@/componentes/familia";
+import { BateriaCorta, FamiliaYCodigo, HaceCorto, IconoFam } from "@/componentes/familia";
 import { Grafico, type Serie } from "@/componentes/Grafico";
+import { Barra, Contenido } from "@/componentes/Marco";
 import { Medidor } from "@/componentes/Medidor";
-import { Aviso, Boton, Cargando, Segmento, Tarjeta } from "@/componentes/ui";
-import { aguaUtilPerfil, estadoHidrico, fraseSobreCC, horas, num, referencias, ZONAS, type Referencias, resumenClima, resumenSuelo, UNIDADES, unidadesDisponibles, type Dia, type Unidad } from "@/datos/agro";
-import { aliasPropio, familiaDeModelo, FAMILIAS } from "@/datos/familias";
+import { Aviso, Boton, Cargando, FilaDato, Segmento, Tarjeta, Titulo } from "@/componentes/ui";
+import {
+  aguaUtilPerfil,
+  estadoHidrico,
+  fraseSobreCC,
+  horas,
+  num,
+  referencias,
+  resumenClima,
+  resumenSuelo,
+  UNIDADES,
+  unidadesDisponibles,
+  ZONAS,
+  type Dia,
+  type Referencias,
+  type Unidad,
+} from "@/datos/agro";
+import { aliasPropio, familiaDeModelo } from "@/datos/familias";
 import { fechaHoraArg, PERIODOS, rango, textoIntervalo, type Periodo } from "@/datos/grafico";
 import { ESCALA_DPV, ESCALA_ROCIO, escalaSuelo, fraseSuelo } from "@/datos/medidor";
 import { capasSuelo, unidadDelSitio } from "@/datos/perfil";
@@ -44,172 +61,158 @@ export function Sitio() {
   const s = useConsulta(cargarPeriodo);
   const r = s.datos?.r ?? null;
   const hayDatos = !!(info?.b01 || info?.c01);
+  const d = info?.device ?? null;
+  const familia = d ? familiaDeModelo(d.type) : null;
+  const ultimo = info?.last_b01 ?? info?.last_c01 ?? null;
+  const hoy = (s.datos?.dias ?? []).find((x) => x.family === "C01" && r && x.dia === diaArg(r.hasta)) ?? null;
 
   return (
-    <div className="flex flex-col">
-      <Cabecera info={info} cargando={c.cargando} periodo={periodo} alCambiarPeriodo={setPeriodo} rango={r} hayDatos={hayDatos} />
-      <main className="relative -mt-14 mx-auto flex w-full max-w-[1400px] flex-col gap-5 px-5 pb-12 lg:px-10">
+    <>
+      <Barra
+        migas={[
+          { texto: "Campos", a: "/campos" },
+          ...(info?.establishment_id ? [{ texto: info.establishment_name ?? "Campo", a: `/campo/${info.establishment_id}` }] : []),
+          ...(info?.plot_name ? [{ texto: info.plot_name }] : []),
+          { texto: info?.name ?? "Sitio" },
+        ]}
+      >
+        {d ? (
+          <Link to={`/equipo/${d.id}`} className="inline-flex h-[34px] items-center gap-1.5 rounded-lg border border-linea bg-white px-3 text-[13px] font-medium text-texto-2 no-underline hover:bg-fondo hover:text-tinta">
+            <Cpu size={15} strokeWidth={1.9} aria-hidden />
+            Equipo
+          </Link>
+        ) : null}
+        {info && hayDatos ? <Descarga info={info} r={r} /> : null}
+      </Barra>
+      <Contenido>
         <Aviso mensaje={c.error ?? s.error} />
-        {!c.cargando && !info && !c.error ? (
-          <Tarjeta>
-            <p>No tenés acceso a este sitio o no existe.</p>
-          </Tarjeta>
+        {c.cargando && !info ? <Cargando texto="Leyendo el sitio…" /> : null}
+        {!c.cargando && !info && !c.error ? <Aviso tipo="aviso" mensaje="No tenés acceso a este sitio o no existe." /> : null}
+        {info ? (
+          <Titulo
+            icono={
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] border border-linea bg-white">
+                <IconoFam familia={familia} tamano={20} />
+              </span>
+            }
+            titulo={info.name}
+            datos={
+              <>
+                {d ? <FamiliaYCodigo familia={familia} codigo={aliasPropio(d.alias, d.id) ? `${d.id} · ${aliasPropio(d.alias, d.id)}` : d.id} /> : <span>Sin equipo</span>}
+                {info.plot_name || info.establishment_name ? (
+                  <span className="inline-flex items-center gap-1.5">
+                    <MapPin size={14} strokeWidth={1.9} className="text-texto-3" aria-hidden />
+                    {info.plot_name ?? info.establishment_name}
+                  </span>
+                ) : null}
+                {ultimo ? <HaceCorto fecha={ultimo.t} /> : null}
+                {ultimo && "battery_pct" in ultimo && ultimo.battery_pct != null ? <BateriaCorta pct={ultimo.battery_pct} /> : null}
+              </>
+            }
+          />
         ) : null}
         {info && !hayDatos ? (
           <Tarjeta>
-            <p className="text-[15px]">{info.device?.type === "N01" ? "En este sitio hay un receptor: no mide, pasa los datos de los sensores." : "Este sitio todavía no tiene datos."}</p>
+            <p className="text-[13px] text-texto-2">{d?.type === "N01" ? "En este sitio hay un receptor: no mide, pasa los datos de los sensores." : "Este sitio todavía no tiene datos."}</p>
           </Tarjeta>
         ) : null}
-        {info?.b01 ? (
-          <div className="flex flex-wrap items-start gap-5">
-            <PerfilSuelo info={info} />
-            {r && s.datos ? (
-              <Suelo info={info} serie={s.datos.b01} agua={s.datos.agua} desde={r.desde} hasta={r.hasta} intervalo={r.intervalo} />
-            ) : (
-              <Tarjeta className="min-w-0 flex-[2_1_560px]">
-                <Cargando texto="Leyendo el período…" />
-              </Tarjeta>
-            )}
+        {info && hayDatos ? (
+          <div className="flex flex-wrap items-start gap-4">
+            <div className="flex min-w-[290px] flex-[0_1_340px] flex-col gap-4 lg:sticky lg:top-4">
+              {info.b01 ? <PerfilSuelo info={info} /> : null}
+              {info.c01 ? <ClimaAhora info={info} hoy={hoy} /> : null}
+              <ElSitio info={info} />
+            </div>
+            <div className="flex min-w-0 flex-[1_1_560px] flex-col gap-3.5">
+              <div className="flex flex-wrap items-center justify-between gap-2.5">
+                <Segmento etiqueta="Período" opciones={PERIODOS} valor={periodo} alCambiar={setPeriodo} />
+                {r ? <span className="text-xs text-texto-3">Promedios cada {textoIntervalo(r.intervalo)}</span> : null}
+              </div>
+              {r && s.datos ? (
+                <>
+                  <Periodo dias={s.datos.dias} suelo={conSuelo} agua={s.datos.agua} />
+                  {info.b01 ? <Suelo info={info} serie={s.datos.b01} agua={s.datos.agua} desde={r.desde} hasta={r.hasta} intervalo={r.intervalo} /> : null}
+                  {info.c01 ? <Aire serie={s.datos.c01} desde={r.desde} hasta={r.hasta} intervalo={r.intervalo} /> : null}
+                  <Tarjeta>
+                    <Grafico
+                      titulo="Batería"
+                      unidad="%"
+                      alto={110}
+                      tiempos={(conSuelo ? s.datos.b01 : s.datos.c01).map((p) => Date.parse(p.t))}
+                      series={[{ nombre: "Batería", color: "#64748b", valores: (conSuelo ? s.datos.b01 : s.datos.c01).map((p) => p.battery_pct) }]}
+                      desde={r.desde}
+                      hasta={r.hasta}
+                      intervaloS={r.intervalo}
+                    />
+                  </Tarjeta>
+                </>
+              ) : (
+                <Tarjeta>
+                  <Cargando texto="Leyendo el período…" />
+                </Tarjeta>
+              )}
+            </div>
           </div>
         ) : null}
-        {info?.c01 ? (
-          <div className="flex flex-wrap items-start gap-5">
-            <ClimaAhora info={info} />
-            {r && s.datos ? <Aire serie={s.datos.c01} desde={r.desde} hasta={r.hasta} intervalo={r.intervalo} /> : null}
-          </div>
-        ) : null}
-        {r && s.datos && hayDatos ? (
-          <div className="flex flex-wrap items-start gap-5">
-            <Lectura dias={s.datos.dias} suelo={conSuelo} agua={s.datos.agua} />
-            <Tarjeta className="min-w-0 flex-[2_1_560px]">
-              <Grafico
-                titulo="Batería"
-                unidad="%"
-                alto={140}
-                tiempos={(conSuelo ? s.datos.b01 : s.datos.c01).map((p) => Date.parse(p.t))}
-                series={[{ nombre: "Batería", color: "#64748b", valores: (conSuelo ? s.datos.b01 : s.datos.c01).map((p) => p.battery_pct) }]}
-                desde={r.desde}
-                hasta={r.hasta}
-                intervaloS={r.intervalo}
-              />
-            </Tarjeta>
-          </div>
-        ) : null}
-      </main>
-    </div>
+      </Contenido>
+    </>
   );
 }
 
-// ------------------------------------------------------------------ cabecera
-
-function Cabecera({
-  info,
-  cargando,
-  periodo,
-  alCambiarPeriodo,
-  rango: r,
-  hayDatos,
-}: {
-  info: InfoSitio | null;
-  cargando: boolean;
-  periodo: Periodo;
-  alCambiarPeriodo: (p: Periodo) => void;
-  rango: { desde: number; hasta: number; intervalo: number } | null;
-  hayDatos: boolean;
-}) {
+function Descarga({ info, r }: { info: InfoSitio; r: { desde: number; hasta: number } | null }) {
   const [bajando, setBajando] = useState(false);
   const [mensaje, setMensaje] = useState<string | null>(null);
-  const d = info?.device ?? null;
-  const familia = d ? familiaDeModelo(d.type) : null;
-  const datos = [info?.b01, info?.c01].filter((x): x is NonNullable<typeof x> => !!x);
-  const n = datos.reduce((a, x) => a + x.n, 0);
-  const desde = datos.map((x) => x.first).sort()[0];
-  const hasta = datos.map((x) => x.last).sort().reverse()[0];
   return (
-    <header className="fondo-noche relative overflow-hidden px-5 pt-6 pb-24 text-noche-texto lg:px-10">
-      <div className="mx-auto flex max-w-[1400px] flex-col gap-5">
-        <nav aria-label="Ubicación" className="flex flex-wrap items-center gap-2 text-[13px] text-noche-texto-2">
-          <Link to="/" className="inline-flex items-center gap-1 text-noche-texto-2 no-underline hover:text-white">
-            <ArrowLeft size={14} aria-hidden />
-            Red
-          </Link>
-          {info?.establishment_name ? (
-            <>
-              <span aria-hidden>/</span>
-              <span>{info.establishment_name}</span>
-            </>
-          ) : null}
-          {info?.plot_name ? (
-            <>
-              <span aria-hidden>/</span>
-              <span>{info.plot_name}</span>
-            </>
-          ) : null}
-        </nav>
-        {cargando && !info ? <Cargando noche texto="Leyendo el sitio…" /> : null}
-        {info ? (
-          <div className="flex flex-wrap items-center justify-between gap-5">
-            <div className="flex min-w-0 items-center gap-4">
-              <IconoFamilia familia={familia} tamano={64} noche />
-              <div className="flex min-w-0 flex-col gap-1">
-                <span className="text-[13px] font-semibold" style={{ color: familia ? FAMILIAS[familia].noche : "#38bdf8" }}>
-                  {familia ? FAMILIAS[familia].nombre : "Sitio sin equipo"}
-                </span>
-                <h1 className="text-[28px] leading-tight font-bold tracking-tight text-white">{info.name}</h1>
-                {d ? <span className="font-mono text-[13px] text-noche-texto-2">{[aliasPropio(d.alias, d.id), d.id].filter(Boolean).join(", ")}</span> : null}
-              </div>
-            </div>
-            {hayDatos ? (
-              <div className="flex flex-wrap items-center gap-2.5">
-                <Segmento etiqueta="Período" noche opciones={PERIODOS} valor={periodo} alCambiar={alCambiarPeriodo} />
-                <Boton
-                  variante="noche"
-                  icono={Download}
-                  cargando={bajando}
-                  disabled={!r}
-                  onClick={async () => {
-                    if (!r) return;
-                    setBajando(true);
-                    setMensaje(null);
-                    const res = await descargarCsv(info, r.desde, r.hasta);
-                    setBajando(false);
-                    setMensaje(res.ok ? `Archivo con ${res.filas?.toLocaleString("es-AR")} lecturas.` : (res.mensaje ?? "No se pudo armar el archivo."));
-                  }}
-                >
-                  Descargar CSV
-                </Boton>
-              </div>
-            ) : null}
-          </div>
-        ) : null}
-        {info ? (
-          <div className="flex flex-wrap gap-x-7 gap-y-2 border-t border-noche-borde pt-4 text-sm">
-            <Dato icono={<MapPin size={17} aria-hidden />}>{info.establishment_name ? [info.establishment_name, info.plot_name].filter(Boolean).join(", ") : "Campo de otra persona"}</Dato>
-            {n > 0 ? <Dato icono={<Database size={17} aria-hidden />}>{n.toLocaleString("es-AR")} lecturas</Dato> : null}
-            {n > 0 ? (
-              <Dato icono={<CalendarRange size={17} aria-hidden />}>
-                {fecha(desde)} → {fecha(hasta)}
-              </Dato>
-            ) : null}
-            {r ? (
-              <span className="text-noche-texto-2">
-                Gráficos con promedio cada {textoIntervalo(r.intervalo)}
-                {mensaje ? `. ${mensaje}` : ""}
-              </span>
-            ) : null}
-          </div>
-        ) : null}
-      </div>
-    </header>
+    <span className="inline-flex items-center gap-2">
+      {mensaje ? <span className="text-xs text-texto-3">{mensaje}</span> : null}
+      <Boton
+        variante="secundario"
+        icono={Download}
+        cargando={bajando}
+        disabled={!r}
+        onClick={async () => {
+          if (!r) return;
+          setBajando(true);
+          setMensaje(null);
+          const res = await descargarCsv(info, r.desde, r.hasta);
+          setBajando(false);
+          setMensaje(res.ok ? `${res.filas?.toLocaleString("es-AR")} lecturas` : (res.mensaje ?? "No se pudo armar el archivo."));
+        }}
+      >
+        Descargar CSV
+      </Boton>
+    </span>
   );
 }
 
-function Dato({ icono, children }: { icono: ReactNode; children: ReactNode }) {
+function ElSitio({ info }: { info: InfoSitio }) {
+  const datos = [info.b01, info.c01].filter((x): x is NonNullable<typeof x> => !!x);
+  const n = datos.reduce((a, x) => a + x.n, 0);
+  const desde = datos.map((x) => x.first).sort()[0];
+  const textura = info.electrodes.find((e) => e.texture)?.texture;
   return (
-    <span className="flex items-center gap-2 text-noche-texto">
-      <span className="text-noche-texto-2">{icono}</span>
-      {children}
-    </span>
+    <Tarjeta titulo="El sitio">
+      {info.device ? (
+        <FilaDato icono={Cpu} etiqueta="Equipo desde">
+          {fecha(info.device.since)}
+        </FilaDato>
+      ) : null}
+      {n ? (
+        <FilaDato icono={Database} etiqueta="Lecturas">
+          {n.toLocaleString("es-AR")}
+        </FilaDato>
+      ) : null}
+      {desde ? (
+        <FilaDato icono={CalendarRange} etiqueta="Datos desde">
+          {fecha(desde)}
+        </FilaDato>
+      ) : null}
+      {info.b01 ? (
+        <FilaDato icono={Droplets} etiqueta="Suelo">
+          {textura ? `${textura}${info.electrodes.some((e) => e.calibrated) ? " (calibrado)" : ""}` : info.electrodes.some((e) => e.calibrated) ? "Calibrado" : "Sin calibración"}
+        </FilaDato>
+      ) : null}
+    </Tarjeta>
   );
 }
 
@@ -221,67 +224,48 @@ function PerfilSuelo({ info }: { info: InfoSitio }) {
   const unidad = unidadDelSitio(info);
   const u = UNIDADES[unidad];
   const perfil = aguaUtilPerfil(capas);
-  const agua = perfil.pct;
   const sobreCC = fraseSobreCC(perfil.sobreCC);
   if (!ult) return null;
   return (
-    <Tarjeta className="min-w-0 flex-[1_1_360px]" titulo="Último dato" derecha={<HaceCorto fecha={ult.t} />}>
-      <div className="mb-4 flex items-end justify-between gap-4">
-        <div className="flex flex-col gap-0.5">
-          {agua != null ? (
-            <>
-              <span className="text-[46px] leading-none font-bold tracking-tight text-tinta">
-                {Math.round(agua)}
-                <span className="text-[22px] font-medium text-texto-2"> %</span>
-              </span>
-              <span className="text-[13px] text-texto-2" title="Cada profundidad cuenta entre 0 % (PMP) y 100 % (CC), según el agua que puede guardar.">
-                Agua útil del perfil
-              </span>
-              {sobreCC ? <span className="text-xs font-medium text-[#0369a1]">{sobreCC}</span> : null}
-            </>
-          ) : (
-            <>
-              <span className="text-lg font-semibold text-tinta">Sin calibración</span>
-              <span className="text-[13px] text-texto-2">Contenido de agua, sin agua útil</span>
-            </>
-          )}
-        </div>
-        <div className="flex flex-col items-end gap-0.5">
-          <span className="flex items-center gap-1 text-2xl font-bold text-tinta">
-            <Thermometer size={18} className="text-[#ea580c]" aria-hidden />
-            {num(ult.soil_temp)}
-            <span className="text-[15px] font-medium text-texto-2"> °C</span>
+    <Tarjeta titulo="Ahora" derecha={<HaceCorto fecha={ult.t} />}>
+      <div className="mb-1 flex items-end justify-between gap-3">
+        <div className="flex flex-col">
+          <span className="text-xs text-texto-3" title="Cada profundidad cuenta entre 0 % (PMP) y 100 % (CC), según el agua que puede guardar.">
+            Agua útil del perfil
           </span>
-          <span className="text-[13px] text-texto-2">Temperatura del suelo</span>
+          {perfil.pct != null ? (
+            <span className="text-[28px] leading-tight font-semibold text-[#047857]">{Math.round(perfil.pct)} %</span>
+          ) : (
+            <span className="text-base font-semibold text-tinta">Sin calibración</span>
+          )}
+          {sobreCC ? <span className="text-[11.5px] text-[#0369a1]">{sobreCC}</span> : null}
+        </div>
+        <div className="flex flex-col items-end">
+          <span className="text-xs text-texto-3">Temp. del suelo</span>
+          <span className="inline-flex items-center gap-1 text-[22px] font-semibold text-tinta">
+            <Thermometer size={16} strokeWidth={1.9} className="text-[#ea580c]" aria-hidden />
+            {num(ult.soil_temp)} °C
+          </span>
         </div>
       </div>
-      <div className="overflow-hidden rounded-campo border border-borde">
-        {capas.map((k, n) => (
-          <div key={k.i} className={`flex ${n > 0 ? "border-t border-borde" : ""}`}>
-            <div className="flex w-16 shrink-0 flex-col items-center justify-center text-white" style={{ background: TIERRA[n] }}>
-              {k.profundidad != null ? (
-                <b className="text-base">
-                  {k.profundidad}
-                  <span className="text-xs font-medium"> cm</span>
-                </b>
-              ) : null}
-              <span className="font-mono text-[11px] text-white/85">E{k.i}</span>
-            </div>
-            <div className="flex min-w-0 flex-1 flex-col gap-1.5 px-3.5 py-3">
-              <span className="text-[22px] font-bold" style={{ color: colorValor(k.valor, k.refs) }}>
-                {num(k.valor, u.decimales)}
-                <span className="text-sm font-medium"> {u.simbolo}</span>
-              </span>
-              {k.refs && k.valor != null ? (
-                <Medidor escala={escalaSuelo(k.refs, k.valor)} valor={k.valor} nombre={`Electrodo ${k.i}`} oracion={fraseSuelo(k.valor, k.refs)} />
-              ) : (
-                <span className="text-xs text-texto-2">{unidad === "mv" ? `${num(k.mv, 0)} mV` : "Sin calibración"}</span>
-              )}
-              {k.textura ? <span className="text-xs text-texto-2">Suelo {k.textura.toLowerCase()}</span> : null}
-            </div>
+      {capas.map((k, n) => (
+        <div key={k.i} className="flex items-center gap-3 border-t border-separador py-2.5 first:border-t-0">
+          <span className="flex h-[34px] w-[34px] shrink-0 flex-col items-center justify-center rounded-lg text-xs leading-tight font-semibold text-white" style={{ background: TIERRA[n] }} title={`Electrodo ${k.i}`}>
+            {k.profundidad ?? `E${k.i}`}
+            {k.profundidad != null ? <span className="text-[9.5px] font-normal">cm</span> : null}
+          </span>
+          <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+            <span className="text-[15px] font-semibold" style={{ color: colorValor(k.valor, k.refs) }}>
+              {num(k.valor, u.decimales)} {u.simbolo}
+            </span>
+            {k.refs && k.valor != null ? (
+              <Medidor escala={escalaSuelo(k.refs, k.valor)} valor={k.valor} nombre={`Electrodo ${k.i}`} oracion={fraseSuelo(k.valor, k.refs)} />
+            ) : (
+              <span className="text-xs text-texto-3">{unidad === "mv" ? `${num(k.mv, 0)} mV` : "Sin calibración"}</span>
+            )}
           </div>
-        ))}
-      </div>
+        </div>
+      ))}
     </Tarjeta>
   );
 }
@@ -302,7 +286,7 @@ function Suelo({ info, serie, agua, desde, hasta, intervalo }: { info: InfoSitio
     const e = info.electrodes.find((x) => x.index === i);
     const refs = referencias(e, unidad);
     return {
-      nombre: e?.depth != null ? `E${i} ${e.depth} cm` : `E${i}`,
+      nombre: e?.depth != null ? `${e.depth} cm` : `E${i}`,
       color: COLOR_E[i - 1],
       valores: serie.map((p) => p[`e${i}_${unidad}`]),
       referencia: refs ? { desde: refs.pmp, hasta: refs.cc, color: "#059669", lineas: [{ valor: refs.cc, etiqueta: "CC" }, { valor: refs.pmp, etiqueta: "PMP" }, { valor: refs.sat, etiqueta: "SAT" }] } : null,
@@ -310,31 +294,23 @@ function Suelo({ info, serie, agua, desde, hasta, intervalo }: { info: InfoSitio
   });
   const hayRefs = humedad.some((h) => h.referencia);
   return (
-    <div className="flex min-w-0 flex-[2_1_560px] flex-col gap-5">
-      <Tarjeta
-        titulo="Humedad del suelo"
-        derecha={disponibles.length > 1 ? <Segmento chico etiqueta="Unidad" opciones={disponibles.map((x) => ({ valor: x, texto: UNIDADES[x].corto }))} valor={unidad} alCambiar={setElegida} /> : null}
-      >
-        <Grafico
-          titulo={unidad === "mv" ? "Señal de las sondas" : u.largo}
-          unidad={u.simbolo}
-          decimales={u.decimales}
-          tiempos={tiempos}
-          series={humedad}
-          aislable
-          agua={agua.map((a) => ({ t: Date.parse(a.started_at), mm: a.gross_mm, tipo: a.kind }))}
-          desde={desde}
-          hasta={hasta}
-          intervaloS={intervalo}
-          alto={300}
-          nota={[
-            hayRefs ? "Tocá una profundidad para verla sola, con su franja de agua útil (entre PMP y CC)." : null,
-            unidad === "mv" ? "Más mV = suelo más seco." : null,
-            agua.length ? "Barras de abajo: riegos y lluvias cargados (mm)." : null,
-          ]
-            .filter(Boolean)
-            .join(" ")}
-        />
+    <>
+      <Tarjeta>
+          <Grafico
+            accion={disponibles.length > 1 ? <Segmento etiqueta="Unidad" opciones={disponibles.map((x) => ({ valor: x, texto: UNIDADES[x].corto }))} valor={unidad} alCambiar={setElegida} /> : null}
+            titulo={unidad === "mv" ? "Humedad del suelo (señal)" : "Humedad del suelo"}
+            unidad={u.simbolo}
+            decimales={u.decimales}
+            tiempos={tiempos}
+            series={humedad}
+            aislable
+            agua={agua.map((a) => ({ t: Date.parse(a.started_at), mm: a.gross_mm, tipo: a.kind }))}
+            desde={desde}
+            hasta={hasta}
+            intervaloS={intervalo}
+            alto={260}
+            nota={[hayRefs ? "Tocá una profundidad para verla sola, con su franja de agua útil (entre PMP y CC)." : null, unidad === "mv" ? "Más mV = suelo más seco." : null].filter(Boolean).join(" ")}
+          />
       </Tarjeta>
       <Tarjeta>
         <Grafico
@@ -347,60 +323,82 @@ function Suelo({ info, serie, agua, desde, hasta, intervalo }: { info: InfoSitio
           desde={desde}
           hasta={hasta}
           intervaloS={intervalo}
-          alto={180}
+          alto={150}
         />
       </Tarjeta>
-    </div>
+    </>
   );
 }
 
 // ------------------------------------------------------------------ clima
 
-function ClimaAhora({ info }: { info: InfoSitio }) {
+function ClimaAhora({ info, hoy }: { info: InfoSitio; hoy: Dia | null }) {
   const a = info.last_c01;
   if (!a) return null;
   const aRocio = a.dew_point != null && a.air_temp != null ? a.air_temp - a.dew_point : null;
   return (
-    <Tarjeta className="min-w-0 flex-[1_1_360px]" titulo="Último dato" derecha={<HaceCorto fecha={a.t} />}>
-      <div className="grid grid-cols-2 gap-4">
-        <Grande etiqueta="Temperatura" color="#dc2626" icono={<Thermometer size={30} strokeWidth={2.25} aria-hidden />} valor={num(a.air_temp)} unidad="°C" />
-        <Grande etiqueta="Humedad" color="#2563eb" icono={<Droplets size={30} strokeWidth={2.25} aria-hidden />} valor={num(a.humidity, 0)} unidad="%" />
-      </div>
-      {a.dpv != null ? (
-        <div className="mt-5 flex flex-col gap-1 border-t border-separador pt-4">
-          <span className="flex justify-between text-sm">
-            <span className="font-semibold text-tinta">DPV</span>
-            <b className="text-tinta">{num(a.dpv, 2)} kPa</b>
-          </span>
-          <Medidor escala={ESCALA_DPV} valor={a.dpv} nombre="DPV" />
+    <>
+      <Tarjeta titulo="Ahora" derecha={<HaceCorto fecha={a.t} />}>
+        <div className="grid grid-cols-2 gap-3">
+          <Grande etiqueta="Temperatura" color="#dc2626" icono={<Thermometer size={20} strokeWidth={1.9} aria-hidden />} valor={num(a.air_temp)} unidad="°C" />
+          <Grande etiqueta="Humedad" color="#2563eb" icono={<Droplets size={20} strokeWidth={1.9} aria-hidden />} valor={num(a.humidity, 0)} unidad="%" />
         </div>
+        {a.dpv != null ? (
+          <div className="mt-3.5 flex flex-col gap-1 border-t border-separador pt-3">
+            <span className="flex justify-between text-[13px]">
+              <span className="font-medium text-tinta">DPV</span>
+              <span className="text-tinta">{num(a.dpv, 2)} kPa</span>
+            </span>
+            <Medidor escala={ESCALA_DPV} valor={a.dpv} nombre="DPV" />
+          </div>
+        ) : null}
+        {aRocio != null ? (
+          <div className="mt-3 flex flex-col gap-1 border-t border-separador pt-3">
+            <span className="flex justify-between text-[13px]">
+              <span className="font-medium text-tinta">Distancia al rocío</span>
+              <span className="text-tinta">{num(aRocio)} °C</span>
+            </span>
+            <Medidor escala={ESCALA_ROCIO} valor={aRocio} nombre="Distancia al rocío" />
+          </div>
+        ) : null}
+      </Tarjeta>
+      {hoy ? (
+        <Tarjeta titulo="Hoy">
+          <div className="grid grid-cols-2 gap-3">
+            <Celda titulo="Mínima" valor={`${num(hoy.tmin)} °C`} />
+            <Celda titulo="Máxima" valor={`${num(hoy.tmax)} °C`} />
+            {hoy.horas_frio ? <Celda titulo="Horas de frío" valor={horas(hoy.horas_frio)} nota="≤ 7,2 °C" /> : null}
+            {hoy.horas_helada ? <Celda titulo="Horas de helada" valor={horas(hoy.horas_helada)} nota="≤ 0 °C" /> : null}
+          </div>
+        </Tarjeta>
       ) : null}
-      {aRocio != null ? (
-        <div className="mt-4 flex flex-col gap-1 border-t border-separador pt-4">
-          <span className="flex justify-between text-sm">
-            <span className="font-semibold text-tinta">Distancia al rocío</span>
-            <b className="text-tinta">{num(aRocio)} °C</b>
-          </span>
-          <Medidor escala={ESCALA_ROCIO} valor={aRocio} nombre="Distancia al rocío" />
-        </div>
-      ) : null}
-    </Tarjeta>
+    </>
   );
 }
 
 function Grande({ etiqueta, color, icono, valor, unidad }: { etiqueta: string; color: string; icono: ReactNode; valor: string; unidad: string }) {
   return (
-    <div className="flex flex-col gap-1">
-      <span className="text-[13px] font-semibold" style={{ color }}>
+    <div className="flex flex-col gap-0.5">
+      <span className="text-xs" style={{ color }}>
         {etiqueta}
       </span>
       <span className="flex items-center gap-1.5">
         <span style={{ color }}>{icono}</span>
-        <span className="text-[38px] leading-tight font-bold tracking-tight text-tinta">
+        <span className="text-[28px] leading-tight font-semibold text-tinta">
           {valor}
-          <span className="text-base font-medium tracking-normal text-texto-2"> {unidad}</span>
+          <span className="text-sm font-normal text-texto-2"> {unidad}</span>
         </span>
       </span>
+    </div>
+  );
+}
+
+function Celda({ titulo, valor, nota }: { titulo: string; valor: string; nota?: string }) {
+  return (
+    <div className="flex flex-col">
+      <span className="text-xs text-texto-3">{titulo}</span>
+      <span className="text-base font-semibold text-tinta">{valor}</span>
+      {nota ? <span className="text-[11.5px] text-texto-3">{nota}</span> : null}
     </div>
   );
 }
@@ -409,7 +407,7 @@ function Aire({ serie, desde, hasta, intervalo }: { serie: PuntoSerie[]; desde: 
   const tiempos = useMemo(() => serie.map((p) => Date.parse(p.t)), [serie]);
   const comun = { tiempos, desde, hasta, intervaloS: intervalo };
   return (
-    <div className="flex min-w-0 flex-[2_1_560px] flex-col gap-5">
+    <>
       <Tarjeta>
         <Grafico
           titulo="Temperatura del aire"
@@ -417,47 +415,47 @@ function Aire({ serie, desde, hasta, intervalo }: { serie: PuntoSerie[]; desde: 
           decimales={1}
           series={[{ nombre: "Promedio", color: "#dc2626", valores: serie.map((p) => p.air_temp) }]}
           banda={{ nombre: "Mín. y máx.", color: "#dc2626", min: serie.map((p) => p.air_temp_min), max: serie.map((p) => p.air_temp_max) }}
-          alto={240}
+          alto={220}
           {...comun}
         />
       </Tarjeta>
       <Tarjeta>
-        <Grafico titulo="Humedad relativa del aire" unidad="%" series={[{ nombre: "Humedad", color: "#2563eb", valores: serie.map((p) => p.humidity) }]} alto={200} {...comun} />
+        <Grafico titulo="Humedad relativa del aire" unidad="%" series={[{ nombre: "Humedad", color: "#2563eb", valores: serie.map((p) => p.humidity) }]} alto={170} {...comun} />
       </Tarjeta>
-    </div>
+    </>
   );
 }
 
-// ------------------------------------------------------------------ lectura del período
+// ------------------------------------------------------------------ durante el período
 
-function Lectura({ dias, suelo, agua }: { dias: Dia[]; suelo: boolean; agua: AguaSitio[] }) {
+function Periodo({ dias, suelo, agua }: { dias: Dia[]; suelo: boolean; agua: AguaSitio[] }) {
   const celdas: { titulo: string; valor: string; nota?: string }[] = [];
   if (suelo) {
     const rs = resumenSuelo(dias);
     const riegos = agua.filter((a) => a.kind === "riego");
     const lluvias = agua.filter((a) => a.kind === "lluvia");
-    celdas.push({ titulo: "Temp. del suelo reciente", valor: `${num(rs.reciente)} °C`, nota: `Promedio de ${rs.diasReciente} días` });
-    celdas.push({ titulo: "Amplitud diaria", valor: `${num(rs.amplitud)} °C`, nota: "Máxima menos mínima, promedio" });
-    celdas.push({ titulo: "Riegos cargados", valor: String(riegos.length), nota: riegos.length ? `${Math.round(riegos.reduce((s, a) => s + (a.gross_mm ?? 0), 0))} mm` : undefined });
-    celdas.push({ titulo: "Lluvias cargadas", valor: String(lluvias.length), nota: lluvias.length ? `${Math.round(lluvias.reduce((s, a) => s + (a.gross_mm ?? 0), 0))} mm` : undefined });
+    const suma = (l: AguaSitio[]) => `${Math.round(l.reduce((s, a) => s + (a.gross_mm ?? 0), 0))} mm`;
+    celdas.push({ titulo: "Riegos cargados", valor: String(riegos.length), nota: riegos.length ? suma(riegos) : undefined });
+    celdas.push({ titulo: "Lluvias cargadas", valor: String(lluvias.length), nota: lluvias.length ? suma(lluvias) : undefined });
+    celdas.push({ titulo: "Temp. del suelo", valor: `${num(rs.reciente)} °C`, nota: `promedio de ${rs.diasReciente} días` });
+    celdas.push({ titulo: "Amplitud diaria", valor: `${num(rs.amplitud)} °C`, nota: "máxima menos mínima" });
   } else {
     const rc = resumenClima(dias);
     celdas.push({ titulo: "Mínima y máxima", valor: `${num(rc.tmin)} a ${num(rc.tmax)} °C` });
     celdas.push({ titulo: "Horas de frío", valor: horas(rc.frio), nota: "≤ 7,2 °C" });
     celdas.push({ titulo: "Horas de helada", valor: horas(rc.helada), nota: "≤ 0 °C" });
-    celdas.push({ titulo: "Grados-día", valor: num(rc.gdd, 0), nota: "Base 10 °C" });
+    celdas.push({ titulo: "Grados-día", valor: num(rc.gdd, 0), nota: "base 10 °C" });
   }
   return (
-    <Tarjeta className="min-w-0 flex-[1_1_360px]" titulo="Lectura del período">
-      <dl className="grid grid-cols-2 gap-x-4 gap-y-5">
-        {celdas.map((k) => (
-          <div key={k.titulo} className="flex flex-col gap-0.5">
-            <dt className="text-[13px] text-texto-2">{k.titulo}</dt>
-            <dd className="text-[22px] font-bold text-tinta">{k.valor}</dd>
-            {k.nota ? <dd className="text-xs text-texto-3">{k.nota}</dd> : null}
-          </div>
-        ))}
-      </dl>
-    </Tarjeta>
+    <section className="flex flex-wrap items-stretch gap-y-2.5 rounded-xl border border-linea bg-white px-1 py-3.5">
+      <h2 className="self-center px-3.5 text-[13px] font-semibold text-tinta">Durante el período</h2>
+      {celdas.map((k) => (
+        <div key={k.titulo} className="flex min-w-[120px] flex-[1_1_120px] flex-col border-l border-separador px-4">
+          <span className="text-xs text-texto-3">{k.titulo}</span>
+          <span className="text-[17px] font-semibold text-tinta">{k.valor}</span>
+          {k.nota ? <span className="text-[11.5px] text-texto-3">{k.nota}</span> : null}
+        </div>
+      ))}
+    </section>
   );
 }

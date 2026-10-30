@@ -5,8 +5,14 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router";
 
 import { Marco } from "@/componentes/Marco";
 import { Cargando } from "@/componentes/ui";
+import { Campo } from "@/paginas/Campo";
+import { Campos } from "@/paginas/Campos";
 import { CrearCuenta, Ingresar, Recuperar } from "@/paginas/Cuenta";
-import { Red } from "@/paginas/Red";
+import { Equipo } from "@/paginas/Equipo";
+import { Equipos } from "@/paginas/Equipos";
+import { Lote } from "@/paginas/Lote";
+import { Mapa } from "@/paginas/Mapa";
+import { MiCuenta } from "@/paginas/MiCuenta";
 import { Sitio } from "@/paginas/Sitio";
 import { ProveedorDeSesion, useSesion } from "@/sesion/SesionContexto";
 
@@ -36,8 +42,14 @@ export function App() {
           <Route path="/ingresar" element={<SinSesion><Ingresar /></SinSesion>} />
           <Route path="/crear-cuenta" element={<SinSesion><CrearCuenta /></SinSesion>} />
           <Route path="/recuperar" element={<Recuperar />} />
-          <Route path="/" element={<ConSesion><Red /></ConSesion>} />
+          <Route path="/" element={<ConSesion><Equipos /></ConSesion>} />
+          <Route path="/equipo/:id" element={<ConSesion><Equipo /></ConSesion>} />
+          <Route path="/mapa" element={<ConSesion><Mapa /></ConSesion>} />
+          <Route path="/campos" element={<ConSesion><Campos /></ConSesion>} />
+          <Route path="/campo/:id" element={<ConSesion><Campo /></ConSesion>} />
+          <Route path="/campo/:campo/lote/:id" element={<ConSesion><Lote /></ConSesion>} />
           <Route path="/sitio/:id" element={<ConSesion><Sitio /></ConSesion>} />
+          <Route path="/cuenta" element={<ConSesion><MiCuenta /></ConSesion>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
