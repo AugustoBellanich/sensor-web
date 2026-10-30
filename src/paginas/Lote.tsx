@@ -352,7 +352,17 @@ export function Lote() {
                     </p>
                   )}
                 </Tarjeta>
-                <Tarjeta titulo="Copa">
+                <Tarjeta
+                  titulo="Copa"
+                  derecha={
+                    <Link
+                      to={`/campo/${campo}/lote/${id}/copa`}
+                      className="text-[13px] font-medium text-acento-oscuro no-underline hover:underline"
+                    >
+                      {k?.can_edit ? "Cargar" : "Ver"}
+                    </Link>
+                  }
+                >
                   {c.datos?.copa ? (
                     <p className="text-[13px] text-texto-2">
                       {c.datos.copa.fc != null ? (

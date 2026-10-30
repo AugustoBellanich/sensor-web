@@ -9,6 +9,7 @@ import { Admin } from "@/paginas/Admin";
 import { Calibracion } from "@/paginas/Calibracion";
 import { Campo } from "@/paginas/Campo";
 import { Campos } from "@/paginas/Campos";
+import { CopaLote } from "@/paginas/CopaLote";
 import { CargarAgua } from "@/paginas/CargarAgua";
 import { CrearCuenta, Ingresar, Recuperar } from "@/paginas/Cuenta";
 import { EditarCampo, NuevoCampo } from "@/paginas/EditarCampo";
@@ -57,6 +58,7 @@ export function App() {
           <Route path="/campo/:id" element={<ConSesion><Campo /></ConSesion>} />
           <Route path="/campo/:campo/lote/:id" element={<ConSesion><Lote /></ConSesion>} />
           <Route path="/campo/:campo/agua" element={<ConSesion><CargarAgua /></ConSesion>} />
+          <Route path="/campo/:campo/lote/:id/copa" element={<ConSesion><CopaLote /></ConSesion>} />
           <Route path="/campo/:campo/lote/:id/riego" element={<ConSesion><RiegoLote /></ConSesion>} />
           <Route path="/sitio/:id" element={<ConSesion><Sitio /></ConSesion>} />
           <Route path="/sitio/:id/calibracion" element={<ConSesion><Calibracion /></ConSesion>} />
