@@ -18,7 +18,9 @@
   --color-icono: #334155;
   --color-superficie: #f1f5f9;
   --color-borde: #e2e8f0;
-  --color-separador: #eef2f6;
+  --color-separador: #eef1f5;
+  --color-linea: #e6eaf0;
+  --color-fondo: #f6f8fb;
   --color-acento: #38bdf8;
   --color-acento-oscuro: #0284c7;
   --color-ok: #059669;
@@ -39,7 +41,7 @@
   html { color-scheme: light; }
   body {
     margin: 0;
-    background: var(--color-superficie);
+    background: var(--color-fondo);
     color: var(--color-texto);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
@@ -84,3 +86,14 @@
   *, *::before, *::after { animation: none !important; transition: none !important; }
   .nodo-aparece { opacity: 1; }
 }
+
+/* Nombre de un lote sobre el mapa: texto claro sin globo. */
+.leaflet-tooltip.etiqueta-lote {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  color: #f1f5f9;
+  font: 500 12px var(--font-sans);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+}
+.leaflet-tooltip.etiqueta-lote::before { display: none; }

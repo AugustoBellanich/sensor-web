@@ -66,10 +66,10 @@ export function Ingresar() {
           required
         />
         <div className="mt-1 flex flex-col gap-3">
-          <Boton type="submit" cargando={cargando} iconoFin={ArrowRight} className="h-12">
+          <Boton tamano="grande" type="submit" cargando={cargando} iconoFin={ArrowRight} className="h-12">
             Ingresar al panel
           </Boton>
-          <Boton variante="secundario" className="h-12" onClick={() => navegar("/crear-cuenta")}>
+          <Boton tamano="grande" variante="secundario" className="h-12" onClick={() => navegar("/crear-cuenta")}>
             Crear una cuenta
           </Boton>
         </div>
@@ -113,7 +113,7 @@ export function CrearCuenta() {
           value={contrasena}
           onChange={(e) => setContrasena(e.target.value)}
         />
-        <Boton type="submit" cargando={cargando} className="mt-1">
+        <Boton tamano="grande" type="submit" cargando={cargando} className="mt-1">
           Crear cuenta
         </Boton>
       </form>
@@ -145,7 +145,7 @@ function Confirmar({ correo, alVolver }: { correo: string; alVolver: () => void 
         <Aviso mensaje={error} />
         <Aviso tipo="bien" mensaje={aviso} />
         <Campo etiqueta="Código" inputMode="numeric" autoComplete="one-time-code" icono={KeyRound} value={codigo} onChange={(e) => setCodigo(e.target.value)} />
-        <Boton type="submit" cargando={cargando}>
+        <Boton tamano="grande" type="submit" cargando={cargando}>
           Confirmar
         </Boton>
       </form>
@@ -204,7 +204,7 @@ export function Recuperar() {
         <form onSubmit={pedir} className="flex flex-col gap-4" noValidate>
           <Aviso mensaje={error} />
           <Campo etiqueta="Correo electrónico" type="email" autoComplete="email" icono={Mail} value={correo} onChange={(e) => setCorreo(e.target.value)} />
-          <Boton type="submit" cargando={cargando}>
+          <Boton tamano="grande" type="submit" cargando={cargando}>
             Enviar código
           </Boton>
         </form>
@@ -221,7 +221,7 @@ export function Recuperar() {
             value={nueva}
             onChange={(e) => setNueva(e.target.value)}
           />
-          <Boton type="submit" cargando={cargando}>
+          <Boton tamano="grande" type="submit" cargando={cargando}>
             Guardar y entrar
           </Boton>
           <button type="button" className="self-start text-sm text-acento-oscuro hover:underline" onClick={() => void pedirCodigoDeRecuperacion(correo)}>

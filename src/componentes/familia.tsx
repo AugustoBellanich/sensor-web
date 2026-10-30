@@ -46,21 +46,41 @@ export function IconoFamilia({ familia, tamano = 40, noche = false, icono }: { f
         height: tamano,
         borderRadius: Math.round(tamano * 0.29),
         background: noche ? "#111827" : "#ffffff",
-        borderColor: noche ? conAlfa(tono, 0.35) : "#e2e8f0",
+        borderColor: noche ? conAlfa(tono, 0.35) : "#e6eaf0",
         boxShadow: noche ? `0 0 28px ${conAlfa(tono, 0.2)}` : undefined,
         color: tono,
       }}
     >
-      <Icono size={Math.round(tamano * 0.5)} />
+      <Icono size={Math.round(tamano * 0.5)} strokeWidth={noche ? 2 : 1.9} />
     </span>
   );
 }
 
-/** "SUELO", "CLIMA"… en el tono de la familia, al tamaño del id que acompaña. */
+/** "SUELO", "CLIMA"… en el tono de la familia (cabeceras de la app). */
 export function EtiquetaFamilia({ familia }: { familia: Familia }) {
   return (
     <span className="text-[11px] font-bold tracking-[0.06em] uppercase" style={{ color: FAMILIAS[familia].color }}>
       {FAMILIAS[familia].corto}
+    </span>
+  );
+}
+
+/** Ícono de la familia, solo, en su color (filas y listas de la web). */
+export function IconoFam({ familia, tamano = 16 }: { familia: Familia | null; tamano?: number }) {
+  const Icono = familia ? ICONO_FAMILIA[familia] : MapPin;
+  return <Icono size={tamano} strokeWidth={1.9} className="shrink-0" style={{ color: familia ? FAMILIAS[familia].color : "#64748b" }} aria-hidden />;
+}
+
+/** "Suelo B01-24E4F6": nombre de la familia en su color y el código en mono. */
+export function FamiliaYCodigo({ familia, codigo }: { familia: Familia | null; codigo: string }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 text-xs">
+      {familia ? (
+        <span className="font-semibold" style={{ color: FAMILIAS[familia].color }}>
+          {FAMILIAS[familia].corto}
+        </span>
+      ) : null}
+      <span className="font-mono text-texto-3">{codigo}</span>
     </span>
   );
 }
@@ -70,8 +90,8 @@ export function HaceCorto({ fecha }: { fecha: string | null }) {
   const corto = haceCorto(fecha);
   const fresco = esReciente(fecha);
   return (
-    <span className={`inline-flex items-center gap-1 text-[13px] font-medium ${fresco ? "text-ok" : "text-texto-2"}`} title={fecha ? hace(fecha) : undefined}>
-      <Clock size={13} strokeWidth={2.25} className={fresco ? "text-ok" : "text-texto-3"} aria-hidden />
+    <span className={`inline-flex items-center gap-1 text-[12.5px] ${fresco ? "text-ok" : "text-texto-2"}`} title={fecha ? hace(fecha) : undefined}>
+      <Clock size={13} strokeWidth={1.9} className={fresco ? "text-ok" : "text-texto-3"} aria-hidden />
       <span className="sr-only">Último dato </span>
       {corto ?? "Sin datos"}
     </span>
@@ -84,8 +104,8 @@ export function BateriaCorta({ pct }: { pct: number | null | undefined }) {
   const Icono = pct < 10 ? BatteryWarning : pct < 25 ? BatteryLow : pct < 70 ? BatteryMedium : pct > 0 ? BatteryFull : Battery;
   const color = pct < 10 ? "text-error" : pct < 25 ? "text-aviso" : "text-texto-3";
   return (
-    <span className={`inline-flex items-center gap-1 text-[13px] font-medium ${pct < 10 ? "text-error" : "text-texto-2"}`}>
-      <Icono size={15} strokeWidth={2.25} className={color} aria-hidden />
+    <span className={`inline-flex items-center gap-1 text-[12.5px] ${pct < 10 ? "text-error" : "text-texto-2"}`}>
+      <Icono size={16} strokeWidth={1.8} className={color} aria-hidden />
       <span className="sr-only">Batería </span>
       {Math.round(pct)} %
     </span>

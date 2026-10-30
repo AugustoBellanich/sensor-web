@@ -2,7 +2,7 @@
 // SVG del navegador: varias series con su nombre, banda de mínimo–máximo, franja de referencia
 // (agua útil entre PMP y CC), huecos donde no hubo datos y barras de riego y lluvia. Al pasar el
 // mouse (o tocar) se ven los valores de ese momento; si no, los últimos.
-import { useEffect, useMemo, useRef, useState, type PointerEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type PointerEvent, type ReactNode } from "react";
 
 import { banda as trazoBanda, etiquetaCorta, extremos, marcasEje, marcasTiempo, masCercano, soloHora, trazo } from "@/datos/grafico";
 
@@ -21,6 +21,8 @@ type Props = {
   banda?: { nombre: string; color: string; min: (number | null)[]; max: (number | null)[] };
   alto?: number;
   nota?: string;
+  /** Control a la derecha del título (por ejemplo, la unidad). */
+  accion?: ReactNode;
   /** Tocar el nombre de una serie la deja sola (y muestra su referencia). */
   aislable?: boolean;
   agua?: { t: number; mm: number | null; tipo: "riego" | "lluvia" }[];
@@ -33,7 +35,7 @@ const DER = 12;
 const ARRIBA = 10;
 const ABAJO = 24;
 
-export function Grafico({ titulo, unidad, decimales = 0, tiempos, desde, hasta, intervaloS, series: todas, banda, alto = 240, nota, aislable, agua }: Props) {
+export function Grafico({ titulo, unidad, decimales = 0, tiempos, desde, hasta, intervaloS, series: todas, banda, alto = 240, nota, aislable, agua, accion }: Props) {
   const caja = useRef<HTMLDivElement>(null);
   const [ancho, setAncho] = useState(0);
   const [elegido, setElegido] = useState<number | null>(null);
@@ -99,18 +101,18 @@ export function Grafico({ titulo, unidad, decimales = 0, tiempos, desde, hasta, 
   const formato = (v: number | null | undefined) => (v == null || !Number.isFinite(v) ? "—" : v.toFixed(decimales).replace(".", ","));
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-2.5">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h3 className="text-[15px] font-semibold text-tinta">{titulo}</h3>
-        <span className="text-[13px] text-texto-2">{indice >= 0 ? `${elegido != null ? "" : "Último: "}${etiquetaCorta(tiempos[indice], true)}` : ""}</span>
+        <h3 className="text-sm font-semibold text-tinta">{titulo}</h3>
+        <span className="flex items-center gap-3"><span className="text-xs text-texto-3">{indice >= 0 ? `${elegido != null ? "" : "Último: "}${etiquetaCorta(tiempos[indice], true)}` : ""}</span>{accion}</span>
       </div>
-      <div className="flex flex-wrap gap-x-4 gap-y-1 text-[13px] text-texto-2">
+      <div className="flex flex-wrap gap-x-3.5 gap-y-0.5 text-xs text-texto-2">
         {todas.map((s) => {
           const visible = series.includes(s);
           const tocable = aislable && todas.length > 1;
           const contenido = (
             <>
-              <span className="h-[3px] w-3.5 rounded-full" style={{ background: s.color }} />
+              <span className="h-[2px] w-3.5 rounded-full" style={{ background: s.color }} />
               {s.nombre}
               <b className="font-semibold text-texto">{indice >= 0 && visible ? `${formato(s.valores[indice])} ${unidad}` : ""}</b>
             </>
@@ -187,7 +189,7 @@ export function Grafico({ titulo, unidad, decimales = 0, tiempos, desde, hasta, 
             })}
             {banda ? <path d={trazoBanda(tiempos, banda.min, banda.max, x, y, huecoMs)} fill={banda.color} opacity={0.18} /> : null}
             {series.map((s) => (
-              <path key={s.nombre} d={trazo(tiempos, s.valores, x, y, huecoMs)} stroke={s.color} strokeWidth={2} fill="none" strokeLinejoin="round" />
+              <path key={s.nombre} d={trazo(tiempos, s.valores, x, y, huecoMs)} stroke={s.color} strokeWidth={1.6} fill="none" strokeLinejoin="round" />
             ))}
             {puntosSueltos
               ? series.map((s) => s.valores.map((v, i) => (v == null ? null : <circle key={`${s.nombre}${i}`} cx={x(tiempos[i])} cy={y(v)} r={2.5} fill={s.color} />)))
@@ -204,7 +206,7 @@ export function Grafico({ titulo, unidad, decimales = 0, tiempos, desde, hasta, 
         ) : null}
         {!rango ? <p className="absolute inset-0 flex items-center justify-center text-sm text-texto-2">Sin datos en este período.</p> : null}
       </div>
-      {nota ? <p className="text-[13px] text-texto-2">{nota}</p> : null}
+      {nota ? <p className="text-xs text-texto-3">{nota}</p> : null}
     </div>
   );
 }

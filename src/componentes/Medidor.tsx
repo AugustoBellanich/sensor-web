@@ -31,8 +31,8 @@ export function Medidor({ escala, valor, nombre, oracion, soloBarra }: Props) {
   const linea = oracion ?? (u.frase ? `${u.zona.nombre}: ${u.frase}` : u.zona.nombre);
   return (
     <div className="flex flex-col gap-1" role="img" aria-label={`${nombre}: ${linea}`}>
-      <div className="relative flex h-[18px] items-center">
-        <div className="flex h-1.5 w-full gap-0.5 overflow-hidden rounded-full">
+      <div className="relative flex h-3.5 items-center">
+        <div className="flex h-1 w-full gap-0.5 overflow-hidden rounded-full">
           {escala.zonas.map((z, i) => (
             <span
               key={i}
@@ -40,9 +40,9 @@ export function Medidor({ escala, valor, nombre, oracion, soloBarra }: Props) {
             />
           ))}
         </div>
-        <span className="absolute h-[18px] w-1 -translate-x-1/2 rounded-sm bg-tinta shadow-[0_0_0_1.5px_#fff]" style={{ left: `${u.posicion * 100}%` }} />
+        <span className="absolute h-3 w-0.5 -translate-x-1/2 rounded-sm bg-tinta shadow-[0_0_0_1.5px_#fff]" style={{ left: `${u.posicion * 100}%` }} />
       </div>
-      <div className="relative h-3.5 text-[10px] font-semibold tracking-wide text-texto-3" aria-hidden>
+      <div className="relative h-3 text-[9.5px] font-medium tracking-wide text-[#94a3b8]" aria-hidden>
         {cortes(escala).map((c) => (
           <span
             key={c.valor}
@@ -54,8 +54,8 @@ export function Medidor({ escala, valor, nombre, oracion, soloBarra }: Props) {
         ))}
       </div>
       {soloBarra ? null : (
-        <p className="flex items-center gap-1.5 text-[13px] font-semibold" style={{ color }}>
-          <Icono size={15} aria-hidden />
+        <p className="flex items-center gap-1.5 text-xs font-medium" style={{ color }}>
+          <Icono size={13} aria-hidden />
           {linea}
         </p>
       )}
