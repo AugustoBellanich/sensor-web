@@ -7,6 +7,7 @@ import { Marco } from "@/componentes/Marco";
 import { Cargando } from "@/componentes/ui";
 import { Admin } from "@/paginas/Admin";
 import { Calibracion } from "@/paginas/Calibracion";
+import { PuntoCalibracion, SueloElectrodo } from "@/paginas/CargaCalibracion";
 import { Campo } from "@/paginas/Campo";
 import { Campos } from "@/paginas/Campos";
 import { CultivoLote } from "@/paginas/CultivoLote";
@@ -68,6 +69,8 @@ export function App() {
           <Route path="/campo/:campo/sitio/nuevo" element={<ConSesion><NuevoSitio /></ConSesion>} />
           <Route path="/sitio/:id/gestion" element={<ConSesion><GestionSitio /></ConSesion>} />
           <Route path="/sitio/:id" element={<ConSesion><Sitio /></ConSesion>} />
+          <Route path="/sitio/:id/calibracion/punto" element={<ConSesion><PuntoCalibracion /></ConSesion>} />
+          <Route path="/sitio/:id/calibracion/suelo" element={<ConSesion><SueloElectrodo /></ConSesion>} />
           <Route path="/sitio/:id/calibracion" element={<ConSesion><Calibracion /></ConSesion>} />
           <Route path="/admin/:seccion?" element={<ConSesion><Admin /></ConSesion>} />
           <Route path="/vincular" element={<ConSesion><Vincular /></ConSesion>} />
