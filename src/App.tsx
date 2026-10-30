@@ -16,6 +16,7 @@ import { Lote } from "@/paginas/Lote";
 import { Mapa } from "@/paginas/Mapa";
 import { MiCuenta } from "@/paginas/MiCuenta";
 import { Sitio } from "@/paginas/Sitio";
+import { Vincular } from "@/paginas/Vincular";
 import { ProveedorDeSesion, useSesion } from "@/sesion/SesionContexto";
 
 function ConSesion({ children }: { children: ReactNode }) {
@@ -53,6 +54,7 @@ export function App() {
           <Route path="/sitio/:id" element={<ConSesion><Sitio /></ConSesion>} />
           <Route path="/sitio/:id/calibracion" element={<ConSesion><Calibracion /></ConSesion>} />
           <Route path="/admin/:seccion?" element={<ConSesion><Admin /></ConSesion>} />
+          <Route path="/vincular" element={<ConSesion><Vincular /></ConSesion>} />
           <Route path="/cuenta" element={<ConSesion><MiCuenta /></ConSesion>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

@@ -13,6 +13,7 @@ import {
   Search,
   TriangleAlert,
   Users,
+  Link2,
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link } from "react-router";
@@ -167,7 +168,15 @@ export function Equipos() {
 
   return (
     <>
-      <Barra migas={[{ texto: "Equipos" }]} />
+      <Barra migas={[{ texto: "Equipos" }]}>
+        <Link
+          to="/vincular"
+          className="inline-flex h-[34px] items-center gap-1.5 rounded-lg border border-linea bg-white px-3 text-[13px] font-medium text-texto-2 no-underline hover:bg-fondo hover:text-tinta"
+        >
+          <Link2 size={15} strokeWidth={1.9} aria-hidden />
+          Vincular equipo
+        </Link>
+      </Barra>
       <Contenido>
         <Titulo
           titulo={
