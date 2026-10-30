@@ -2,7 +2,15 @@
 // Datos de un sitio (D-39) y actividad del gateway: funciones de la base de la migración
 // 20261004200000 (sensor-db) y, para el CSV, las tablas de lecturas con sus permisos (RLS).
 import type { Dia, Electrodo, Unidad } from "./agro";
-import { csvB01, csvC01, nombreArchivo, type FilaB01, type FilaC01 } from "./csv";
+import {
+  csvB01,
+  csvC01,
+  hojasLecturas,
+  nombreArchivo,
+  type FilaB01,
+  type FilaC01,
+} from "./csv";
+import { libroXlsx } from "./planilla";
 import { mensajeBase } from "./errores";
 import { supabase } from "./supabase";
 
@@ -14,7 +22,12 @@ export type InfoSitio = {
   establishment_id: string | null; // solo si soy miembro del campo (D-11)
   establishment_name: string | null;
   plot_name: string | null;
-  device: { id: string; type: string; alias: string | null; since: string } | null;
+  device: {
+    id: string;
+    type: string;
+    alias: string | null;
+    since: string;
+  } | null;
   electrodes: (Electrodo & { density: number | null; since: string })[];
   b01: { n: number; first: string; last: string } | null;
   c01: { n: number; first: string; last: string } | null;
@@ -65,8 +78,12 @@ export type PuntoSerie = {
   battery_pct: number | null;
 };
 
-export async function infoSitio(id: string): Promise<{ info: InfoSitio | null; error: string | null }> {
-  const { data, error } = await supabase.rpc("site_data_info", { p_site_id: id });
+export async function infoSitio(
+  id: string,
+): Promise<{ info: InfoSitio | null; error: string | null }> {
+  const { data, error } = await supabase.rpc("site_data_info", {
+    p_site_id: id,
+  });
   if (error) return { info: null, error: mensajeBase(error.message) };
   return { info: (data ?? null) as InfoSitio | null, error: null };
 }
@@ -84,8 +101,14 @@ export async function serieSitio(
     p_bucket_s: intervalo,
   });
   if (error) return { b01: [], c01: [], error: mensajeBase(error.message) };
-  const filas = ((data ?? []) as PuntoSerie[]).sort((a, b) => a.t.localeCompare(b.t));
-  return { b01: filas.filter((f) => f.family === "B01"), c01: filas.filter((f) => f.family === "C01"), error: null };
+  const filas = ((data ?? []) as PuntoSerie[]).sort((a, b) =>
+    a.t.localeCompare(b.t),
+  );
+  return {
+    b01: filas.filter((f) => f.family === "B01"),
+    c01: filas.filter((f) => f.family === "C01"),
+    error: null,
+  };
 }
 
 /** Resumen por día (hora argentina) de un rango de fechas "AAAA-MM-DD". */
@@ -96,15 +119,33 @@ export async function diarioSitio(
   tbase = 10,
   calor = 30,
 ): Promise<{ dias: Dia[]; error: string | null }> {
-  const { data, error } = await supabase.rpc("site_daily", { p_site_id: id, p_from: desde, p_to: hasta, p_tbase: tbase, p_calor: calor });
+  const { data, error } = await supabase.rpc("site_daily", {
+    p_site_id: id,
+    p_from: desde,
+    p_to: hasta,
+    p_tbase: tbase,
+    p_calor: calor,
+  });
   if (error) return { dias: [], error: mensajeBase(error.message) };
-  return { dias: ((data ?? []) as Dia[]).sort((a, b) => a.dia.localeCompare(b.dia)), error: null };
+  return {
+    dias: ((data ?? []) as Dia[]).sort((a, b) => a.dia.localeCompare(b.dia)),
+    error: null,
+  };
 }
 
-export type Mojado = { t: string; electrodo: number; subida: number; unidad: "hv" | "mv" };
+export type Mojado = {
+  t: string;
+  electrodo: number;
+  subida: number;
+  unidad: "hv" | "mv";
+};
 
 /** Subidas bruscas de humedad (posible riego o lluvia). */
-export async function mojadosSitio(id: string, desde: number, hasta: number): Promise<{ mojados: Mojado[]; error: string | null }> {
+export async function mojadosSitio(
+  id: string,
+  desde: number,
+  hasta: number,
+): Promise<{ mojados: Mojado[]; error: string | null }> {
   const { data, error } = await supabase.rpc("site_wetting", {
     p_site_id: id,
     p_from: new Date(desde).toISOString(),
@@ -118,7 +159,13 @@ export async function mojadosSitio(id: string, desde: number, hasta: number): Pr
 
 const PAGINA = 1000; // tope de filas por consulta de la API
 
-async function todasLasFilas<T>(tabla: "readings_b01" | "readings_c01", columnas: string, sitio: string, desde: number, hasta: number) {
+async function todasLasFilas<T>(
+  tabla: "readings_b01" | "readings_c01",
+  columnas: string,
+  sitio: string,
+  desde: number,
+  hasta: number,
+) {
   const filas: T[] = [];
   for (let desdeFila = 0; ; desdeFila += PAGINA) {
     const { data, error } = await supabase
@@ -136,11 +183,20 @@ async function todasLasFilas<T>(tabla: "readings_b01" | "readings_c01", columnas
   }
 }
 
-/** Arma el CSV del período (todas las lecturas, sin promediar) y lo descarga en el navegador. */
-export async function descargarCsv(info: InfoSitio, desde: number, hasta: number): Promise<{ ok: boolean; mensaje?: string; filas?: number }> {
+export type Formato = "xlsx" | "csv";
+
+/** Lecturas del período (todas, sin promediar) en una planilla .xlsx o un CSV, descargadas en el navegador. */
+export async function descargarLecturas(
+  info: InfoSitio,
+  desde: number,
+  hasta: number,
+  formato: Formato = "xlsx",
+): Promise<{ ok: boolean; mensaje?: string; filas?: number }> {
   const familia = info.c01 && !info.b01 ? "C01" : "B01";
-  let texto: string;
-  let cantidad: number;
+  const prof: Record<number, number | null> = {};
+  for (const e of info.electrodes) prof[e.index] = e.depth;
+  let b01: FilaB01[] = [];
+  let c01: FilaC01[] = [];
   if (familia === "B01") {
     const r = await todasLasFilas<FilaB01>(
       "readings_b01",
@@ -150,22 +206,42 @@ export async function descargarCsv(info: InfoSitio, desde: number, hasta: number
       hasta,
     );
     if (r.error) return { ok: false, mensaje: r.error };
-    const prof: Record<number, number | null> = {};
-    for (const e of info.electrodes) prof[e.index] = e.depth;
-    texto = csvB01(r.filas, prof);
-    cantidad = r.filas.length;
+    b01 = r.filas;
   } else {
-    const r = await todasLasFilas<FilaC01>("readings_c01", "timestamp,sensor_id,air_temp,humidity,battery_pct,battery_mv,qc_flags", info.id, desde, hasta);
+    const r = await todasLasFilas<FilaC01>(
+      "readings_c01",
+      "timestamp,sensor_id,air_temp,humidity,battery_pct,battery_mv,qc_flags",
+      info.id,
+      desde,
+      hasta,
+    );
     if (r.error) return { ok: false, mensaje: r.error };
-    texto = csvC01(r.filas);
-    cantidad = r.filas.length;
+    c01 = r.filas;
   }
-  if (cantidad === 0) return { ok: false, mensaje: "No hay lecturas en ese período." };
+  const cantidad = b01.length + c01.length;
+  if (cantidad === 0)
+    return { ok: false, mensaje: "No hay lecturas en ese período." };
 
-  const archivo = new Blob([texto], { type: "text/csv;charset=utf-8" });
+  const nombre = nombreArchivo(info.name, desde, hasta);
+  const archivo =
+    formato === "csv"
+      ? new Blob([familia === "B01" ? csvB01(b01, prof) : csvC01(c01)], {
+          type: "text/csv;charset=utf-8",
+        })
+      : new Blob(
+          [
+            libroXlsx(
+              hojasLecturas(info, familia, b01, c01, prof, desde, hasta),
+            ) as BlobPart,
+          ],
+          {
+            type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          },
+        );
   const enlace = document.createElement("a");
   enlace.href = URL.createObjectURL(archivo);
-  enlace.download = nombreArchivo(info.name, desde, hasta);
+  enlace.download =
+    formato === "csv" ? nombre : nombre.replace(/\.csv$/, ".xlsx");
   document.body.appendChild(enlace);
   enlace.click();
   enlace.remove();
@@ -224,9 +300,18 @@ export async function actividadGateway(
   desde: number,
   hasta: number,
   intervalo: number,
-): Promise<{ estado: EstadoGateway | null; horas: ActividadHora[]; envios: Envio[]; error: string | null }> {
+): Promise<{
+  estado: EstadoGateway | null;
+  horas: ActividadHora[];
+  envios: Envio[];
+  error: string | null;
+}> {
   const [estado, horas, envios] = await Promise.all([
-    supabase.from("gateway_status").select("*").eq("device_id", id).maybeSingle(),
+    supabase
+      .from("gateway_status")
+      .select("*")
+      .eq("device_id", id)
+      .maybeSingle(),
     supabase.rpc("gateway_activity", {
       p_device_id: id,
       p_from: new Date(desde).toISOString(),

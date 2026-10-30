@@ -2,7 +2,14 @@
 // clima), después el período con su lectura y los gráficos, y la descarga. En la web "Ahora" queda
 // en una columna angosta a la izquierda y el período ocupa el resto. La serie es del sitio: si se
 // cambia el equipo, sigue. Cada uno ve lo que sus permisos le dejan (D-11).
-import { ChevronRight, Cpu, Download, MapPin } from "lucide-react";
+import {
+  ChevronRight,
+  Cpu,
+  FileSpreadsheet,
+  FileText,
+  LoaderCircle,
+  MapPin,
+} from "lucide-react";
 import { useCallback, useMemo, useState, type ReactNode } from "react";
 import { Link, useParams } from "react-router";
 
@@ -25,7 +32,6 @@ import { Medidor } from "@/componentes/Medidor";
 import { Receptor } from "@/componentes/Receptor";
 import {
   Aviso,
-  Boton,
   Cargando,
   FilaDato,
   Segmento,
@@ -64,7 +70,8 @@ import {
 } from "@/datos/medidor";
 import { capasSuelo, unidadDelSitio } from "@/datos/perfil";
 import {
-  descargarCsv,
+  descargarLecturas,
+  type Formato,
   diarioSitio,
   infoSitio,
   serieSitio,
@@ -299,6 +306,7 @@ export function Sitio() {
   );
 }
 
+/** Bajar las lecturas del período: planilla (.xlsx, abre en Excel y Google Sheets) o CSV para análisis. */
 function Descarga({
   info,
   r,
@@ -306,31 +314,58 @@ function Descarga({
   info: InfoSitio;
   r: { desde: number; hasta: number } | null;
 }) {
-  const [bajando, setBajando] = useState(false);
+  const [bajando, setBajando] = useState<Formato | null>(null);
   const [mensaje, setMensaje] = useState<string | null>(null);
+  async function bajar(formato: Formato) {
+    if (!r) return;
+    setBajando(formato);
+    setMensaje(null);
+    const res = await descargarLecturas(info, r.desde, r.hasta, formato);
+    setBajando(null);
+    setMensaje(
+      res.ok
+        ? `${res.filas?.toLocaleString("es-AR")} lecturas`
+        : (res.mensaje ?? "No se pudo armar el archivo."),
+    );
+  }
   return (
     <span className="inline-flex items-center gap-2">
       {mensaje ? <span className="text-xs text-texto-3">{mensaje}</span> : null}
-      <Boton
-        variante="secundario"
-        icono={Download}
-        cargando={bajando}
-        disabled={!r}
-        onClick={async () => {
-          if (!r) return;
-          setBajando(true);
-          setMensaje(null);
-          const res = await descargarCsv(info, r.desde, r.hasta);
-          setBajando(false);
-          setMensaje(
-            res.ok
-              ? `${res.filas?.toLocaleString("es-AR")} lecturas`
-              : (res.mensaje ?? "No se pudo armar el archivo."),
-          );
-        }}
-      >
-        Descargar CSV
-      </Boton>
+      <span className="inline-flex overflow-hidden rounded-lg border border-linea bg-white">
+        <button
+          type="button"
+          disabled={!r || !!bajando}
+          onClick={() => void bajar("xlsx")}
+          title="Planilla de cálculo (.xlsx): se abre en Excel, Google Sheets o LibreOffice"
+          className="inline-flex h-[32px] items-center gap-1.5 px-3 text-[13px] font-medium text-texto-2 hover:bg-fondo hover:text-tinta disabled:opacity-50"
+        >
+          {bajando === "xlsx" ? (
+            <LoaderCircle size={15} className="animate-spin" aria-hidden />
+          ) : (
+            <FileSpreadsheet
+              size={16}
+              strokeWidth={1.9}
+              className="text-[#107c41]"
+              aria-hidden
+            />
+          )}
+          Planilla
+        </button>
+        <button
+          type="button"
+          disabled={!r || !!bajando}
+          onClick={() => void bajar("csv")}
+          title="CSV (texto separado por comas), para R, Python u otros programas"
+          className="inline-flex h-[32px] items-center gap-1 border-l border-linea px-2.5 text-[12px] font-medium text-texto-3 hover:bg-fondo hover:text-tinta disabled:opacity-50"
+        >
+          {bajando === "csv" ? (
+            <LoaderCircle size={13} className="animate-spin" aria-hidden />
+          ) : (
+            <FileText size={13} strokeWidth={1.9} aria-hidden />
+          )}
+          CSV
+        </button>
+      </span>
     </span>
   );
 }
