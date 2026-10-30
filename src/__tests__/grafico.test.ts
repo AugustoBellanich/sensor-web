@@ -139,3 +139,9 @@ describe("gateway", () => {
     expect(duracion(null)).toBe("—");
   });
 });
+
+describe("fechaHoraArg con fecha sola", () => {
+  it("no corre el día", () => {
+    expect(fechaHoraArg("2026-08-01")).toBe("2026-08-01 00:00:00");
+  });
+});

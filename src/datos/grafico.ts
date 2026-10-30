@@ -14,6 +14,8 @@ const dos = (n: number) => String(n).padStart(2, "0");
 
 /** "2026-09-01 00:10:00" en hora argentina. */
 export function fechaHoraArg(t: number | string): string {
+  // Una fecha sola ("2026-08-01", columnas date de la base) ya es del calendario argentino.
+  if (typeof t === "string" && /^\d{4}-\d{2}-\d{2}$/.test(t)) return `${t} 00:00:00`;
   const d = enArgentina(typeof t === "string" ? new Date(t).getTime() : t);
   return d.toISOString().slice(0, 19).replace("T", " ");
 }
