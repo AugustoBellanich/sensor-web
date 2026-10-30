@@ -230,7 +230,19 @@ export function Lote() {
                 </Tarjeta>
               </div>
               <div className="flex min-w-0 flex-[2_1_330px] flex-col gap-4">
-                <Tarjeta titulo="Forma">
+                <Tarjeta
+                  titulo="Forma"
+                  derecha={
+                    k?.can_edit ? (
+                      <Link
+                        to={`/campo/${campo}/dibujar?lote=${id}`}
+                        className="text-[13px] font-medium text-acento-oscuro no-underline hover:underline"
+                      >
+                        Redibujar
+                      </Link>
+                    ) : null
+                  }
+                >
                   {l.boundary ? (
                     <MapaCampo
                       alto={260}
@@ -269,6 +281,16 @@ export function Lote() {
                 </Tarjeta>
                 <Tarjeta
                   titulo={a ? NOMBRE_ACTIVIDAD[a.activity_type] : "Cultivo"}
+                  derecha={
+                    k?.can_edit ? (
+                      <Link
+                        to={`/campo/${campo}/lote/${id}/cultivo`}
+                        className="text-[13px] font-medium text-acento-oscuro no-underline hover:underline"
+                      >
+                        {a ? "Cambiar" : "Cargar"}
+                      </Link>
+                    ) : null
+                  }
                 >
                   {a ? (
                     <>

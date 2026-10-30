@@ -333,7 +333,27 @@ export function Campo() {
                     </div>
                   ) : null}
                 </Tarjeta>
-                <Tarjeta titulo={`Lotes (${k.plots.length})`}>
+                <Tarjeta
+                  titulo={`Lotes (${k.plots.length})`}
+                  derecha={
+                    k.can_edit ? (
+                      <span className="flex gap-3">
+                        <Link
+                          to={`/campo/${k.id}/dibujar?perimetro=1`}
+                          className="text-[13px] font-medium text-acento-oscuro no-underline hover:underline"
+                        >
+                          {k.boundary ? "Perímetro" : "Dibujar perímetro"}
+                        </Link>
+                        <Link
+                          to={`/campo/${k.id}/dibujar`}
+                          className="text-[13px] font-medium text-acento-oscuro no-underline hover:underline"
+                        >
+                          Nuevo lote
+                        </Link>
+                      </span>
+                    ) : null
+                  }
+                >
                   {k.plots.length ? (
                     k.plots.map((l) => {
                       const agua = aguaDelLote(l.id, k.sites, info);

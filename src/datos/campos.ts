@@ -516,3 +516,161 @@ export async function quitarEquipo(
     ? { ok: false, mensaje: mensajeBase(error.message) }
     : { ok: true };
 }
+
+// ---------------------------------------------------------------- lotes, perímetro y cultivo
+
+export async function crearLote(
+  campo: string,
+  nombre: string,
+  forma: PoligonoGeoJson,
+  desde: string,
+): Promise<{ ok: true; id: string } | { ok: false; mensaje: string }> {
+  if (!nombre.trim())
+    return { ok: false, mensaje: "Escribí un nombre para el lote." };
+  const { data, error } = await supabase.rpc("create_plot", {
+    p_establishment_id: campo,
+    p_name: nombre.trim(),
+    p_boundary: forma,
+    p_valid_from: desde,
+  });
+  if (error) return { ok: false, mensaje: mensajeBase(error.message) };
+  return { ok: true, id: data as string };
+}
+
+export async function redibujarLote(
+  lote: string,
+  forma: PoligonoGeoJson,
+  desde: string,
+): Promise<Resultado> {
+  const { error } = await supabase.rpc("set_plot_boundary", {
+    p_plot_id: lote,
+    p_boundary: forma,
+    p_valid_from: desde,
+  });
+  return error
+    ? { ok: false, mensaje: mensajeBase(error.message) }
+    : { ok: true };
+}
+
+export async function renombrarLote(
+  lote: string,
+  nombre: string,
+): Promise<Resultado> {
+  if (!nombre.trim()) return { ok: false, mensaje: "Escribí un nombre." };
+  const { error } = await supabase
+    .from("plots")
+    .update({ name: nombre.trim() })
+    .eq("id", lote);
+  return error
+    ? { ok: false, mensaje: mensajeBase(error.message) }
+    : { ok: true };
+}
+
+/** Perímetro del campo; null lo borra (la web no completa la provincia sola: se escribe al editar el campo). */
+export async function perimetroCampo(
+  id: string,
+  forma: PoligonoGeoJson | null,
+): Promise<Resultado> {
+  const { error } = await supabase.rpc("set_establishment_boundary", {
+    p_establishment_id: id,
+    p_boundary: forma,
+  });
+  return error
+    ? { ok: false, mensaje: mensajeBase(error.message) }
+    : { ok: true };
+}
+
+export type Cultivo = {
+  code: string;
+  name: string;
+  group_name: string;
+  perennial: boolean;
+  sort: number;
+};
+export type Variedad = { crop_code: string; name: string };
+
+let listasCache: { cultivos: Cultivo[]; variedades: Variedad[] } | null = null;
+
+/** Cultivos y variedades de la lista de la base (D-54); se leen una vez por sesión. */
+export async function listasCultivos(): Promise<
+  ConError<{ cultivos: Cultivo[]; variedades: Variedad[] }>
+> {
+  if (listasCache) return { ...listasCache, error: null };
+  const [c, v] = await Promise.all([
+    supabase
+      .from("crops")
+      .select("code, name, group_name, perennial, sort")
+      .eq("active", true)
+      .order("sort"),
+    supabase
+      .from("crop_varieties")
+      .select("crop_code, name")
+      .eq("active", true)
+      .order("name"),
+  ]);
+  const error = c.error ?? v.error;
+  if (error)
+    return { cultivos: [], variedades: [], error: mensajeBase(error.message) };
+  listasCache = {
+    cultivos: (c.data ?? []) as Cultivo[],
+    variedades: (v.data ?? []) as Variedad[],
+  };
+  return { ...listasCache, error: null };
+}
+
+/** Tipo de actividad según el cultivo (igual que la app). */
+export function tipoDeCultivo(
+  c: Cultivo | undefined,
+): Actividad["activity_type"] {
+  if (!c) return "crop";
+  if (c.group_name === "Forrajes") return "pasture";
+  if (c.code === "forestal" || c.code === "monte_nativo") return "forest";
+  if (c.code === "otro") return "other";
+  return "crop";
+}
+
+/** Plantas por hectárea con el marco (m entre hileras × m entre plantas). */
+export function plantasPorHa(
+  entreHileras: number | null,
+  entrePlantas: number | null,
+): number | null {
+  if (!entreHileras || !entrePlantas || entreHileras <= 0 || entrePlantas <= 0)
+    return null;
+  return Math.round(10000 / (entreHileras * entrePlantas));
+}
+
+export async function guardarActividad(
+  lote: string,
+  a: Omit<Actividad, "id"> & { id?: string },
+): Promise<Resultado> {
+  const fila = {
+    plot_id: lote,
+    activity_type: a.activity_type,
+    crop_code: a.crop_code,
+    crop: a.crop?.trim() || null,
+    variety: a.variety?.trim() || null,
+    row_spacing_m: a.row_spacing_m,
+    plant_spacing_m: a.plant_spacing_m,
+    planted_year: a.planted_year,
+    inter_row_cover: a.inter_row_cover,
+    phenological_stage: a.phenological_stage?.trim() || null,
+    start_date: a.start_date,
+    end_date: a.end_date,
+  };
+  const { error } = a.id
+    ? await supabase.from("plot_activities").update(fila).eq("id", a.id)
+    : await supabase.from("plot_activities").insert(fila);
+  return error
+    ? { ok: false, mensaje: mensajeBase(error.message) }
+    : { ok: true };
+}
+
+export async function borrarActividad(id: string): Promise<Resultado> {
+  const { error } = await supabase
+    .from("plot_activities")
+    .delete()
+    .eq("id", id);
+  return error
+    ? { ok: false, mensaje: mensajeBase(error.message) }
+    : { ok: true };
+}
