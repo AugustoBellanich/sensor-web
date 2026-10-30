@@ -1,6 +1,6 @@
 // Ingresar, crear cuenta (con el código que llega por mail) y recuperar la contraseña. Mismos
 // textos y pasos que la app (sensor-app/src/app/(auth)). Al quedar la sesión, el ruteo lleva a Red.
-import { KeyRound, Lock, Mail, UserRound } from "lucide-react";
+import { ArrowRight, KeyRound, Lock, Mail, UserRound } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router";
 
@@ -21,6 +21,7 @@ function SinConfiguracion() {
 }
 
 export function Ingresar() {
+  const navegar = useNavigate();
   const [correo, setCorreo] = useState("");
   const [contrasena, setContrasena] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -40,20 +41,39 @@ export function Ingresar() {
 
   if (confirmar) return <Confirmar correo={correo} alVolver={() => setConfirmar(false)} />;
   return (
-    <PantallaCuenta titulo="Ingresar" bajada="Con tu cuenta de PROYECTO SENSOR.">
-      <form onSubmit={enviar} className="flex flex-col gap-4" noValidate>
+    <PantallaCuenta titulo="Ingresar" bajada="Al panel de datos de PROYECTO SENSOR.">
+      <form onSubmit={enviar} className="flex flex-col gap-5" noValidate>
         <SinConfiguracion />
         <Aviso mensaje={error} />
-        <Campo etiqueta="Correo" type="email" autoComplete="email" icono={Mail} value={correo} onChange={(e) => setCorreo(e.target.value)} required />
-        <Campo etiqueta="Contraseña" type="password" autoComplete="current-password" icono={Lock} value={contrasena} onChange={(e) => setContrasena(e.target.value)} required />
-        <Boton type="submit" cargando={cargando} className="mt-1">
-          Ingresar
-        </Boton>
+        <Campo
+          etiqueta="Correo electrónico"
+          type="email"
+          autoComplete="email"
+          icono={Mail}
+          placeholder="usuario@inta.gob.ar"
+          value={correo}
+          onChange={(e) => setCorreo(e.target.value)}
+          required
+        />
+        <Campo
+          etiqueta="Contraseña"
+          type="password"
+          autoComplete="current-password"
+          icono={Lock}
+          accion={<Link to="/recuperar">¿Olvidaste tu contraseña?</Link>}
+          value={contrasena}
+          onChange={(e) => setContrasena(e.target.value)}
+          required
+        />
+        <div className="mt-1 flex flex-col gap-3">
+          <Boton type="submit" cargando={cargando} iconoFin={ArrowRight} className="h-12">
+            Ingresar al panel
+          </Boton>
+          <Boton variante="secundario" className="h-12" onClick={() => navegar("/crear-cuenta")}>
+            Crear una cuenta
+          </Boton>
+        </div>
       </form>
-      <div className="flex flex-wrap justify-between gap-2 text-sm">
-        <Link to="/recuperar">Olvidé mi contraseña</Link>
-        <Link to="/crear-cuenta">Crear cuenta</Link>
-      </div>
     </PantallaCuenta>
   );
 }
@@ -83,7 +103,7 @@ export function CrearCuenta() {
         <SinConfiguracion />
         <Aviso mensaje={error} />
         <Campo etiqueta="Nombre y apellido" autoComplete="name" icono={UserRound} value={nombre} onChange={(e) => setNombre(e.target.value)} />
-        <Campo etiqueta="Correo" type="email" autoComplete="email" icono={Mail} value={correo} onChange={(e) => setCorreo(e.target.value)} />
+        <Campo etiqueta="Correo electrónico" type="email" autoComplete="email" icono={Mail} value={correo} onChange={(e) => setCorreo(e.target.value)} />
         <Campo
           etiqueta="Contraseña"
           type="password"
@@ -183,7 +203,7 @@ export function Recuperar() {
       {!enviado ? (
         <form onSubmit={pedir} className="flex flex-col gap-4" noValidate>
           <Aviso mensaje={error} />
-          <Campo etiqueta="Correo" type="email" autoComplete="email" icono={Mail} value={correo} onChange={(e) => setCorreo(e.target.value)} />
+          <Campo etiqueta="Correo electrónico" type="email" autoComplete="email" icono={Mail} value={correo} onChange={(e) => setCorreo(e.target.value)} />
           <Boton type="submit" cargando={cargando}>
             Enviar código
           </Boton>
