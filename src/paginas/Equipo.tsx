@@ -41,7 +41,7 @@ export function Equipo() {
   return (
     <>
       <Barra migas={[{ texto: "Equipos", a: "/" }, { texto: e ? tituloEquipo(e) : id }]}>
-        {e?.site_id && e.type !== "N01" ? (
+        {e?.site_id ? (
           <Link to={`/sitio/${e.site_id}`} className="inline-flex h-[34px] items-center rounded-lg border border-tinta bg-tinta px-3 text-[13px] font-medium text-white no-underline hover:bg-[#1e293b]">
             Ver datos
           </Link>
