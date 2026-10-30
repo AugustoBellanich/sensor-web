@@ -17,6 +17,7 @@ import { ConAyuda } from "@/componentes/Ayuda";
 import { FraseEstado } from "@/componentes/EstadoEquipo";
 import { FamiliaYCodigo, IconoFam } from "@/componentes/familia";
 import { Barra, Contenido } from "@/componentes/Marco";
+import { PasarA } from "@/componentes/PasarA";
 import {
   Aviso,
   Boton,
@@ -244,6 +245,14 @@ export function Equipo() {
                   <Tarjeta titulo="Tu acceso">
                     <p className="text-[13px] text-texto-2">{ROL[e.my_role]}</p>
                   </Tarjeta>
+                ) : null}
+                {esAdmin && e.claimed ? (
+                  <PasarA
+                    tipo="equipo"
+                    id={e.id}
+                    nombre={tituloEquipo(e)}
+                    alTerminar={c.actualizar}
+                  />
                 ) : null}
               </div>
             </div>

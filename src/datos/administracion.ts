@@ -77,3 +77,14 @@ export async function nuevoCodigo(id: string): Promise<{ ok: true; codigo: strin
   if (error) return { ok: false, mensaje: mensajeBase(error.message) };
   return { ok: true, codigo: data as string };
 }
+
+/** Pasa un campo o un equipo a otra persona (admin/staff); el dueño anterior queda como editor.
+ * Copiado de sensor-app/src/datos/archivo.ts. */
+export async function pasarA(tipo: "campo" | "equipo", id: string, correo: string): Promise<Resultado> {
+  const { error } = await supabase.rpc("admin_transfer_owner", {
+    p_kind: tipo === "campo" ? "establishment" : "device",
+    p_id: id,
+    p_email: correo.trim(),
+  });
+  return error ? { ok: false, mensaje: mensajeBase(error.message) } : { ok: true };
+}
