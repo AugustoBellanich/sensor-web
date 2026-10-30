@@ -5,18 +5,27 @@ import { ChevronRight, MapPin, Spline, Users } from "lucide-react";
 import { useCallback } from "react";
 import { Link, useParams } from "react-router";
 
+import { IconoEstado } from "@/componentes/EstadoEquipo";
 import { FamiliaYCodigo, HaceCorto, IconoFam } from "@/componentes/familia";
 import { MapaCampo, type PoligonoMapa, type PuntoMapa } from "@/componentes/MapaCampo";
 import { Barra, Contenido } from "@/componentes/Marco";
-import { Aviso, Cargando, Dato, Estado, Tarjeta, Titulo } from "@/componentes/ui";
+import { Aviso, Cargando, Dato, Tarjeta, Titulo } from "@/componentes/ui";
 import { anillo, detalleCampo, miembrosCampo, NOMBRE_METODO, textoHa, type Lote, type SitioCampo } from "@/datos/campos";
-import { familiaDeModelo, FAMILIAS } from "@/datos/familias";
+import { familiaDeModelo } from "@/datos/familias";
 import { ahoraSitio } from "@/datos/perfil";
-import { fraseCausa, fraseResumen, nivel, ordenar, resumen, saludRed } from "@/datos/salud";
+import { fraseResumen, nivel, ordenar, resumen, saludRed } from "@/datos/salud";
 import { infoSitio, type InfoSitio } from "@/datos/series";
 import { useConsulta } from "@/datos/useConsulta";
 
 const ROL = { owner: "Dueño", editor: "Editor", viewer: "Solo ver" } as const;
+
+/** Dato corto para la marca del mapa: agua útil, si no la temperatura. */
+export function datoCorto(i: InfoSitio): string | null {
+  const a = ahoraSitio(i);
+  if (a.agua != null) return `${Math.round(a.agua)} %`;
+  if (a.temp != null) return `${a.temp.toFixed(1).replace(".", ",")} °C`;
+  return null;
+}
 
 /** Agua útil promedio de los sitios de suelo de un lote (null si no hay). */
 export function aguaDelLote(lote: string, sitios: SitioCampo[], info: Map<string, InfoSitio>): number | null {
@@ -100,7 +109,8 @@ export function Campo() {
       id: s.id,
       lat: s.lat!,
       lng: s.lng!,
-      color: s.device ? FAMILIAS[familiaDeModelo(s.device.type)].noche : "#94a3b8",
+      familia: s.device ? familiaDeModelo(s.device.type) : null,
+      dato: info.get(s.id) ? datoCorto(info.get(s.id)!) : null,
       nombre: s.name,
       a: s.device && (s.device.type === "B01" || s.device.type === "C01") ? `/sitio/${s.id}` : undefined,
     }));
@@ -142,12 +152,12 @@ export function Campo() {
                     <span className="font-medium text-tinta">{fraseResumen(resumen(salud))}.</span>
                   </p>
                   {atencion.length ? (
-                    <div className="mt-2 flex flex-col gap-1.5">
+                    <div className="mt-2 flex flex-col">
                       {atencion.map((e) => (
-                        <Link key={e.device_id} to={`/equipo/${e.device_id}`} className="flex items-center gap-2 no-underline">
-                          <Estado tipo={nivel(e) === "grave" ? "error" : "aviso"}>
-                            {e.alias && e.alias !== e.device_id ? e.alias : e.device_id}: {e.causes[0] ? fraseCausa(e.causes[0], e.type) : ""}
-                          </Estado>
+                        <Link key={e.device_id} to={`/equipo/${e.device_id}`} className="flex items-center gap-2.5 border-t border-separador py-2 text-inherit no-underline first:border-t-0 hover:bg-[#fafbfc]">
+                          <IconoFam familia={familiaDeModelo(e.type)} />
+                          <span className="min-w-0 flex-1 truncate text-[13px] text-tinta">{e.alias && e.alias !== e.device_id ? e.alias : (e.site_name ?? e.device_id)}</span>
+                          <IconoEstado s={e} />
                         </Link>
                       ))}
                     </div>

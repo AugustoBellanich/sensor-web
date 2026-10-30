@@ -29,4 +29,10 @@ export const AYUDA = {
   archivados: "Al restaurar un sitio, el equipo hay que ubicarlo de nuevo.",
   inicioCompartidos: "Si alguien te comparte un equipo, aparece acá.",
   camposVacio: "Un campo tiene lotes, y cada lote, sitios donde van los equipos. Si alguien te suma a su campo, aparece acá.",
+  aguaUtil: "Agua que el cultivo puede usar: 0 % es el punto de marchitez (PMP) y 100 %, la capacidad de campo (CC). Cada profundidad cuenta hasta 100 %, porque el agua de más drena, y pesa según el agua que puede guardar.",
+  zonasSuelo: "PMP: punto de marchitez, la planta ya no puede sacar agua. CC: capacidad de campo, lo que el suelo retiene después de drenar. SAT: suelo saturado, con todos los poros llenos de agua.",
+  gradosDia: "Suma de los grados por encima de 10 °C de cada día: el calor acumulado que mueve el desarrollo del cultivo.",
+  horasHelada: "Horas con el aire a 0 °C o menos, a la altura del sensor; a nivel del suelo puede helar más.",
+  amplitud: "Diferencia entre la máxima y la mínima de cada día, en promedio. En el suelo, una amplitud chica suele indicar suelo húmedo o cubierto.",
+  lecturas24h: "Lecturas que llegaron en las últimas 24 h, contra las que el equipo tendría que haber mandado según su intervalo.",
 } as const;

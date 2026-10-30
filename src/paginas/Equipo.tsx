@@ -5,6 +5,8 @@ import { Battery, CalendarClock, Clock, Gauge, MapPin, RadioTower, UserRound } f
 import { useCallback, useState, type FormEvent } from "react";
 import { Link, useParams } from "react-router";
 
+import { ConAyuda } from "@/componentes/Ayuda";
+import { FraseEstado } from "@/componentes/EstadoEquipo";
 import { FamiliaYCodigo, IconoFam } from "@/componentes/familia";
 import { Barra, Contenido } from "@/componentes/Marco";
 import { Aviso, Boton, Cargando, Estado, FilaDato, Tarjeta, Titulo } from "@/componentes/ui";
@@ -13,7 +15,8 @@ import { compartir, estadoEquipos, miembros, quitarAcceso, renombrarEquipo } fro
 import { duracion, hace } from "@/datos/estado";
 import { aliasPropio, familiaDeModelo, tituloEquipo } from "@/datos/familias";
 import { fechaHoraArg } from "@/datos/grafico";
-import { detalleCausa, fraseCausa, nivel, saludRed, TEXTO_ESTADO } from "@/datos/salud";
+import { detalleCausa, nivel, saludRed, TEXTO_ESTADO } from "@/datos/salud";
+import { AYUDA } from "@/datos/textos";
 import { useConsulta } from "@/datos/useConsulta";
 import { useSesion } from "@/sesion/SesionContexto";
 
@@ -78,7 +81,7 @@ export function Equipo() {
                       {s.causes.length ? (
                         s.causes.map((k) => (
                           <div key={k.code} className="flex flex-col gap-0.5">
-                            <Estado tipo={k.severity >= 4 ? "error" : "aviso"}>{fraseCausa(k, s.type)}</Estado>
+                            <FraseEstado s={{ ...s, causes: [k] }} />
                             {detalleCausa(k) ? <span className="pl-3 text-xs text-texto-3">{detalleCausa(k)}</span> : null}
                           </div>
                         ))
@@ -90,7 +93,7 @@ export function Equipo() {
                       {s.last_reading_at ? hace(s.last_reading_at) : "Sin datos"}
                     </FilaDato>
                     {s.completeness_24h != null ? (
-                      <FilaDato icono={Gauge} etiqueta="Lecturas en 24 h">
+                      <FilaDato icono={Gauge} etiqueta={<ConAyuda que="lecturas en 24 h" texto={AYUDA.lecturas24h}>Lecturas en 24 h</ConAyuda>}>
                         {Math.round(s.completeness_24h * 100)} % de las esperadas
                       </FilaDato>
                     ) : null}

@@ -22,11 +22,11 @@ import {
   textoDuracion,
   textoHa,
 } from "@/datos/campos";
-import { familiaDeModelo, FAMILIAS } from "@/datos/familias";
+import { familiaDeModelo } from "@/datos/familias";
 import { fechaHoraArg } from "@/datos/grafico";
 import { infoSitio, type InfoSitio } from "@/datos/series";
 import { useConsulta } from "@/datos/useConsulta";
-import { cultivoDe, FilaSitio } from "@/paginas/Campo";
+import { cultivoDe, datoCorto, FilaSitio } from "@/paginas/Campo";
 
 const fecha = (t: string) => fechaHoraArg(t).slice(0, 10).split("-").reverse().join("/");
 const fechaHora = (t: string) => `${fecha(t)} ${fechaHoraArg(t).slice(11, 16)}`;
@@ -121,7 +121,7 @@ export function Lote() {
                       poligonos={[{ id: l.id, puntos: anillo(l.boundary) }]}
                       puntos={sitios
                         .filter((x) => x.lat != null && x.lng != null)
-                        .map((x) => ({ id: x.id, lat: x.lat!, lng: x.lng!, color: x.device ? FAMILIAS[familiaDeModelo(x.device.type)].noche : "#94a3b8", nombre: x.name, a: x.device ? `/sitio/${x.id}` : undefined }))}
+                        .map((x) => ({ id: x.id, lat: x.lat!, lng: x.lng!, familia: x.device ? familiaDeModelo(x.device.type) : null, dato: c.datos?.info.get(x.id) ? datoCorto(c.datos.info.get(x.id)!) : null, nombre: x.name, a: x.device ? `/sitio/${x.id}` : undefined }))}
                     />
                   ) : (
                     <p className="text-[13px] text-texto-2">Sin forma dibujada.</p>

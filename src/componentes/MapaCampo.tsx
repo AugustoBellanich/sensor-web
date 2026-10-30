@@ -1,14 +1,17 @@
-// Mapa satelital de un campo o un lote: perímetro, lotes (polígonos con su nombre) y sitios como
-// nodos del color de su familia. Tocar un lote o un sitio lleva a su pantalla. Encuadra todo.
+// Mapa satelital de un campo o un lote: perímetro, lotes (polígonos con su nombre) y sitios con el
+// ícono de su familia y el dato de ahora; el radio de recepción de cada receptor. Encuadra todo.
 import L from "leaflet";
 import { useEffect, useMemo } from "react";
-import { CircleMarker, MapContainer, Polygon, TileLayer, Tooltip, useMap } from "react-leaflet";
+import { Circle, MapContainer, Marker, Polygon, TileLayer, Tooltip, useMap } from "react-leaflet";
 import { useNavigate } from "react-router";
+
+import { marcaSitio, RADIO_RECEPTOR_M } from "@/componentes/marcas";
+import type { Familia } from "@/datos/familias";
 
 const CATAMARCA: [number, number] = [-28.47, -65.78];
 
 export type PoligonoMapa = { id: string; puntos: [number, number][]; nombre?: string; a?: string; perimetro?: boolean };
-export type PuntoMapa = { id: string; lat: number; lng: number; color: string; nombre: string; a?: string };
+export type PuntoMapa = { id: string; lat: number; lng: number; familia: Familia | null; nombre: string; a?: string; dato?: string | null };
 
 function Encuadrar({ puntos }: { puntos: [number, number][] }) {
   const mapa = useMap();
@@ -28,7 +31,7 @@ export function MapaCampo({ poligonos, puntos, alto = 460, etiqueta }: { poligon
   const todo = useMemo(() => [...poligonos.flatMap((p) => p.puntos), ...puntos.map((p) => [p.lat, p.lng] as [number, number])], [poligonos, puntos]);
   return (
     <div className="overflow-hidden rounded-xl border border-linea" style={{ height: alto }}>
-      <MapContainer center={CATAMARCA} zoom={13} scrollWheelZoom={false} className="h-full w-full bg-noche" aria-label={etiqueta}>
+      <MapContainer center={CATAMARCA} zoom={13} scrollWheelZoom className="h-full w-full bg-noche" aria-label={etiqueta}>
         <TileLayer
           url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
           attribution="Imagen: Esri, Maxar, Earthstar Geographics"
@@ -53,18 +56,23 @@ export function MapaCampo({ poligonos, puntos, alto = 460, etiqueta }: { poligon
             ) : null}
           </Polygon>
         ))}
+        {puntos
+          .filter((p) => p.familia === "gateway")
+          .map((p) => (
+            <Circle
+              key={`r-${p.id}`}
+              center={[p.lat, p.lng]}
+              radius={RADIO_RECEPTOR_M}
+              pathOptions={{ color: "#c4b5fd", weight: 1.2, dashArray: "5 6", fillColor: "#a78bfa", fillOpacity: 0.07 }}
+              interactive={false}
+            />
+          ))}
         {puntos.map((p) => (
-          <CircleMarker
-            key={p.id}
-            center={[p.lat, p.lng]}
-            radius={6}
-            pathOptions={{ color: "#ffffff", weight: 1.5, fillColor: p.color, fillOpacity: 1 }}
-            eventHandlers={p.a ? { click: () => navegar(p.a!) } : undefined}
-          >
-            <Tooltip direction="top" offset={[0, -6]}>
+          <Marker key={p.id} position={[p.lat, p.lng]} icon={marcaSitio(p.familia, p.dato ?? null)} eventHandlers={p.a ? { click: () => navegar(p.a!) } : undefined}>
+            <Tooltip direction="top" offset={[0, -16]}>
               {p.nombre}
             </Tooltip>
-          </CircleMarker>
+          </Marker>
         ))}
       </MapContainer>
     </div>

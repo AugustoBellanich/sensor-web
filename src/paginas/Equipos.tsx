@@ -6,6 +6,8 @@ import { ChevronDown, ChevronRight, Clock, Cpu, MapPin, RadioTower, Search, Tria
 import { useMemo, useState } from "react";
 import { Link } from "react-router";
 
+import { ConAyuda } from "@/componentes/Ayuda";
+import { FraseEstado, IconoEstado } from "@/componentes/EstadoEquipo";
 import { BateriaCorta, FamiliaYCodigo, HaceCorto, IconoFam } from "@/componentes/familia";
 import { Barra, Contenido } from "@/componentes/Marco";
 import { Aviso, Cargando, Estado, FilaDato, Segmento, Titulo } from "@/componentes/ui";
@@ -14,8 +16,9 @@ import { estadoEquipos, type EstadoEquipo } from "@/datos/equipos";
 import { hace, UMBRAL_GATEWAY_MS, UMBRAL_MODULO_MS } from "@/datos/estado";
 import { agruparPorCampo, familiaDeModelo, FAMILIAS, ORDEN_FAMILIAS, tituloEquipo, type Familia } from "@/datos/familias";
 import { ahoraSitio } from "@/datos/perfil";
-import { fraseCausa, nivel, saludRed, TEXTO_ESTADO, type SaludEquipo } from "@/datos/salud";
+import { nivel, saludRed, type SaludEquipo } from "@/datos/salud";
 import { infoSitio, type InfoSitio } from "@/datos/series";
+import { AYUDA } from "@/datos/textos";
 import { useConsulta } from "@/datos/useConsulta";
 import { useSesion } from "@/sesion/SesionContexto";
 
@@ -32,15 +35,6 @@ async function cargar() {
 }
 
 type Alcance = "mios" | "proyecto" | "todos";
-
-/** Estado en una frase: la causa más grave o "Al día". */
-function EstadoEquipo({ s, corto = false }: { s: SaludEquipo | undefined; corto?: boolean }) {
-  if (!s) return <Estado tipo="gris">Sin estado</Estado>;
-  const n = nivel(s);
-  const tipo = n === "grave" ? "error" : n;
-  const texto = s.causes[0] ? (corto ? s.causes[0].title : fraseCausa(s.causes[0], s.type)) : (TEXTO_ESTADO[s.state] ?? s.state);
-  return <Estado tipo={tipo}>{texto}</Estado>;
-}
 
 function Ahora({ info, tipo }: { info: InfoSitio | undefined; tipo: string }) {
   if (tipo === "N01") return <span className="text-[13px] text-texto-3">Receptor</span>;
@@ -259,7 +253,9 @@ function Fila({ e, s, info, activo, alElegir }: { e: EstadoEquipo; s: SaludEquip
       <Ahora info={info} tipo={e.type} />
       <HaceCorto fecha={e.last_reading_at} />
       {e.type === "N01" ? <span className="text-[12.5px] text-texto-3">Enchufado</span> : <BateriaCorta pct={e.battery_pct} />}
-      <span className="min-w-0 truncate">{e.activity === "retired" ? <Estado tipo="gris">Retirado</Estado> : <EstadoEquipo s={s} corto />}</span>
+      <span className="min-w-0">
+        <IconoEstado s={s} retirado={e.activity === "retired"} />
+      </span>
     </button>
   );
 }
@@ -269,12 +265,12 @@ const ROL = { owner: "Dueño", editor: "Editor", viewer: "Solo ver" } as const;
 function Panel({ e, s, info }: { e: EstadoEquipo; s: SaludEquipo | undefined; info: InfoSitio | undefined }) {
   const familia = familiaDeModelo(e.type);
   const a = info ? ahoraSitio(info) : null;
-  const celdas: { t: string; v: string; c?: string }[] = [];
-  if (a?.agua != null) celdas.push({ t: "Agua útil", v: `${Math.round(a.agua)} %`, c: "text-[#047857]" });
+  const celdas: { t: string; v: string; c?: string; ayuda?: string }[] = [];
+  if (a?.agua != null) celdas.push({ t: "Agua útil", v: `${Math.round(a.agua)} %`, c: "text-[#047857]", ayuda: AYUDA.aguaUtil });
   if (a?.temp != null) celdas.push({ t: a.agua != null || info?.last_b01 ? "Temp. del suelo" : "Temperatura", v: `${num(a.temp)} °C` });
   if (a?.humedad != null) celdas.push({ t: "Humedad", v: `${num(a.humedad, 0)} %` });
   return (
-    <aside className="flex min-w-[280px] flex-[0_1_330px] flex-col gap-3.5 rounded-xl border border-linea bg-white p-[18px] lg:sticky lg:top-4">
+    <aside className="flex min-w-[280px] flex-[0_1_330px] flex-col gap-3.5 rounded-xl border border-linea bg-white p-[18px] lg:sticky lg:top-[84px]">
       <div className="flex items-center gap-2.5">
         <span className="flex h-9 w-9 items-center justify-center rounded-[9px] bg-fondo">
           <IconoFam familia={familia} tamano={18} />
@@ -284,12 +280,12 @@ function Panel({ e, s, info }: { e: EstadoEquipo; s: SaludEquipo | undefined; in
           <span className="truncate text-[15px] font-semibold text-tinta">{tituloEquipo(e)}</span>
         </span>
       </div>
-      {e.activity === "retired" ? <Estado tipo="gris">Equipo retirado: sus datos quedan.</Estado> : <EstadoEquipo s={s} />}
+      {e.activity === "retired" ? <Estado tipo="gris">Equipo retirado: sus datos quedan.</Estado> : <FraseEstado s={s} />}
       {celdas.length ? (
         <div className="grid grid-cols-2 gap-2.5">
           {celdas.map((k) => (
             <div key={k.t} className="rounded-[9px] bg-fondo px-3 py-2.5">
-              <span className="block text-[11.5px] text-texto-3">{k.t}</span>
+              <span className="block text-[11.5px] text-texto-3">{k.ayuda ? <ConAyuda que={k.t.toLowerCase()} texto={k.ayuda}>{k.t}</ConAyuda> : k.t}</span>
               <span className={`text-xl font-semibold ${k.c ?? "text-tinta"}`}>{k.v}</span>
             </div>
           ))}

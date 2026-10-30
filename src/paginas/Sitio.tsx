@@ -6,6 +6,7 @@ import { CalendarRange, Cpu, Database, Download, Droplets, MapPin, Thermometer }
 import { useCallback, useMemo, useState, type ReactNode } from "react";
 import { Link, useParams } from "react-router";
 
+import { ConAyuda } from "@/componentes/Ayuda";
 import { BateriaCorta, FamiliaYCodigo, HaceCorto, IconoFam } from "@/componentes/familia";
 import { Grafico, type Serie } from "@/componentes/Grafico";
 import { Barra, Contenido } from "@/componentes/Marco";
@@ -33,6 +34,7 @@ import { ESCALA_DPV, ESCALA_ROCIO, escalaSuelo, fraseSuelo } from "@/datos/medid
 import { capasSuelo, unidadDelSitio } from "@/datos/perfil";
 import { descargarCsv, diarioSitio, infoSitio, serieSitio, type InfoSitio, type PuntoSerie } from "@/datos/series";
 import { aguaSitio, type AguaSitio } from "@/datos/sitios";
+import { AYUDA } from "@/datos/textos";
 import { useConsulta } from "@/datos/useConsulta";
 
 const COLOR_E = ["#2563eb", "#16a34a", "#ea580c"];
@@ -118,7 +120,7 @@ export function Sitio() {
         ) : null}
         {info && hayDatos ? (
           <div className="flex flex-wrap items-start gap-4">
-            <div className="flex min-w-[290px] flex-[0_1_340px] flex-col gap-4 lg:sticky lg:top-4">
+            <div className="flex min-w-[290px] flex-[0_1_340px] flex-col gap-4 lg:sticky lg:top-[84px]">
               {info.b01 ? <PerfilSuelo info={info} /> : null}
               {info.c01 ? <ClimaAhora info={info} hoy={hoy} /> : null}
               <ElSitio info={info} />
@@ -227,11 +229,20 @@ function PerfilSuelo({ info }: { info: InfoSitio }) {
   const sobreCC = fraseSobreCC(perfil.sobreCC);
   if (!ult) return null;
   return (
-    <Tarjeta titulo="Ahora" derecha={<HaceCorto fecha={ult.t} />}>
+    <Tarjeta
+      titulo={
+        <ConAyuda que="PMP, CC y SAT" texto={AYUDA.zonasSuelo}>
+          Ahora
+        </ConAyuda>
+      }
+      derecha={<HaceCorto fecha={ult.t} />}
+    >
       <div className="mb-1 flex items-end justify-between gap-3">
         <div className="flex flex-col">
-          <span className="text-xs text-texto-3" title="Cada profundidad cuenta entre 0 % (PMP) y 100 % (CC), según el agua que puede guardar.">
-            Agua útil del perfil
+          <span className="text-xs text-texto-3">
+            <ConAyuda que="agua útil del perfil" texto={AYUDA.aguaUtil}>
+              Agua útil del perfil
+            </ConAyuda>
           </span>
           {perfil.pct != null ? (
             <span className="text-[28px] leading-tight font-semibold text-[#047857]">{Math.round(perfil.pct)} %</span>
@@ -346,7 +357,11 @@ function ClimaAhora({ info, hoy }: { info: InfoSitio; hoy: Dia | null }) {
         {a.dpv != null ? (
           <div className="mt-3.5 flex flex-col gap-1 border-t border-separador pt-3">
             <span className="flex justify-between text-[13px]">
-              <span className="font-medium text-tinta">DPV</span>
+              <span className="font-medium text-tinta">
+                <ConAyuda que="DPV" texto={AYUDA.dpv}>
+                  DPV
+                </ConAyuda>
+              </span>
               <span className="text-tinta">{num(a.dpv, 2)} kPa</span>
             </span>
             <Medidor escala={ESCALA_DPV} valor={a.dpv} nombre="DPV" />
@@ -355,7 +370,11 @@ function ClimaAhora({ info, hoy }: { info: InfoSitio; hoy: Dia | null }) {
         {aRocio != null ? (
           <div className="mt-3 flex flex-col gap-1 border-t border-separador pt-3">
             <span className="flex justify-between text-[13px]">
-              <span className="font-medium text-tinta">Distancia al rocío</span>
+              <span className="font-medium text-tinta">
+                <ConAyuda que="punto de rocío" texto={AYUDA.rocio}>
+                  Distancia al rocío
+                </ConAyuda>
+              </span>
               <span className="text-tinta">{num(aRocio)} °C</span>
             </span>
             <Medidor escala={ESCALA_ROCIO} valor={aRocio} nombre="Distancia al rocío" />
@@ -367,8 +386,8 @@ function ClimaAhora({ info, hoy }: { info: InfoSitio; hoy: Dia | null }) {
           <div className="grid grid-cols-2 gap-3">
             <Celda titulo="Mínima" valor={`${num(hoy.tmin)} °C`} />
             <Celda titulo="Máxima" valor={`${num(hoy.tmax)} °C`} />
-            {hoy.horas_frio ? <Celda titulo="Horas de frío" valor={horas(hoy.horas_frio)} nota="≤ 7,2 °C" /> : null}
-            {hoy.horas_helada ? <Celda titulo="Horas de helada" valor={horas(hoy.horas_helada)} nota="≤ 0 °C" /> : null}
+            {hoy.horas_frio ? <Celda titulo={<ConAyuda que="horas de frío" texto={AYUDA.horasFrio}>Horas de frío</ConAyuda>} valor={horas(hoy.horas_frio)} nota="≤ 7,2 °C" /> : null}
+            {hoy.horas_helada ? <Celda titulo={<ConAyuda que="horas de helada" texto={AYUDA.horasHelada}>Horas de helada</ConAyuda>} valor={horas(hoy.horas_helada)} nota="≤ 0 °C" /> : null}
           </div>
         </Tarjeta>
       ) : null}
@@ -393,7 +412,7 @@ function Grande({ etiqueta, color, icono, valor, unidad }: { etiqueta: string; c
   );
 }
 
-function Celda({ titulo, valor, nota }: { titulo: string; valor: string; nota?: string }) {
+function Celda({ titulo, valor, nota }: { titulo: ReactNode; valor: string; nota?: string }) {
   return (
     <div className="flex flex-col">
       <span className="text-xs text-texto-3">{titulo}</span>
@@ -429,7 +448,7 @@ function Aire({ serie, desde, hasta, intervalo }: { serie: PuntoSerie[]; desde: 
 // ------------------------------------------------------------------ durante el período
 
 function Periodo({ dias, suelo, agua }: { dias: Dia[]; suelo: boolean; agua: AguaSitio[] }) {
-  const celdas: { titulo: string; valor: string; nota?: string }[] = [];
+  const celdas: { titulo: string; valor: string; nota?: string; ayuda?: string }[] = [];
   if (suelo) {
     const rs = resumenSuelo(dias);
     const riegos = agua.filter((a) => a.kind === "riego");
@@ -438,20 +457,22 @@ function Periodo({ dias, suelo, agua }: { dias: Dia[]; suelo: boolean; agua: Agu
     celdas.push({ titulo: "Riegos cargados", valor: String(riegos.length), nota: riegos.length ? suma(riegos) : undefined });
     celdas.push({ titulo: "Lluvias cargadas", valor: String(lluvias.length), nota: lluvias.length ? suma(lluvias) : undefined });
     celdas.push({ titulo: "Temp. del suelo", valor: `${num(rs.reciente)} °C`, nota: `promedio de ${rs.diasReciente} días` });
-    celdas.push({ titulo: "Amplitud diaria", valor: `${num(rs.amplitud)} °C`, nota: "máxima menos mínima" });
+    celdas.push({ titulo: "Amplitud diaria", valor: `${num(rs.amplitud)} °C`, nota: "máxima menos mínima", ayuda: AYUDA.amplitud });
   } else {
     const rc = resumenClima(dias);
     celdas.push({ titulo: "Mínima y máxima", valor: `${num(rc.tmin)} a ${num(rc.tmax)} °C` });
-    celdas.push({ titulo: "Horas de frío", valor: horas(rc.frio), nota: "≤ 7,2 °C" });
-    celdas.push({ titulo: "Horas de helada", valor: horas(rc.helada), nota: "≤ 0 °C" });
-    celdas.push({ titulo: "Grados-día", valor: num(rc.gdd, 0), nota: "base 10 °C" });
+    celdas.push({ titulo: "Horas de frío", valor: horas(rc.frio), nota: "≤ 7,2 °C", ayuda: AYUDA.horasFrio });
+    celdas.push({ titulo: "Horas de helada", valor: horas(rc.helada), nota: "≤ 0 °C", ayuda: AYUDA.horasHelada });
+    celdas.push({ titulo: "Grados-día", valor: num(rc.gdd, 0), nota: "base 10 °C", ayuda: AYUDA.gradosDia });
   }
   return (
     <section className="flex flex-wrap items-stretch gap-y-2.5 rounded-xl border border-linea bg-white px-1 py-3.5">
-      <h2 className="self-center px-3.5 text-[13px] font-semibold text-tinta">Durante el período</h2>
+      <h2 className="self-center px-3.5 text-[13px] font-semibold text-tinta">
+        {suelo ? "Durante el período" : <ConAyuda que="lectura del período" texto={AYUDA.resumenClima}>Durante el período</ConAyuda>}
+      </h2>
       {celdas.map((k) => (
         <div key={k.titulo} className="flex min-w-[120px] flex-[1_1_120px] flex-col border-l border-separador px-4">
-          <span className="text-xs text-texto-3">{k.titulo}</span>
+          <span className="text-xs text-texto-3">{k.ayuda ? <ConAyuda que={k.titulo.toLowerCase()} texto={k.ayuda}>{k.titulo}</ConAyuda> : k.titulo}</span>
           <span className="text-[17px] font-semibold text-tinta">{k.valor}</span>
           {k.nota ? <span className="text-[11.5px] text-texto-3">{k.nota}</span> : null}
         </div>

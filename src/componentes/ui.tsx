@@ -144,7 +144,7 @@ export function Dato({ icono: Icono, children }: PropsWithChildren<{ icono: Luci
 }
 
 /** Fila etiqueta / valor dentro de una tarjeta, con separador fino. */
-export function FilaDato({ icono: Icono, etiqueta, children }: PropsWithChildren<{ icono?: LucideIcon; etiqueta: string }>) {
+export function FilaDato({ icono: Icono, etiqueta, children }: PropsWithChildren<{ icono?: LucideIcon; etiqueta: ReactNode }>) {
   return (
     <div className="flex items-center gap-2.5 border-t border-separador py-2 text-[13px] first:border-t-0">
       {Icono ? <Icono size={15} strokeWidth={1.9} className="shrink-0 text-texto-3" aria-hidden /> : null}
