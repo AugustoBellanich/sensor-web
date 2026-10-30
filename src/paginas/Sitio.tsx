@@ -2,15 +2,17 @@
 // clima), después el período con su lectura y los gráficos, y la descarga. En la web "Ahora" queda
 // en una columna angosta a la izquierda y el período ocupa el resto. La serie es del sitio: si se
 // cambia el equipo, sigue. Cada uno ve lo que sus permisos le dejan (D-11).
-import { CalendarRange, Cpu, Database, Download, Droplets, MapPin, Thermometer } from "lucide-react";
+import { ChevronRight, Cpu, Download, MapPin } from "lucide-react";
 import { useCallback, useMemo, useState, type ReactNode } from "react";
 import { Link, useParams } from "react-router";
 
 import { ConAyuda } from "@/componentes/Ayuda";
 import { BateriaCorta, FamiliaYCodigo, HaceCorto, IconoFam } from "@/componentes/familia";
 import { Grafico, type Serie } from "@/componentes/Grafico";
+import { ConIcono, IconoIndice, INDICE, type ClaveIndice } from "@/componentes/Indice";
 import { Barra, Contenido } from "@/componentes/Marco";
 import { Medidor } from "@/componentes/Medidor";
+import { Receptor } from "@/componentes/Receptor";
 import { Aviso, Boton, Cargando, FilaDato, Segmento, Tarjeta, Titulo } from "@/componentes/ui";
 import {
   aguaUtilPerfil,
@@ -113,9 +115,10 @@ export function Sitio() {
             }
           />
         ) : null}
-        {info && !hayDatos ? (
+        {info && !hayDatos && d?.type === "N01" ? <Receptor id={d.id} /> : null}
+        {info && !hayDatos && d?.type !== "N01" ? (
           <Tarjeta>
-            <p className="text-[13px] text-texto-2">{d?.type === "N01" ? "En este sitio hay un receptor: no mide, pasa los datos de los sensores." : "Este sitio todavía no tiene datos."}</p>
+            <p className="text-[13px] text-texto-2">Este sitio todavía no tiene datos.</p>
           </Tarjeta>
         ) : null}
         {info && hayDatos ? (
@@ -195,24 +198,30 @@ function ElSitio({ info }: { info: InfoSitio }) {
   return (
     <Tarjeta titulo="El sitio">
       {info.device ? (
-        <FilaDato icono={Cpu} etiqueta="Equipo desde">
+        <FilaDato icono={INDICE.equipo.icono} etiqueta="Equipo desde">
           {fecha(info.device.since)}
         </FilaDato>
       ) : null}
       {n ? (
-        <FilaDato icono={Database} etiqueta="Lecturas">
+        <FilaDato icono={INDICE.lecturas.icono} etiqueta="Lecturas">
           {n.toLocaleString("es-AR")}
         </FilaDato>
       ) : null}
       {desde ? (
-        <FilaDato icono={CalendarRange} etiqueta="Datos desde">
+        <FilaDato icono={INDICE.desde.icono} etiqueta="Datos desde">
           {fecha(desde)}
         </FilaDato>
       ) : null}
       {info.b01 ? (
-        <FilaDato icono={Droplets} etiqueta="Suelo">
+        <FilaDato icono={INDICE.suelo.icono} etiqueta="Suelo">
           {textura ? `${textura}${info.electrodes.some((e) => e.calibrated) ? " (calibrado)" : ""}` : info.electrodes.some((e) => e.calibrated) ? "Calibrado" : "Sin calibración"}
         </FilaDato>
+      ) : null}
+      {info.b01 ? (
+        <Link to={`/sitio/${info.id}/calibracion`} className="mt-2 inline-flex items-center gap-1 text-[13px] font-medium text-acento-oscuro no-underline hover:underline">
+          Ver la calibración
+          <ChevronRight size={14} aria-hidden />
+        </Link>
       ) : null}
     </Tarjeta>
   );
@@ -241,7 +250,7 @@ function PerfilSuelo({ info }: { info: InfoSitio }) {
         <div className="flex flex-col">
           <span className="text-xs text-texto-3">
             <ConAyuda que="agua útil del perfil" texto={AYUDA.aguaUtil}>
-              Agua útil del perfil
+              <ConIcono que="aguaUtil">Agua útil del perfil</ConIcono>
             </ConAyuda>
           </span>
           {perfil.pct != null ? (
@@ -254,7 +263,7 @@ function PerfilSuelo({ info }: { info: InfoSitio }) {
         <div className="flex flex-col items-end">
           <span className="text-xs text-texto-3">Temp. del suelo</span>
           <span className="inline-flex items-center gap-1 text-[22px] font-semibold text-tinta">
-            <Thermometer size={16} strokeWidth={1.9} className="text-[#ea580c]" aria-hidden />
+            <IconoIndice que="tempSuelo" tamano={16} />
             {num(ult.soil_temp)} °C
           </span>
         </div>
@@ -351,15 +360,15 @@ function ClimaAhora({ info, hoy }: { info: InfoSitio; hoy: Dia | null }) {
     <>
       <Tarjeta titulo="Ahora" derecha={<HaceCorto fecha={a.t} />}>
         <div className="grid grid-cols-2 gap-3">
-          <Grande etiqueta="Temperatura" color="#dc2626" icono={<Thermometer size={20} strokeWidth={1.9} aria-hidden />} valor={num(a.air_temp)} unidad="°C" />
-          <Grande etiqueta="Humedad" color="#2563eb" icono={<Droplets size={20} strokeWidth={1.9} aria-hidden />} valor={num(a.humidity, 0)} unidad="%" />
+          <Grande etiqueta="Temperatura" color="#dc2626" icono={<IconoIndice que="temperatura" tamano={20} />} valor={num(a.air_temp)} unidad="°C" />
+          <Grande etiqueta="Humedad" color="#2563eb" icono={<IconoIndice que="humedad" tamano={20} />} valor={num(a.humidity, 0)} unidad="%" />
         </div>
         {a.dpv != null ? (
           <div className="mt-3.5 flex flex-col gap-1 border-t border-separador pt-3">
             <span className="flex justify-between text-[13px]">
               <span className="font-medium text-tinta">
                 <ConAyuda que="DPV" texto={AYUDA.dpv}>
-                  DPV
+                  <ConIcono que="dpv">DPV</ConIcono>
                 </ConAyuda>
               </span>
               <span className="text-tinta">{num(a.dpv, 2)} kPa</span>
@@ -372,7 +381,7 @@ function ClimaAhora({ info, hoy }: { info: InfoSitio; hoy: Dia | null }) {
             <span className="flex justify-between text-[13px]">
               <span className="font-medium text-tinta">
                 <ConAyuda que="punto de rocío" texto={AYUDA.rocio}>
-                  Distancia al rocío
+                  <ConIcono que="rocio">Distancia al rocío</ConIcono>
                 </ConAyuda>
               </span>
               <span className="text-tinta">{num(aRocio)} °C</span>
@@ -384,10 +393,14 @@ function ClimaAhora({ info, hoy }: { info: InfoSitio; hoy: Dia | null }) {
       {hoy ? (
         <Tarjeta titulo="Hoy">
           <div className="grid grid-cols-2 gap-3">
-            <Celda titulo="Mínima" valor={`${num(hoy.tmin)} °C`} />
-            <Celda titulo="Máxima" valor={`${num(hoy.tmax)} °C`} />
-            {hoy.horas_frio ? <Celda titulo={<ConAyuda que="horas de frío" texto={AYUDA.horasFrio}>Horas de frío</ConAyuda>} valor={horas(hoy.horas_frio)} nota="≤ 7,2 °C" /> : null}
-            {hoy.horas_helada ? <Celda titulo={<ConAyuda que="horas de helada" texto={AYUDA.horasHelada}>Horas de helada</ConAyuda>} valor={horas(hoy.horas_helada)} nota="≤ 0 °C" /> : null}
+            <Celda titulo={<ConIcono que="minima">Mínima</ConIcono>} valor={`${num(hoy.tmin)} °C`} />
+            <Celda titulo={<ConIcono que="maxima">Máxima</ConIcono>} valor={`${num(hoy.tmax)} °C`} />
+            {hoy.horas_frio ? (
+              <Celda titulo={<ConAyuda que="horas de frío" texto={AYUDA.horasFrio}><ConIcono que="horasFrio">Horas de frío</ConIcono></ConAyuda>} valor={horas(hoy.horas_frio)} nota="≤ 7,2 °C" />
+            ) : null}
+            {hoy.horas_helada ? (
+              <Celda titulo={<ConAyuda que="horas de helada" texto={AYUDA.horasHelada}><ConIcono que="horasHelada">Horas de helada</ConIcono></ConAyuda>} valor={horas(hoy.horas_helada)} nota="≤ 0 °C" />
+            ) : null}
           </div>
         </Tarjeta>
       ) : null}
@@ -448,22 +461,22 @@ function Aire({ serie, desde, hasta, intervalo }: { serie: PuntoSerie[]; desde: 
 // ------------------------------------------------------------------ durante el período
 
 function Periodo({ dias, suelo, agua }: { dias: Dia[]; suelo: boolean; agua: AguaSitio[] }) {
-  const celdas: { titulo: string; valor: string; nota?: string; ayuda?: string }[] = [];
+  const celdas: { que: ClaveIndice; titulo: string; valor: string; nota?: string; ayuda?: string }[] = [];
   if (suelo) {
     const rs = resumenSuelo(dias);
     const riegos = agua.filter((a) => a.kind === "riego");
     const lluvias = agua.filter((a) => a.kind === "lluvia");
     const suma = (l: AguaSitio[]) => `${Math.round(l.reduce((s, a) => s + (a.gross_mm ?? 0), 0))} mm`;
-    celdas.push({ titulo: "Riegos cargados", valor: String(riegos.length), nota: riegos.length ? suma(riegos) : undefined });
-    celdas.push({ titulo: "Lluvias cargadas", valor: String(lluvias.length), nota: lluvias.length ? suma(lluvias) : undefined });
-    celdas.push({ titulo: "Temp. del suelo", valor: `${num(rs.reciente)} °C`, nota: `promedio de ${rs.diasReciente} días` });
-    celdas.push({ titulo: "Amplitud diaria", valor: `${num(rs.amplitud)} °C`, nota: "máxima menos mínima", ayuda: AYUDA.amplitud });
+    celdas.push({ que: "riego", titulo: "Riegos cargados", valor: String(riegos.length), nota: riegos.length ? suma(riegos) : undefined });
+    celdas.push({ que: "lluvia", titulo: "Lluvias cargadas", valor: String(lluvias.length), nota: lluvias.length ? suma(lluvias) : undefined });
+    celdas.push({ que: "tempSuelo", titulo: "Temp. del suelo", valor: `${num(rs.reciente)} °C`, nota: `promedio de ${rs.diasReciente} días` });
+    celdas.push({ que: "amplitud", titulo: "Amplitud diaria", valor: `${num(rs.amplitud)} °C`, nota: "máxima menos mínima", ayuda: AYUDA.amplitud });
   } else {
     const rc = resumenClima(dias);
-    celdas.push({ titulo: "Mínima y máxima", valor: `${num(rc.tmin)} a ${num(rc.tmax)} °C` });
-    celdas.push({ titulo: "Horas de frío", valor: horas(rc.frio), nota: "≤ 7,2 °C", ayuda: AYUDA.horasFrio });
-    celdas.push({ titulo: "Horas de helada", valor: horas(rc.helada), nota: "≤ 0 °C", ayuda: AYUDA.horasHelada });
-    celdas.push({ titulo: "Grados-día", valor: num(rc.gdd, 0), nota: "base 10 °C", ayuda: AYUDA.gradosDia });
+    celdas.push({ que: "temperatura", titulo: "Mínima y máxima", valor: `${num(rc.tmin)} a ${num(rc.tmax)} °C` });
+    celdas.push({ que: "horasFrio", titulo: "Horas de frío", valor: horas(rc.frio), nota: "≤ 7,2 °C", ayuda: AYUDA.horasFrio });
+    celdas.push({ que: "horasHelada", titulo: "Horas de helada", valor: horas(rc.helada), nota: "≤ 0 °C", ayuda: AYUDA.horasHelada });
+    celdas.push({ que: "gradosDia", titulo: "Grados-día", valor: num(rc.gdd, 0), nota: "base 10 °C", ayuda: AYUDA.gradosDia });
   }
   return (
     <section className="flex flex-wrap items-stretch gap-y-2.5 rounded-xl border border-linea bg-white px-1 py-3.5">
@@ -472,7 +485,15 @@ function Periodo({ dias, suelo, agua }: { dias: Dia[]; suelo: boolean; agua: Agu
       </h2>
       {celdas.map((k) => (
         <div key={k.titulo} className="flex min-w-[120px] flex-[1_1_120px] flex-col border-l border-separador px-4">
-          <span className="text-xs text-texto-3">{k.ayuda ? <ConAyuda que={k.titulo.toLowerCase()} texto={k.ayuda}>{k.titulo}</ConAyuda> : k.titulo}</span>
+          <span className="text-xs text-texto-3">
+            {k.ayuda ? (
+              <ConAyuda que={k.titulo.toLowerCase()} texto={k.ayuda}>
+                <ConIcono que={k.que}>{k.titulo}</ConIcono>
+              </ConAyuda>
+            ) : (
+              <ConIcono que={k.que}>{k.titulo}</ConIcono>
+            )}
+          </span>
           <span className="text-[17px] font-semibold text-tinta">{k.valor}</span>
           {k.nota ? <span className="text-[11.5px] text-texto-3">{k.nota}</span> : null}
         </div>
