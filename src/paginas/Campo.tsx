@@ -1,7 +1,14 @@
 // Un campo, como en la app: mapa satelital con el perímetro, los lotes y los sitios; al lado, cómo
 // está la red del campo, los lotes (con el agua útil de ahora) y los sitios, y quiénes tienen acceso.
 // Dibujar lotes, ubicar sitios, cargar lluvias y dar permisos se hace en la app.
-import { ChevronRight, MapPin, Spline, Users } from "lucide-react";
+import {
+  ChevronRight,
+  CloudRain,
+  Droplets,
+  MapPin,
+  Spline,
+  Users,
+} from "lucide-react";
 import { useCallback } from "react";
 import { Link, useParams } from "react-router";
 
@@ -202,7 +209,26 @@ export function Campo() {
           { texto: "Campos", a: "/campos" },
           { texto: k?.name ?? "Campo" },
         ]}
-      />
+      >
+        {k?.can_edit && k.plots.length ? (
+          <>
+            <Link
+              to={`/campo/${k.id}/agua?tipo=lluvia&todos=1`}
+              className="inline-flex h-[34px] items-center gap-1.5 rounded-lg border border-linea bg-white px-3 text-[13px] font-medium text-texto-2 no-underline hover:bg-fondo hover:text-tinta"
+            >
+              <CloudRain size={15} strokeWidth={1.9} aria-hidden />
+              Cargar lluvia
+            </Link>
+            <Link
+              to={`/campo/${k.id}/agua?tipo=riego`}
+              className="inline-flex h-[34px] items-center gap-1.5 rounded-lg border border-tinta bg-tinta px-3 text-[13px] font-medium text-white no-underline hover:bg-[#1e293b]"
+            >
+              <Droplets size={15} strokeWidth={1.9} aria-hidden />
+              Cargar riego
+            </Link>
+          </>
+        ) : null}
+      </Barra>
       <Contenido>
         <Aviso mensaje={c.error} />
         {c.cargando && !k ? <Cargando texto="Leyendo el campo…" /> : null}
