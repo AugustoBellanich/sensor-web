@@ -1,4 +1,5 @@
-// Ícono de cada dato o índice (medido o calculado), el mismo en todas las pantallas: así la
+// Ícono de cada dato o índice (medido o calculado), el mismo en todas las pantallas y en la app
+// (sensor-app/src/componentes/Indice.tsx, D-83; cambiar en las dos): así la
 // mínima, las horas de frío o el DPV se reconocen sin leer la etiqueta. Color suave, del tono de
 // la variable (rojo calor, azul agua, celeste frío).
 import {
@@ -9,6 +10,7 @@ import {
   Database,
   Droplet,
   Droplets,
+  Flame,
   Gauge,
   Layers,
   MoveVertical,
@@ -31,6 +33,7 @@ export const INDICE = {
   rocio: { icono: Droplet, color: "#0369a1" },
   horasFrio: { icono: Snowflake, color: "#0284c7" },
   horasHelada: { icono: Snowflake, color: "#4338ca" },
+  horasCalor: { icono: Flame, color: "#ea580c" },
   gradosDia: { icono: Sun, color: "#d97706" },
   amplitud: { icono: MoveVertical, color: "#64748b" },
   tempSuelo: { icono: Thermometer, color: "#ea580c" },
