@@ -34,7 +34,7 @@ export function PasarA({
     if (!r.ok) return setAviso({ tipo: "error", mensaje: r.mensaje });
     setAviso({
       tipo: "bien",
-      mensaje: `Listo: ${correo.trim()} es el nuevo dueño.`,
+      mensaje: `${correo.trim()} es el nuevo dueño.`,
     });
     setCorreo("");
     alTerminar();

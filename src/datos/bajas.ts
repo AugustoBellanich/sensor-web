@@ -57,7 +57,7 @@ export function textoTitularidades(t: Titularidades | null | undefined): string 
 
 const ERRORES_BAJA: Record<string, string> = {
   admin_required: "Solo un administrador puede dar de baja cuentas.",
-  cannot_delete_self: "No podés dar de baja tu propia cuenta: pedíselo a otro administrador.",
+  cannot_delete_self: "No podés dar de baja tu propia cuenta: la tiene que dar de baja otro administrador.",
   target_is_admin: "Es administrador o personal del laboratorio: quitale el rol antes de darlo de baja.",
   user_not_found: "Esa cuenta ya no existe.",
   no_session: "La sesión venció. Volvé a ingresar.",

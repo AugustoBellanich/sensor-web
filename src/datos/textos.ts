@@ -3,7 +3,7 @@
 // (criterios 11 y 13 de sensor-central/docs/estilo.md): hasta dos oraciones, qué es y qué significa.
 
 export const AYUDA = {
-  dpv: "Déficit de presión de vapor: cuánto empuja el aire a la planta a transpirar. Bajo: hojas húmedas y riesgo de enfermedades; alto: la planta cierra estomas.",
+  dpv: "Déficit de presión de vapor: demanda de transpiración que el aire ejerce sobre la planta. Bajo: hojas húmedas y riesgo de enfermedades; alto: la planta cierra estomas.",
   rocio: "Temperatura a la que el aire se satura y el agua se condensa. A menos de 2 °C de distancia, las hojas se mojan (rocío o escarcha).",
   carcasa: "Temperatura dentro de la caja, medida por el reloj (±3 °C); no es un dato del aire. Arriba de 45 °C se daña la batería.",
   resumenClima: "Medido a la altura del sensor: a nivel del suelo la helada puede ser más fuerte. Los cortes de más de 3 h no suman horas.",
@@ -26,9 +26,9 @@ export const AYUDA = {
   riegoSinSistema: "Sin el sistema, los riegos se guardan en horas y se pasan a mm cuando lo cargues.",
   cambioSistema: "El sistema actual queda en el historial hasta la fecha nueva.",
   vincular: "Al vincularlo quedás como dueño y podés compartirlo.",
-  archivados: "Al restaurar un sitio, el equipo hay que ubicarlo de nuevo.",
-  inicioCompartidos: "Si alguien te comparte un equipo, aparece acá.",
-  camposVacio: "Un campo tiene lotes, y cada lote, sitios donde van los equipos. Si alguien te suma a su campo, aparece acá.",
+  archivados: "Al restaurar un sitio, el equipo se tiene que volver a ubicar.",
+  inicioCompartidos: "Los equipos compartidos con vos aparecen en esta lista.",
+  camposVacio: "Un campo tiene lotes, y cada lote, sitios donde van los equipos. Los campos a los que te suman aparecen en esta lista.",
   aguaUtil: "Agua que el cultivo puede usar: 0 % es el punto de marchitez (PMP) y 100 %, la capacidad de campo (CC). Cada profundidad cuenta hasta 100 %, porque el agua de más drena, y pesa según el agua que puede guardar.",
   zonasSuelo: "PMP: punto de marchitez, la planta ya no puede sacar agua. CC: capacidad de campo, lo que el suelo retiene después de drenar. SAT: suelo saturado, con todos los poros llenos de agua.",
   gradosDia: "Suma de los grados por encima de 10 °C de cada día: el calor acumulado que mueve el desarrollo del cultivo.",

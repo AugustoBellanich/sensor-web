@@ -503,7 +503,7 @@ function Personas({
     setEnviando(false);
     if (!r.ok) return setMensaje({ tipo: "error", texto: r.mensaje });
     setCorreo("");
-    setMensaje({ tipo: "bien", texto: "Listo: ya tiene acceso al campo." });
+    setMensaje({ tipo: "bien", texto: "Acceso al campo otorgado." });
     alCambiar();
   }
   return (

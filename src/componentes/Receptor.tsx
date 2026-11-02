@@ -99,11 +99,11 @@ export function Receptor({ id }: { id: string }) {
               ) : null}
             </>
           ) : d ? (
-            <p className="text-[13px] text-texto-2">Todavía no mandó su estado.</p>
+            <p className="text-[13px] text-texto-2">Sin estado recibido.</p>
           ) : null}
         </Tarjeta>
-        <Tarjeta titulo={`Sensores que pasan por acá (${d?.sensores.length ?? 0})`}>
-          {d && !d.sensores.length ? <p className="text-[13px] text-texto-2">Ningún sensor mandó por este receptor últimamente.</p> : null}
+        <Tarjeta titulo={`Sensores recibidos (${d?.sensores.length ?? 0})`}>
+          {d && !d.sensores.length ? <p className="text-[13px] text-texto-2">Sin sensores recibidos recientemente.</p> : null}
           {(d?.sensores ?? []).map((s) => (
             <div key={s.device_id} className="flex items-center gap-2.5 border-t border-separador py-2 text-[13px] first:border-t-0">
               <span className="min-w-0 flex-1">
@@ -155,7 +155,7 @@ export function Receptor({ id }: { id: string }) {
                 hasta={d.r.hasta}
                 intervaloS={d.r.intervalo}
                 series={[{ nombre: "Promedio", color: "#7c3aed", valores: d.horas.map((h) => h.demora_prom_s) }]}
-                nota="Tiempo entre que el equipo midió y la lectura llegó a la base."
+                nota="Demora entre la medición y la llegada de la lectura a la base."
               />
             </Tarjeta>
           </>
@@ -167,7 +167,7 @@ export function Receptor({ id }: { id: string }) {
               <table className="w-full min-w-[640px] text-[13px]">
                 <thead>
                   <tr className="border-y border-separador text-left text-xs text-texto-3">
-                    <th className="px-[18px] py-2 font-normal">Cuándo</th>
+                    <th className="px-[18px] py-2 font-normal">Hora</th>
                     <th className="py-2 font-normal">Estado</th>
                     <th className="py-2 text-right font-normal">Recibidas</th>
                     <th className="py-2 text-right font-normal">Nuevas</th>

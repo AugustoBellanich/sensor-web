@@ -159,7 +159,7 @@ export function NuevoSitio() {
               className="flex flex-wrap items-start gap-4"
             >
               <div className="min-w-0 flex-[3_1_520px]">
-                <Tarjeta titulo="Dónde va">
+                <Tarjeta titulo="Ubicación">
                   <UbicadorMapa
                     valor={punto}
                     alCambiar={marcar}
@@ -289,7 +289,7 @@ export function GestionSitio() {
                 <EquipoDelSitio sitio={s} alCambiar={c.actualizar} />
                 <Tarjeta titulo="Equipos que estuvieron">
                   {!c.datos?.pasos.length ? (
-                    <p className="text-[13px] text-texto-2">Ninguno todavía.</p>
+                    <p className="text-[13px] text-texto-2">Ninguno.</p>
                   ) : null}
                   {(c.datos?.pasos ?? []).map((p) => (
                     <div

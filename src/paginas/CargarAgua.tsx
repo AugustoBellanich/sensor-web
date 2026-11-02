@@ -229,7 +229,7 @@ function Formulario({
     if (!e.ok)
       return setError(
         e.sinRed
-          ? "No hay conexión con la base. Lo escrito sigue acá: probá de nuevo en un momento."
+          ? "Sin conexión con la base. Los datos cargados se conservan en el formulario: volvé a intentar."
           : e.mensaje,
       );
     navegar(lote ? `/campo/${campo.id}/lote/${lote.id}` : `/campo/${campo.id}`);

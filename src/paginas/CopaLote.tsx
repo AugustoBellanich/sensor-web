@@ -341,7 +341,7 @@ function Mediciones({
   return (
     <Tarjeta titulo={`Mediciones (${lista.length})`}>
       {!lista.length ? (
-        <p className="text-[13px] text-texto-2">Todavía no hay mediciones.</p>
+        <p className="text-[13px] text-texto-2">Sin mediciones.</p>
       ) : null}
       {lista.map((m) => (
         <div

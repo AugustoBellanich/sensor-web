@@ -205,7 +205,7 @@ export function Equipo() {
                     ) : null}
                   </Tarjeta>
                 ) : null}
-                <Tarjeta titulo="Dónde estuvo">
+                <Tarjeta titulo="Historial de ubicaciones">
                   {c.datos?.pasos.length ? (
                     c.datos.pasos.map((p) => (
                       <FilaDato
@@ -329,7 +329,7 @@ function Accesos({ id, miId }: { id: string; miId: string }) {
     setEnviando(false);
     if (!r.ok) return setMensaje({ tipo: "error", texto: r.mensaje });
     setCorreo("");
-    setMensaje({ tipo: "bien", texto: "Listo: ya puede ver el equipo." });
+    setMensaje({ tipo: "bien", texto: "Acceso al equipo otorgado." });
     void c.actualizar();
   }
   return (
@@ -382,7 +382,7 @@ function Accesos({ id, miId }: { id: string; miId: string }) {
         <select
           value={rol}
           onChange={(ev) => setRol(ev.target.value as "viewer" | "editor")}
-          aria-label="Qué puede hacer"
+          aria-label="Permiso"
           className="h-[34px] rounded-lg border border-linea bg-white px-2 text-[13px] text-tinta"
         >
           <option value="viewer">Solo ver</option>

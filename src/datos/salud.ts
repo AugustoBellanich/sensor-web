@@ -81,7 +81,7 @@ export function nivel(e: Pick<SaludEquipo, "state" | "severity">): Nivel {
 
 export const TEXTO_ESTADO: Record<string, string> = {
   "al-dia": "Al día",
-  "sin-datos": "Todavía no mandó datos",
+  "sin-datos": "Sin datos recibidos",
   "solo-sd": "Solo guarda en la tarjeta SD",
 };
 
@@ -223,8 +223,8 @@ export function resumen(lista: SaludEquipo[]): Resumen {
 
 /** Frase de una línea para la cabecera del campo. */
 export function fraseResumen(r: Resumen): string {
-  if (r.total === 0) return "Este campo todavía no tiene equipos";
-  if (r.problemas === 0) return r.total === 1 ? "El equipo está bien" : `Los ${r.total} equipos están bien`;
+  if (r.total === 0) return "Campo sin equipos";
+  if (r.problemas === 0) return r.total === 1 ? "Equipo sin problemas" : `${r.total} equipos sin problemas`;
   const que = r.problemas === 1 ? "1 equipo necesita atención" : `${r.problemas} equipos necesitan atención`;
   return r.graves > 0 ? `${que} (${r.graves} con un problema grave)` : que;
 }
