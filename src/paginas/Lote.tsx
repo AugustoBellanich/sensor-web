@@ -37,11 +37,12 @@ import { fechaHoraArg } from "@/datos/grafico";
 import { anularEvento } from "@/datos/riego";
 import { infoSitio, type InfoSitio } from "@/datos/series";
 import { useConsulta } from "@/datos/useConsulta";
-import { cultivoDe, datoCorto, FilaSitio } from "@/paginas/Campo";
+import { cultivoDe, FilaSitio } from "@/paginas/Campo";
 import { IconoCultivo } from "@/componentes/IconoCultivo";
 import { grupoDeLote, useGruposCultivo } from "@/datos/gruposCultivo";
 import { BotonQuitar } from "@/componentes/Quitar";
 import { useSesion } from "@/sesion/SesionContexto";
+import { SelectorDato, useDatoAhora } from "@/componentes/SelectorDato";
 
 const fecha = (t: string) =>
   fechaHoraArg(t).slice(0, 10).split("-").reverse().join("/");
@@ -104,6 +105,7 @@ export function Lote() {
   const k = c.datos?.campo ?? null;
   const l = c.datos?.lote ?? null;
   const sitios = c.datos?.sitios ?? [];
+  const dato = useDatoAhora();
   const a = l?.activity ?? null;
   const s = c.datos?.sistema ?? null;
   const eventos = (agua.datos?.eventos ?? [])
@@ -253,6 +255,14 @@ export function Lote() {
                     ) : null
                   }
                 >
+                  {l.boundary && sitios.length ? (
+                    <div className="mb-2">
+                      <SelectorDato
+                        tipos={sitios.flatMap((x) => (x.device ? [x.device.type] : []))}
+                        dato={dato}
+                      />
+                    </div>
+                  ) : null}
                   {l.boundary ? (
                     <MapaCampo
                       alto={260}
@@ -267,9 +277,7 @@ export function Lote() {
                           familia: x.device
                             ? familiaDeModelo(x.device.type)
                             : null,
-                          dato: c.datos?.info.get(x.id)
-                            ? datoCorto(c.datos.info.get(x.id)!)
-                            : null,
+                          dato: dato.etiquetas.get(x.id) ?? null,
                           nombre: x.name,
                           a: x.device ? `/sitio/${x.id}` : undefined,
                         }))}

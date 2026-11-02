@@ -55,16 +55,9 @@ import { infoSitio, type InfoSitio } from "@/datos/series";
 import { AYUDA } from "@/datos/textos";
 import { useConsulta } from "@/datos/useConsulta";
 import { useSesion } from "@/sesion/SesionContexto";
+import { SelectorDato, useDatoAhora } from "@/componentes/SelectorDato";
 
 const ROL = { owner: "Dueño", editor: "Editor", viewer: "Solo ver" } as const;
-
-/** Dato corto para la marca del mapa: agua útil, si no la temperatura. */
-export function datoCorto(i: InfoSitio): string | null {
-  const a = ahoraSitio(i);
-  if (a.agua != null) return `${Math.round(a.agua)} %`;
-  if (a.temp != null) return `${a.temp.toFixed(1).replace(".", ",")} °C`;
-  return null;
-}
 
 /** Agua útil promedio de los sitios de suelo de un lote (null si no hay). */
 export function aguaDelLote(
@@ -187,6 +180,7 @@ export function Campo() {
     }, [id]),
   );
   const k = c.datos?.campo ?? null;
+  const dato = useDatoAhora();
   const salud = c.datos?.salud ?? [];
   const info = c.datos?.info ?? new Map<string, InfoSitio>();
   const atencion = ordenar(salud).filter(
@@ -215,7 +209,7 @@ export function Campo() {
       lat: s.lat!,
       lng: s.lng!,
       familia: s.device ? familiaDeModelo(s.device.type) : null,
-      dato: info.get(s.id) ? datoCorto(info.get(s.id)!) : null,
+      dato: dato.etiquetas.get(s.id) ?? null,
       nombre: s.name,
       a:
         s.device && (s.device.type === "B01" || s.device.type === "C01")
@@ -298,6 +292,14 @@ export function Campo() {
             ) : null}
             <div className="flex flex-wrap items-start gap-4">
               <div className="min-w-0 flex-[3_1_540px]">
+                {puntos.length ? (
+                  <div className="mb-2">
+                    <SelectorDato
+                      tipos={(k.sites ?? []).flatMap((s) => (s.device ? [s.device.type] : []))}
+                      dato={dato}
+                    />
+                  </div>
+                ) : null}
                 {poligonos.length || puntos.length ? (
                   <MapaCampo
                     poligonos={poligonos}
