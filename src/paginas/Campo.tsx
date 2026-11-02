@@ -24,6 +24,8 @@ import {
 } from "@/componentes/MapaCampo";
 import { Barra, Contenido } from "@/componentes/Marco";
 import { Archivados } from "@/componentes/Archivados";
+import { IconoCultivo } from "@/componentes/IconoCultivo";
+import { grupoDeLote, useGruposCultivo } from "@/datos/gruposCultivo";
 import { PasarA } from "@/componentes/PasarA";
 import { BotonQuitar } from "@/componentes/Quitar";
 import {
@@ -158,6 +160,7 @@ export function Campo() {
   const { id = "" } = useParams();
   const { esAdmin, sesion } = useSesion();
   const navegar = useNavigate();
+  const grupos = useGruposCultivo();
   const c = useConsulta(
     useCallback(async () => {
       const [d, h, m] = await Promise.all([
@@ -371,12 +374,9 @@ export function Campo() {
                           to={`/campo/${k.id}/lote/${l.id}`}
                           className="flex items-center gap-2.5 border-t border-separador py-2.5 text-inherit no-underline first:border-t-0 hover:bg-[#fafbfc]"
                         >
-                          <Spline
-                            size={16}
-                            strokeWidth={1.9}
-                            className="shrink-0 text-tinta"
-                            aria-hidden
-                          />
+                          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-linea bg-white">
+                            <IconoCultivo grupo={grupoDeLote(l, grupos)} />
+                          </span>
                           <span className="flex min-w-0 flex-1 flex-col gap-px">
                             <span className="truncate text-[13.5px] font-medium text-tinta">
                               {l.name}

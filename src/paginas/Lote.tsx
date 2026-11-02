@@ -2,7 +2,7 @@
 // a un costado la forma vigente, el cultivo, el riego del lote y la copa. Desde acá se cargan riegos y
 // lluvias, se cambia el sistema de riego y se anula un evento mal cargado; redibujar y editar el
 // cultivo siguen en la app.
-import { Ban, CloudRain, Droplets, Spline, Sprout } from "lucide-react";
+import { Ban, CloudRain, Droplets, Spline } from "lucide-react";
 import { useCallback, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 
@@ -38,6 +38,8 @@ import { anularEvento } from "@/datos/riego";
 import { infoSitio, type InfoSitio } from "@/datos/series";
 import { useConsulta } from "@/datos/useConsulta";
 import { cultivoDe, datoCorto, FilaSitio } from "@/paginas/Campo";
+import { IconoCultivo } from "@/componentes/IconoCultivo";
+import { grupoDeLote, useGruposCultivo } from "@/datos/gruposCultivo";
 import { BotonQuitar } from "@/componentes/Quitar";
 import { useSesion } from "@/sesion/SesionContexto";
 
@@ -57,6 +59,7 @@ const PERIODOS = [
 export function Lote() {
   const { campo = "", id = "" } = useParams();
   const [dias, setDias] = useState<"30" | "90" | "365">("90");
+  const grupos = useGruposCultivo();
   const { esAdmin } = useSesion();
   const navegar = useNavigate();
   const c = useConsulta(
@@ -150,7 +153,10 @@ export function Lote() {
               titulo={l.name}
               datos={
                 <>
-                  <Dato icono={Sprout}>{cultivoDe(l)}</Dato>
+                  <span className="inline-flex items-center gap-1.5">
+                    <IconoCultivo grupo={grupoDeLote(l, grupos)} tamano={15} />
+                    {cultivoDe(l)}
+                  </span>
                   {l.irrigation_method ? (
                     <Dato icono={Droplets}>
                       {NOMBRE_METODO[l.irrigation_method]}
