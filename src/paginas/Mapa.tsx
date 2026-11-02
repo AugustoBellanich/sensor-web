@@ -26,6 +26,7 @@ import { infoSitio, type InfoSitio } from "@/datos/series";
 import { sitiosVisibles, type SitioVisible } from "@/datos/sitios";
 import { AYUDA } from "@/datos/textos";
 import { useConsulta } from "@/datos/useConsulta";
+import { SelectorDato, useDatoAhora } from "@/componentes/SelectorDato";
 
 async function cargar() {
   const [s, h] = await Promise.all([sitiosVisibles(), saludRed()]);
@@ -43,28 +44,13 @@ async function cargar() {
   };
 }
 
-/** Dato corto para la marca: agua útil, si no la temperatura. */
-function datoCorto(info: InfoSitio | undefined): string | null {
-  if (!info) return null;
-  const a = ahoraSitio(info);
-  if (a.agua != null) return `${Math.round(a.agua)} %`;
-  if (a.temp != null) return `${num(a.temp)} °C`;
-  return null;
-}
-
 export function Mapa() {
   const c = useConsulta(cargar);
   const [filtro, setFiltro] = useState<Familia | "todos">("todos");
   const [elegido, setElegido] = useState<string | null>(null);
   const sitios = useMemo(() => c.datos?.sitios ?? [], [c.datos]);
-  const datos = useMemo(() => {
-    const m = new Map<string, string>();
-    for (const s of sitios) {
-      const d = datoCorto(c.datos?.info.get(s.site_id));
-      if (d) m.set(s.site_id, d);
-    }
-    return m;
-  }, [sitios, c.datos]);
+  const dato = useDatoAhora();
+  const datos = dato.etiquetas;
   const presentes = ORDEN_FAMILIAS.filter((f) =>
     sitios.some((s) => s.device_type && familiaDeModelo(s.device_type) === f),
   );
@@ -111,6 +97,12 @@ export function Mapa() {
               </button>
             );
           })}
+        </div>
+        <div className="ml-2 border-l border-linea pl-3">
+          <SelectorDato
+            tipos={sitios.flatMap((s) => (s.device_type ? [s.device_type] : []))}
+            dato={dato}
+          />
         </div>
       </Barra>
       <Contenido ancho={1920}>
