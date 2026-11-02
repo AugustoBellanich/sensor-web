@@ -109,11 +109,13 @@ export function FilaSitio({
   const familia = s.device ? familiaDeModelo(s.device.type) : null;
   const mide = s.device && (s.device.type === "B01" || s.device.type === "C01");
   const a = info ? ahoraSitio(info) : null;
+  // Sin equipo, el sitio no tiene datos que mostrar: se abre su gestión (ubicar un equipo, cambiarlo,
+  // borrarlo o archivarlo).
   const destino = mide
     ? `/sitio/${s.id}`
     : s.device
       ? `/equipo/${s.device.id}`
-      : null;
+      : `/sitio/${s.id}/gestion`;
   const cuerpo = (
     <>
       <IconoFam familia={familia} />
