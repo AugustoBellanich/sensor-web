@@ -19,6 +19,7 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router";
 
 import { ConAyuda } from "@/componentes/Ayuda";
+import { IconoIndice, type ClaveIndice } from "@/componentes/Indice";
 import { FraseEstado, IconoEstado } from "@/componentes/EstadoEquipo";
 import {
   BateriaCorta,
@@ -453,21 +454,24 @@ function Panel({
 }) {
   const familia = familiaDeModelo(e.type);
   const a = info ? ahoraSitio(info) : null;
-  const celdas: { t: string; v: string; c?: string; ayuda?: string }[] = [];
+  const celdas: { t: string; v: string; i: ClaveIndice; c?: string; ayuda?: string }[] = [];
   if (a?.agua != null)
     celdas.push({
       t: "Agua útil",
       v: `${Math.round(a.agua)} %`,
+      i: "aguaUtil",
       c: "text-[#047857]",
       ayuda: AYUDA.aguaUtil,
     });
+  const suelo = a?.agua != null || !!info?.last_b01;
   if (a?.temp != null)
     celdas.push({
-      t: a.agua != null || info?.last_b01 ? "Temp. del suelo" : "Temperatura",
+      t: suelo ? "Temp. del suelo" : "Temperatura",
       v: `${num(a.temp)} °C`,
+      i: suelo ? "tempSuelo" : "temperatura",
     });
   if (a?.humedad != null)
-    celdas.push({ t: "Humedad", v: `${num(a.humedad, 0)} %` });
+    celdas.push({ t: "Humedad", v: `${num(a.humedad, 0)} %`, i: "humedad" });
   return (
     <aside className="flex min-w-[280px] flex-[0_1_330px] flex-col gap-3.5 rounded-xl border border-linea bg-white p-[18px] lg:sticky lg:top-[84px]">
       <div className="flex items-center gap-2.5">
@@ -499,8 +503,11 @@ function Panel({
                   k.t
                 )}
               </span>
-              <span className={`text-xl font-semibold ${k.c ?? "text-tinta"}`}>
-                {k.v}
+              <span className="flex items-center gap-1.5">
+                <IconoIndice que={k.i} tamano={18} />
+                <span className={`text-xl font-semibold ${k.c ?? "text-tinta"}`}>
+                  {k.v}
+                </span>
               </span>
             </div>
           ))}
