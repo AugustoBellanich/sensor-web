@@ -274,7 +274,7 @@ function Formulario({
           </div>
           {codigo === "otro" || (!codigo && otro) ? (
             <Campo
-              etiqueta="¿Qué cultivo?"
+              etiqueta="Cultivo"
               value={otro}
               onChange={(e) => setOtro(e.target.value)}
             />

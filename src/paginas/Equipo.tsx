@@ -142,7 +142,15 @@ export function Equipo() {
                         s.causes.map((k) => (
                           <div key={k.code} className="flex flex-col gap-0.5">
                             <FraseEstado s={{ ...s, causes: [k] }} />
-                            {detalleCausa(k) ? (
+                            {k.code === "sensores-sin-alta" && esAdmin ? (
+                              <span className="flex flex-wrap gap-x-3 pl-3 text-xs">
+                                {((k.data?.ids as string[] | undefined) ?? []).map((sid) => (
+                                  <Link key={sid} to={`/admin/alta?id=${encodeURIComponent(sid)}`} className="font-mono text-acento-oscuro hover:underline">
+                                    Dar de alta {sid}
+                                  </Link>
+                                ))}
+                              </span>
+                            ) : detalleCausa(k) ? (
                               <span className="pl-3 text-xs text-texto-3">
                                 {detalleCausa(k)}
                               </span>
@@ -205,7 +213,7 @@ export function Equipo() {
                     ) : null}
                   </Tarjeta>
                 ) : null}
-                <Tarjeta titulo="Dónde estuvo">
+                <Tarjeta titulo="Historial de ubicaciones">
                   {c.datos?.pasos.length ? (
                     c.datos.pasos.map((p) => (
                       <FilaDato
@@ -329,7 +337,7 @@ function Accesos({ id, miId }: { id: string; miId: string }) {
     setEnviando(false);
     if (!r.ok) return setMensaje({ tipo: "error", texto: r.mensaje });
     setCorreo("");
-    setMensaje({ tipo: "bien", texto: "Listo: ya puede ver el equipo." });
+    setMensaje({ tipo: "bien", texto: "Acceso al equipo otorgado." });
     void c.actualizar();
   }
   return (
@@ -382,7 +390,7 @@ function Accesos({ id, miId }: { id: string; miId: string }) {
         <select
           value={rol}
           onChange={(ev) => setRol(ev.target.value as "viewer" | "editor")}
-          aria-label="Qué puede hacer"
+          aria-label="Permiso"
           className="h-[34px] rounded-lg border border-linea bg-white px-2 text-[13px] text-tinta"
         >
           <option value="viewer">Solo ver</option>

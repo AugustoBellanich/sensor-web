@@ -213,7 +213,7 @@ export function Equipos() {
               {esAdmin ? (
                 <>
                   <Segmento
-                    etiqueta="Qué equipos"
+                    etiqueta="Alcance"
                     opciones={[
                       { valor: "mios" as const, texto: "Míos" },
                       { valor: "proyecto" as const, texto: "Del proyecto" },
@@ -227,7 +227,7 @@ export function Equipos() {
               ) : null}
               <div
                 role="radiogroup"
-                aria-label="Qué miden"
+                aria-label="Tipo de equipo"
                 className="flex flex-wrap gap-1"
               >
                 {[
@@ -281,7 +281,7 @@ export function Equipos() {
               <p className="border-t border-separador px-4 py-4 text-[13px] text-texto-2">
                 {delAlcance.length
                   ? "Ningún equipo coincide con el filtro."
-                  : "Todavía no tenés equipos. Se vinculan desde la app, con el código que trae cada equipo."}
+                  : "Sin equipos vinculados. Se vinculan desde la app con el código de cada equipo."}
               </p>
             ) : null}
             {visibles.length ? (

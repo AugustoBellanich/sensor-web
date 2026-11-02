@@ -40,7 +40,7 @@ export function AdminFirmware() {
         <Aviso mensaje={c.error} />
         {c.cargando && !c.datos ? <Cargando texto="Leyendo las versiones…" /> : null}
         {c.datos && !versiones.length ? (
-          <p className="text-[13px] text-texto-2">Todavía no hay versiones subidas.</p>
+          <p className="text-[13px] text-texto-2">Sin versiones subidas.</p>
         ) : null}
         {modelos.map((m) => (
           <Modelo key={m} modelo={m} versiones={versiones.filter((v) => v.model === m)} alCambiar={c.actualizar} />

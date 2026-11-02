@@ -302,7 +302,7 @@ export function PuntoCalibracion() {
                 <Campo
                   etiqueta={
                     metodo === "otro_sensor"
-                      ? "Qué sensor (marca, modelo)"
+                      ? "Sensor de referencia (marca y modelo)"
                       : "Detalle (opcional)"
                   }
                   value={detalle}
@@ -695,7 +695,7 @@ export function SueloElectrodo() {
             <div className="mt-4 grid gap-4 sm:grid-cols-2">
               <div className="flex flex-col gap-2">
                 <span className="text-xs font-bold tracking-wider text-texto uppercase">
-                  Cómo se determinó
+                  Método
                 </span>
                 <Segmento
                   etiqueta="Método de textura"

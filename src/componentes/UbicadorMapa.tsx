@@ -145,7 +145,7 @@ export function UbicadorMapa({
           cargando={buscando}
           onClick={() => {
             if (!navigator.geolocation)
-              return setError("Este navegador no da la ubicación.");
+              return setError("El navegador no permite obtener la ubicación.");
             setBuscando(true);
             setError(null);
             navigator.geolocation.getCurrentPosition(
@@ -169,7 +169,7 @@ export function UbicadorMapa({
         </Boton>
         <span className="text-xs text-texto-3">
           {valor
-            ? `${valor.lat.toFixed(6)}, ${valor.lng.toFixed(6)} · podés arrastrar el pin`
+            ? `${valor.lat.toFixed(6)}, ${valor.lng.toFixed(6)} · arrastrá el marcador para ajustar`
             : "Hacé clic en el mapa para marcarla."}
         </span>
       </div>

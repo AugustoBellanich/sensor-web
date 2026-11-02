@@ -575,7 +575,7 @@ function Niveles({
                   alCambiar();
                 }}
               >
-                Usar estos valores
+                Guardar valores estimados
               </Boton>
               <Boton variante="texto" onClick={() => setEstimacion(null)}>
                 Cancelar

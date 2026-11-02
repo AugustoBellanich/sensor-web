@@ -394,7 +394,7 @@ function Editor({
               />
               {lote ? (
                 <Segmento
-                  etiqueta="Qué pasó"
+                  etiqueta="Tipo de cambio"
                   opciones={
                     [
                       { valor: "cambio", texto: "El lote cambió" },

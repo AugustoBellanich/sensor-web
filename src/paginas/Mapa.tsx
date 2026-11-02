@@ -66,7 +66,7 @@ export function Mapa() {
       <Barra migas={[{ texto: "Mapa" }]}>
         <div
           role="radiogroup"
-          aria-label="Qué miden"
+          aria-label="Tipo de equipo"
           className="flex flex-wrap gap-1"
         >
           {(["todos", ...presentes] as const).map((f) => {

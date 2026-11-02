@@ -68,8 +68,8 @@ describe("salud de la red", () => {
     const r = resumen(lista);
     expect(r).toEqual({ total: 4, problemas: 2, graves: 1, gateways: 1, sensores: 3 });
     expect(fraseResumen(r)).toBe("2 equipos necesitan atención (1 con un problema grave)");
-    expect(fraseResumen(resumen([equipo({})]))).toBe("El equipo está bien");
-    expect(fraseResumen(resumen([]))).toBe("Este campo todavía no tiene equipos");
+    expect(fraseResumen(resumen([equipo({})]))).toBe("Equipo sin problemas");
+    expect(fraseResumen(resumen([]))).toBe("Campo sin equipos");
   });
 
   it("orden: lo más grave primero, los que nunca mandaron al final", () => {
