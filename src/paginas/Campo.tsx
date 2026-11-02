@@ -11,7 +11,7 @@ import {
   Users,
 } from "lucide-react";
 import { useCallback, useState, type FormEvent } from "react";
-import { Link, useParams } from "react-router";
+import { Link, useNavigate, useParams } from "react-router";
 
 import { ConAyuda } from "@/componentes/Ayuda";
 
@@ -23,7 +23,9 @@ import {
   type PuntoMapa,
 } from "@/componentes/MapaCampo";
 import { Barra, Contenido } from "@/componentes/Marco";
+import { Archivados } from "@/componentes/Archivados";
 import { PasarA } from "@/componentes/PasarA";
+import { BotonQuitar } from "@/componentes/Quitar";
 import {
   Aviso,
   Boton,
@@ -153,6 +155,7 @@ export function FilaSitio({
 export function Campo() {
   const { id = "" } = useParams();
   const { esAdmin, sesion } = useSesion();
+  const navegar = useNavigate();
   const c = useConsulta(
     useCallback(async () => {
       const [d, h, m] = await Promise.all([
@@ -441,6 +444,22 @@ export function Campo() {
                     nombre={k.name}
                     alTerminar={c.actualizar}
                   />
+                ) : null}
+                {k.is_owner || esAdmin ? (
+                  <>
+                    {k.archived ? (
+                      <Archivados
+                        archivados={k.archived}
+                        alRestaurar={c.actualizar}
+                      />
+                    ) : null}
+                    <BotonQuitar
+                      tipo="campo"
+                      id={k.id}
+                      nombre={k.name}
+                      alTerminar={() => navegar("/campos")}
+                    />
+                  </>
                 ) : null}
               </div>
             </div>

@@ -3,6 +3,7 @@
 import { ChevronRight, MapPin, Plus } from "lucide-react";
 import { Link } from "react-router";
 
+import { CamposArchivados } from "@/componentes/Archivados";
 import { Barra, Contenido } from "@/componentes/Marco";
 import { Aviso, Cargando, Titulo } from "@/componentes/ui";
 import { misCampos, textoHa, type Campo } from "@/datos/campos";
@@ -41,6 +42,9 @@ export function Campos() {
           {campos.map((k) => (
             <TarjetaCampo key={k.id} k={k} />
           ))}
+        </div>
+        <div className="mt-4 lg:max-w-[420px]">
+          <CamposArchivados alRestaurar={c.actualizar} />
         </div>
       </Contenido>
     </>
