@@ -1,5 +1,5 @@
 // Administración (admin y staff), lo mismo que la app: usuarios, salud de las redes, todos los
-// equipos, alta de equipos y pedidos de baja (solo admin). La base vuelve a controlar cada permiso;
+// equipos, alta de equipos, versiones de firmware (solo web, D-92) y pedidos de baja (solo admin). La base vuelve a controlar cada permiso;
 // acá solo se esconde lo que el rol no puede hacer. En la web, listas en tabla y el detalle al costado.
 import {
   Activity,
@@ -7,6 +7,7 @@ import {
   ChevronRight,
   Copy,
   Cpu,
+  FileCode,
   Hash,
   PackagePlus,
   Search,
@@ -26,6 +27,7 @@ import {
 import { Link, NavLink, Navigate, useParams } from "react-router";
 
 import { FraseEstado, IconoEstado } from "@/componentes/EstadoEquipo";
+import { AdminFirmware } from "@/paginas/AdminFirmware";
 import { FamiliaYCodigo, HaceCorto } from "@/componentes/familia";
 import { Barra, Contenido } from "@/componentes/Marco";
 import {
@@ -94,6 +96,7 @@ const SECCIONES: {
   { ruta: "redes", texto: "Salud de las redes", icono: Activity },
   { ruta: "equipos", texto: "Todos los equipos", icono: Cpu },
   { ruta: "alta", texto: "Alta de equipo", icono: PackagePlus },
+  { ruta: "firmware", texto: "Firmware", icono: FileCode },
   { ruta: "bajas", texto: "Pedidos de baja", icono: UserX, soloAdmin: true },
 ];
 
@@ -141,6 +144,7 @@ export function Admin() {
             {seccion === "redes" ? <Redes /> : null}
             {seccion === "equipos" ? <TodosLosEquipos /> : null}
             {seccion === "alta" ? <Alta /> : null}
+            {seccion === "firmware" ? <AdminFirmware /> : null}
             {seccion === "bajas" ? <Bajas /> : null}
           </>
         )}
