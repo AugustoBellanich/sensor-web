@@ -287,7 +287,7 @@ export function Equipos() {
               <div className="relative overflow-x-auto">
                 <div className="min-w-[760px]">
                   <div
-                    className={`grid ${COLUMNAS} gap-3.5 border-t border-separador px-4 py-2 text-[11.5px] font-medium text-texto-3`}
+                    className={`grid ${COLUMNAS} gap-3.5 border-t border-separador px-[29px] py-2 text-[11.5px] font-medium text-texto-3`}
                   >
                     <span className="pl-[26px]">Equipo</span>
                     <span>Ahora</span>
@@ -295,6 +295,7 @@ export function Equipos() {
                     <span>Batería</span>
                     <span>Estado</span>
                   </div>
+                  <div className="flex flex-col gap-3 px-3 pb-3">
                   {grupos.map((g) => {
                     const abierto = !plegados.has(g.clave);
                     const sinDatos = g.equipos.filter(
@@ -307,34 +308,37 @@ export function Equipos() {
                             : UMBRAL_MODULO_MS),
                     ).length;
                     return (
-                      <div key={g.clave}>
+                      <div
+                        key={g.clave}
+                        className="overflow-hidden rounded-[10px] border border-linea"
+                      >
                         <button
                           type="button"
                           aria-expanded={abierto}
                           onClick={() => alternar(g.clave)}
-                          className="flex w-full items-center gap-2 border-t border-separador bg-[#fafbfc] px-4 py-2.5 text-left"
+                          className="flex w-full items-center gap-2 bg-noche px-4 py-2.5 text-left hover:bg-noche-2"
                         >
                           {abierto ? (
                             <ChevronDown
                               size={14}
-                              className="text-texto-3"
+                              className="text-noche-texto-2"
                               aria-hidden
                             />
                           ) : (
                             <ChevronRight
                               size={14}
-                              className="text-texto-3"
+                              className="text-noche-texto-2"
                               aria-hidden
                             />
                           )}
-                          <span className="text-[13px] font-semibold text-tinta">
+                          <span className="text-[13px] font-semibold text-noche-texto">
                             {g.titulo}
                           </span>
-                          <span className="text-xs text-texto-3">
+                          <span className="rounded-md border border-noche-borde bg-noche-2 px-1.5 text-xs text-noche-texto-2">
                             {g.equipos.length}
                           </span>
                           {sinDatos ? (
-                            <span className="ml-auto inline-flex items-center gap-1 text-xs text-aviso">
+                            <span className="ml-auto inline-flex items-center gap-1 text-xs text-aviso-noche">
                               <TriangleAlert size={13} aria-hidden />
                               {sinDatos} sin datos recientes
                             </span>
@@ -355,6 +359,7 @@ export function Equipos() {
                       </div>
                     );
                   })}
+                  </div>
                 </div>
               </div>
             ) : null}
