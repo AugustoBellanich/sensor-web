@@ -36,6 +36,8 @@ import { fechaArgHoy } from "@/datos/riego";
 import { infoSitio } from "@/datos/series";
 import { AYUDA } from "@/datos/textos";
 import { useConsulta } from "@/datos/useConsulta";
+import { BotonQuitar } from "@/componentes/Quitar";
+import { useSesion } from "@/sesion/SesionContexto";
 
 const fecha = (t: string) =>
   fechaHoraArg(t).slice(0, 10).split("-").reverse().join("/");
@@ -221,6 +223,8 @@ export function NuevoSitio() {
 
 export function GestionSitio() {
   const { id = "" } = useParams();
+  const { esAdmin } = useSesion();
+  const navegar = useNavigate();
   const c = useConsulta(
     useCallback(async () => {
       // El sitio se busca en su campo (establishment_detail trae lote y equipo; solo si soy miembro).
@@ -313,6 +317,14 @@ export function GestionSitio() {
                     </div>
                   ))}
                 </Tarjeta>
+                {k.is_owner || esAdmin ? (
+                  <BotonQuitar
+                    tipo="sitio"
+                    id={s.id}
+                    nombre={s.name}
+                    alTerminar={() => navegar(`/campo/${k.id}`)}
+                  />
+                ) : null}
               </div>
             </div>
           </>

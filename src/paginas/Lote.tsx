@@ -4,7 +4,7 @@
 // cultivo siguen en la app.
 import { Ban, CloudRain, Droplets, Spline, Sprout } from "lucide-react";
 import { useCallback, useState } from "react";
-import { Link, useParams } from "react-router";
+import { Link, useNavigate, useParams } from "react-router";
 
 import { MapaCampo } from "@/componentes/MapaCampo";
 import { Barra, Contenido } from "@/componentes/Marco";
@@ -38,6 +38,8 @@ import { anularEvento } from "@/datos/riego";
 import { infoSitio, type InfoSitio } from "@/datos/series";
 import { useConsulta } from "@/datos/useConsulta";
 import { cultivoDe, datoCorto, FilaSitio } from "@/paginas/Campo";
+import { BotonQuitar } from "@/componentes/Quitar";
+import { useSesion } from "@/sesion/SesionContexto";
 
 const fecha = (t: string) =>
   fechaHoraArg(t).slice(0, 10).split("-").reverse().join("/");
@@ -55,6 +57,8 @@ const PERIODOS = [
 export function Lote() {
   const { campo = "", id = "" } = useParams();
   const [dias, setDias] = useState<"30" | "90" | "365">("90");
+  const { esAdmin } = useSesion();
+  const navegar = useNavigate();
   const c = useConsulta(
     useCallback(async () => {
       const [d, f, r, p] = await Promise.all([
@@ -405,6 +409,14 @@ export function Lote() {
                     </p>
                   )}
                 </Tarjeta>
+                {k?.is_owner || esAdmin ? (
+                  <BotonQuitar
+                    tipo="lote"
+                    id={l.id}
+                    nombre={l.name}
+                    alTerminar={() => navegar(`/campo/${campo}`)}
+                  />
+                ) : null}
               </div>
             </div>
           </>

@@ -2,6 +2,7 @@
 // web, D-83): lo que la web lee de campos, lotes, sitios, riegos y lluvias, copa y miembros.
 // Crear y editar campos y sus miembros también se hace acá; dibujar lotes y calibrar siguen en la
 // app. Cambiar en los dos.
+import type { Archivados } from "./archivo";
 import type { Resultado } from "./cuenta";
 import { mensajeBase } from "./errores";
 import { supabase } from "./supabase";
@@ -123,6 +124,8 @@ export type DetalleCampo = {
   is_owner: boolean;
   plots: Lote[];
   sites: SitioCampo[];
+  /** Solo para el dueño o admin (D-45); null para el resto. */
+  archived?: Archivados | null;
 };
 
 type ConError<T> = T & { error: string | null };
