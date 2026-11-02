@@ -142,7 +142,15 @@ export function Equipo() {
                         s.causes.map((k) => (
                           <div key={k.code} className="flex flex-col gap-0.5">
                             <FraseEstado s={{ ...s, causes: [k] }} />
-                            {detalleCausa(k) ? (
+                            {k.code === "sensores-sin-alta" && esAdmin ? (
+                              <span className="flex flex-wrap gap-x-3 pl-3 text-xs">
+                                {((k.data?.ids as string[] | undefined) ?? []).map((sid) => (
+                                  <Link key={sid} to={`/admin/alta?id=${encodeURIComponent(sid)}`} className="font-mono text-acento-oscuro hover:underline">
+                                    Dar de alta {sid}
+                                  </Link>
+                                ))}
+                              </span>
+                            ) : detalleCausa(k) ? (
                               <span className="pl-3 text-xs text-texto-3">
                                 {detalleCausa(k)}
                               </span>

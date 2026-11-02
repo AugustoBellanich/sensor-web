@@ -24,7 +24,7 @@ import {
   type FormEvent,
   type ReactNode,
 } from "react";
-import { Link, NavLink, Navigate, useParams } from "react-router";
+import { Link, NavLink, Navigate, useParams, useSearchParams } from "react-router";
 
 import { FraseEstado, IconoEstado } from "@/componentes/EstadoEquipo";
 import { AdminFirmware } from "@/paginas/AdminFirmware";
@@ -50,7 +50,7 @@ import {
   type Usuario,
 } from "@/datos/administracion";
 import { ejecutarBaja, pedidosDeBaja, textoTitularidades } from "@/datos/bajas";
-import { estadoEquipos } from "@/datos/equipos";
+import { estadoEquipos, vincular } from "@/datos/equipos";
 import {
   hace,
   idValido,
@@ -793,7 +793,9 @@ function Buscador({
 // ------------------------------------------------------------------ alta
 
 function Alta() {
-  const [id, setId] = useState("");
+  // ?id= viene de un sensor sin alta que oye un receptor (Equipo → Estado).
+  const [q] = useSearchParams();
+  const [id, setId] = useState(q.get("id") ?? "");
   const [alias, setAlias] = useState("");
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -801,6 +803,8 @@ function Alta() {
     null,
   );
   const [copiado, setCopiado] = useState(false);
+  const [vinculado, setVinculado] = useState(false);
+  const [vinculando, setVinculando] = useState(false);
   const limpio = normalizarId(id);
 
   async function enviar(ev: FormEvent) {
@@ -828,8 +832,24 @@ function Alta() {
             tipo="aviso"
             mensaje="Anotalo o copialo ahora: la base guarda solo una versión cifrada y no se puede volver a mostrar. Si se pierde, se genera otro desde la ficha del equipo."
           />
+          <Aviso mensaje={error} />
           <div className="mt-3 flex flex-wrap gap-2">
             <Boton
+              cargando={vinculando}
+              disabled={vinculado}
+              onClick={async () => {
+                setVinculando(true);
+                setError(null);
+                const r = await vincular(hecho.id, hecho.codigo);
+                setVinculando(false);
+                if (r.ok) setVinculado(true);
+                else setError(r.mensaje);
+              }}
+            >
+              {vinculado ? "Vinculado a tu cuenta" : "Vincular a mi cuenta"}
+            </Boton>
+            <Boton
+              variante="secundario"
               icono={copiado ? Check : Copy}
               onClick={async () => {
                 try {
@@ -849,6 +869,7 @@ function Alta() {
               onClick={() => {
                 setHecho(null);
                 setCopiado(false);
+                setVinculado(false);
                 setId("");
                 setAlias("");
               }}
