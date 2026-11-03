@@ -1,9 +1,10 @@
 // Crear un campo o editar sus datos, como en la app (Nuevo campo, Editar campo y Ubicación): nombre,
 // descripción, provincia y departamento, la ubicación marcada en el mapa y, para admin y staff, la
-// marca "del proyecto" (D-37). Los lotes y el perímetro se dibujan en la app.
-import { FileText, MapPin, Save, Tractor } from "lucide-react";
+// marca "del proyecto" (D-37). Al editar, también el perímetro del campo (opcional): se ve acá y
+// se dibuja en /campo/:id/dibujar?perimetro=1. Los lotes se dibujan desde la ficha del campo.
+import { FileText, MapPin, Save, Spline, Tractor } from "lucide-react";
 import { useCallback, useState, type FormEvent } from "react";
-import { useNavigate, useParams } from "react-router";
+import { Link, useNavigate, useParams } from "react-router";
 
 import { ConAyuda } from "@/componentes/Ayuda";
 import { Barra, Contenido } from "@/componentes/Marco";
@@ -22,6 +23,7 @@ import {
   detalleCampo,
   editarCampo,
   marcarDelProyecto,
+  textoHa,
   type DetalleCampo,
 } from "@/datos/campos";
 import { AYUDA } from "@/datos/textos";
@@ -178,6 +180,25 @@ function Formulario({ campo }: { campo: DetalleCampo | null }) {
             ) : null}
           </div>
         </Tarjeta>
+        {campo ? (
+          <Tarjeta titulo="Perímetro del campo (opcional)">
+            <p className="text-[13px] text-texto-2">
+              {campo.boundary
+                ? `Dibujado. Superficie: ${textoHa(campo.area_ha)}.`
+                : "Sin dibujar. Marca el límite de todo el establecimiento; los lotes se dibujan aparte."}
+            </p>
+            <Link
+              to={`/campo/${campo.id}/dibujar?perimetro=1`}
+              className="mt-3 inline-flex h-[34px] items-center gap-1.5 rounded-lg border border-linea bg-white px-3 text-[13px] font-medium text-texto-2 no-underline hover:bg-fondo hover:text-tinta"
+            >
+              <Spline size={15} strokeWidth={1.9} aria-hidden />
+              {campo.boundary ? "Redibujar el perímetro del campo" : "Dibujar el perímetro del campo"}
+            </Link>
+            <p className="mt-2 text-xs text-texto-3">
+              Guardá antes los cambios de los datos: el dibujo se abre en otra pantalla.
+            </p>
+          </Tarjeta>
+        ) : null}
         <Aviso mensaje={error} />
         <div className="flex gap-2">
           <Boton type="submit" icono={Save} cargando={guardando}>

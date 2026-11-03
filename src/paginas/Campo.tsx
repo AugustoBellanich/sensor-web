@@ -275,7 +275,7 @@ export function Campo() {
                     </Dato>
                   ) : null}
                   {area != null ? (
-                    <Dato icono={Spline}>Perímetro: {textoHa(area)}</Dato>
+                    <Dato icono={Spline}>Superficie del campo: {textoHa(area)}</Dato>
                   ) : null}
                   {c.datos?.miembros.length ? (
                     <Dato icono={Users}>
@@ -311,7 +311,8 @@ export function Campo() {
                   <Tarjeta>
                     <p className="text-[13px] text-texto-2">
                       Este campo todavía no tiene perímetro, lotes ni sitios
-                      ubicados. Se dibujan desde la app.
+                      ubicados. El perímetro del campo se dibuja desde Editar; los
+                      lotes, desde Nuevo lote.
                     </p>
                   </Tarjeta>
                 )}
@@ -347,20 +348,12 @@ export function Campo() {
                   titulo={`Lotes (${k.plots.length})`}
                   derecha={
                     k.can_edit ? (
-                      <span className="flex gap-3">
-                        <Link
-                          to={`/campo/${k.id}/dibujar?perimetro=1`}
-                          className="text-[13px] font-medium text-acento-oscuro no-underline hover:underline"
-                        >
-                          {k.boundary ? "Perímetro" : "Dibujar perímetro"}
-                        </Link>
-                        <Link
-                          to={`/campo/${k.id}/dibujar`}
-                          className="text-[13px] font-medium text-acento-oscuro no-underline hover:underline"
-                        >
-                          Nuevo lote
-                        </Link>
-                      </span>
+                      <Link
+                        to={`/campo/${k.id}/dibujar`}
+                        className="text-[13px] font-medium text-acento-oscuro no-underline hover:underline"
+                      >
+                        Nuevo lote
+                      </Link>
                     ) : null
                   }
                 >

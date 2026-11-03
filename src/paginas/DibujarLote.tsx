@@ -80,12 +80,13 @@ export function DibujarLote() {
         migas={[
           { texto: "Campos", a: "/campos" },
           { texto: k?.name ?? "Campo", a: `/campo/${campoId}` },
+          ...(esPerimetro ? [{ texto: "Editar", a: `/campo/${campoId}/editar` }] : []),
           ...(lote
             ? [{ texto: lote.name, a: `/campo/${campoId}/lote/${lote.id}` }]
             : []),
           {
             texto: esPerimetro
-              ? "Perímetro"
+              ? "Perímetro del campo"
               : lote
                 ? "Redibujar"
                 : "Nuevo lote",
@@ -194,7 +195,7 @@ function Editor({
       const r = await perimetroCampo(campo.id, forma);
       setGuardando(false);
       if (!r.ok) return setError(r.mensaje);
-      return navegar(`/campo/${campo.id}`);
+      return navegar(`/campo/${campo.id}/editar`);
     }
     if (lote) {
       if (nombre.trim() && nombre.trim() !== lote.name) {
@@ -225,7 +226,7 @@ function Editor({
     const r = await perimetroCampo(campo.id, null);
     setGuardando(false);
     if (!r.ok) return setError(r.mensaje);
-    navegar(`/campo/${campo.id}`);
+    navegar(`/campo/${campo.id}/editar`);
   }
 
   return (
