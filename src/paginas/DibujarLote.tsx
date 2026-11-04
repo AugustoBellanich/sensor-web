@@ -17,6 +17,7 @@ import {
 } from "react-leaflet";
 import { useNavigate, useParams, useSearchParams } from "react-router";
 
+import { ImportarPoligono } from "@/componentes/ImportarPoligono";
 import { Barra, Contenido } from "@/componentes/Marco";
 import {
   Aviso,
@@ -160,6 +161,8 @@ function Editor({
   const [desde, setDesde] = useState(fechaArgHoy());
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Esquinas cargadas desde un archivo o escritas: el mapa se vuelve a encuadrar sobre ellas.
+  const [cargado, setCargado] = useState<{ origen: string; vez: number } | null>(null);
 
   const area = areaHa(puntos);
   const cruzado = seCruza(puntos);
@@ -249,7 +252,7 @@ function Editor({
               attribution="Imagen: Esri, Maxar, Earthstar Geographics"
               maxZoom={19}
             />
-            <Encuadrar puntos={encuadre} />
+            <Encuadrar key={cargado?.vez ?? 0} puntos={cargado ? puntos.map(aLatLng) : encuadre} />
             <AlHacerClic
               alClic={(p) => {
                 setElegido(null);
@@ -383,7 +386,23 @@ function Editor({
               />
             </div>
           ) : null}
+          {cargado ? (
+            <div className="mt-3">
+              <Aviso
+                tipo="aviso"
+                mensaje={`Cargado de ${cargado.origen}: ${puntos.length} esquinas. Revisalo en el mapa antes de guardar.`}
+              />
+            </div>
+          ) : null}
         </Tarjeta>
+        <ImportarPoligono
+          deshabilitado={guardando}
+          alCargar={(nuevos, origen) => {
+            setPuntos(nuevos);
+            setElegido(null);
+            setCargado((c) => ({ origen, vez: (c?.vez ?? 0) + 1 }));
+          }}
+        />
         {!esPerimetro ? (
           <Tarjeta titulo="Datos del lote">
             <div className="flex flex-col gap-4">
