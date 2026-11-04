@@ -5,6 +5,7 @@ import { ChevronRight, Cpu, LogOut, Map, MapPinned, ShieldCheck, type LucideIcon
 import type { PropsWithChildren, ReactNode } from "react";
 import { Link, NavLink } from "react-router";
 
+import { AvisoApp } from "@/componentes/AvisoApp";
 import { cerrarSesion } from "@/datos/cuenta";
 import { useSesion } from "@/sesion/SesionContexto";
 
@@ -79,6 +80,7 @@ export function Marco({ children }: PropsWithChildren) {
           </button>
         </div>
       </header>
+      <AvisoApp />
       <div className="flex min-w-0 flex-1 flex-col">{children}</div>
     </div>
   );
