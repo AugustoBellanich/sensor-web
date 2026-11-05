@@ -45,6 +45,8 @@ import {
   desdeGeoJson,
   seCruza,
   type Punto,
+  ZOOM_IMAGEN,
+  ZOOM_MAXIMO,
 } from "@/datos/geo";
 import { fechaHoraArg } from "@/datos/grafico";
 import { fechaArgHoy } from "@/datos/riego";
@@ -240,6 +242,7 @@ function Editor({
           style={{ height: "min(70vh, 640px)" }}
         >
           <MapContainer
+            maxZoom={ZOOM_MAXIMO}
             center={encuadre[0] ?? CATAMARCA}
             zoom={encuadre.length ? 16 : 9}
             scrollWheelZoom
@@ -250,7 +253,8 @@ function Editor({
             <TileLayer
               url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
               attribution="Imagen: Esri, Maxar, Earthstar Geographics"
-              maxZoom={19}
+              maxZoom={ZOOM_MAXIMO}
+              maxNativeZoom={ZOOM_IMAGEN}
             />
             <Encuadrar key={cargado?.vez ?? 0} puntos={cargado ? puntos.map(aLatLng) : encuadre} />
             <AlHacerClic

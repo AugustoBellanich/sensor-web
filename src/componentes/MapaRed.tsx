@@ -1,6 +1,7 @@
 // Mapa general: imagen satelital (Esri, sin clave ni costo) con cada sitio como una marca con el
 // ícono de su familia y el dato de ahora; alrededor de cada receptor, su radio de recepción.
 // Tocar una marca elige el sitio. Encuadra todos los sitios al abrir.
+import { ZOOM_IMAGEN, ZOOM_MAXIMO } from "@/datos/geo";
 import L from "leaflet";
 import { useEffect, useMemo } from "react";
 import { Circle, MapContainer, Marker, TileLayer, Tooltip, useMap, ZoomControl } from "react-leaflet";
@@ -38,9 +39,9 @@ export function MapaRed({
 }) {
   const puntos = useMemo(() => sitios.map((s) => [s.lat, s.lng] as [number, number]), [sitios]);
   return (
-    <MapContainer center={CATAMARCA} zoom={8} scrollWheelZoom className="h-full min-h-[420px] w-full bg-noche" attributionControl zoomControl={false} aria-label="Mapa de los sitios">
-      <TileLayer url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}" attribution="Imagen: Esri, Maxar, Earthstar Geographics" maxZoom={19} />
-      <TileLayer url="https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}" maxZoom={19} />
+    <MapContainer maxZoom={ZOOM_MAXIMO} center={CATAMARCA} zoom={8} scrollWheelZoom className="h-full min-h-[420px] w-full bg-noche" attributionControl zoomControl={false} aria-label="Mapa de los sitios">
+      <TileLayer url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}" attribution="Imagen: Esri, Maxar, Earthstar Geographics" maxZoom={ZOOM_MAXIMO} maxNativeZoom={ZOOM_IMAGEN} />
+      <TileLayer url="https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}" maxZoom={ZOOM_MAXIMO} maxNativeZoom={ZOOM_IMAGEN} />
       <ZoomControl position="topright" />
       <Encuadrar puntos={puntos} />
       {sitios

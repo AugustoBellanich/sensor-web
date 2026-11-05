@@ -121,6 +121,14 @@ export function textoHa(ha: number | null | undefined): string {
 // Vista inicial si no hay nada que mostrar: EEA Catamarca.
 export const CATAMARCA: Punto = { latitude: -28.4696, longitude: -65.7795 };
 
+/**
+ * Zoom de los mapas satelitales (Esri World Imagery). En zonas rurales la imagen suele llegar hasta el
+ * nivel 17; más cerca, Esri devuelve teselas grises. Hasta 17 se usa la imagen propia; 18 es la misma
+ * ampliada, y no se deja acercar más (5/11/2026).
+ */
+export const ZOOM_IMAGEN = 17;
+export const ZOOM_MAXIMO = 18;
+
 // ---------------------------------------------------------------------------------------
 // Agrupar marcas cercanas en pantalla (para que no se encimen cuando el mapa está lejos)
 
