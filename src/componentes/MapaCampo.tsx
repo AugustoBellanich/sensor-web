@@ -1,5 +1,6 @@
 // Mapa satelital de un campo o un lote: perímetro, lotes (polígonos con su nombre) y sitios con el
 // ícono de su familia y el dato de ahora; el radio de recepción de cada receptor. Encuadra todo.
+import { ZOOM_IMAGEN, ZOOM_MAXIMO } from "@/datos/geo";
 import L from "leaflet";
 import { useEffect, useMemo } from "react";
 import { Circle, MapContainer, Marker, Polygon, TileLayer, Tooltip, useMap } from "react-leaflet";
@@ -31,11 +32,12 @@ export function MapaCampo({ poligonos, puntos, alto = 460, etiqueta }: { poligon
   const todo = useMemo(() => [...poligonos.flatMap((p) => p.puntos), ...puntos.map((p) => [p.lat, p.lng] as [number, number])], [poligonos, puntos]);
   return (
     <div className="overflow-hidden rounded-xl border border-linea" style={{ height: alto }}>
-      <MapContainer center={CATAMARCA} zoom={13} scrollWheelZoom className="h-full w-full bg-noche" aria-label={etiqueta}>
+      <MapContainer maxZoom={ZOOM_MAXIMO} center={CATAMARCA} zoom={13} scrollWheelZoom className="h-full w-full bg-noche" aria-label={etiqueta}>
         <TileLayer
           url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
           attribution="Imagen: Esri, Maxar, Earthstar Geographics"
-          maxZoom={19}
+          maxZoom={ZOOM_MAXIMO}
+          maxNativeZoom={ZOOM_IMAGEN}
         />
         <Encuadrar puntos={todo} />
         {poligonos.map((p) => (

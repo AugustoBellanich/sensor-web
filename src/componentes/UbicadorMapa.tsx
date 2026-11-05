@@ -1,6 +1,7 @@
 // Marcar un punto en el mapa satelital (ubicación de un campo o de un sitio): un clic pone el pin y
 // se puede arrastrar; "Usar mi ubicación" toma la del navegador si la persona lo permite. Se ven el
 // perímetro y los lotes del campo, si los hay, y otros puntos (sitios) como referencia.
+import { ZOOM_IMAGEN, ZOOM_MAXIMO } from "@/datos/geo";
 import L from "leaflet";
 import { Crosshair } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -86,6 +87,7 @@ export function UbicadorMapa({
         style={{ height: alto }}
       >
         <MapContainer
+          maxZoom={ZOOM_MAXIMO}
           center={todo[0] ?? CATAMARCA}
           zoom={todo.length ? 16 : 9}
           scrollWheelZoom
@@ -95,7 +97,8 @@ export function UbicadorMapa({
           <TileLayer
             url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
             attribution="Imagen: Esri, Maxar, Earthstar Geographics"
-            maxZoom={19}
+            maxZoom={ZOOM_MAXIMO}
+            maxNativeZoom={ZOOM_IMAGEN}
           />
           <AlHacerClic alElegir={alCambiar} />
           <Encuadrar todo={todo} centrar={centrar} />

@@ -33,23 +33,21 @@ export function AvisoApp() {
   }
   const enlace = "font-medium text-acento-oscuro underline-offset-2 hover:underline";
   return (
-    <div role="status" className="flex items-start gap-2.5 border-b border-linea bg-[#f0f9ff] px-5 py-2 text-[13px] text-texto lg:px-7">
-      <Smartphone size={16} className="mt-px shrink-0 text-acento-oscuro" aria-hidden />
+    <div role="status" className="flex items-center gap-2.5 border-b border-linea bg-[#f0f9ff] px-5 py-2 text-[13px] text-texto lg:px-7">
+      <Smartphone size={16} className="shrink-0 text-acento-oscuro" aria-hidden />
       <p className="min-w-0 flex-1">
-        <span className="font-medium text-tinta">SensorApp para Android, en prueba.</span> Para instalarla, con la cuenta de
-        Google del teléfono: 1){" "}
+        <span className="font-medium text-tinta">SensorApp para Android, en prueba cerrada:</span>{" "}
         <a className={enlace} href={ENLACES_APP.grupo} target="_blank" rel="noopener noreferrer">
-          unite al grupo de testers
+          1. Unirse al grupo de testers
         </a>
-        , 2){" "}
+        {" · "}
         <a className={enlace} href={ENLACES_APP.prueba} target="_blank" rel="noopener noreferrer">
-          activá la prueba
-        </a>{" "}
-        y 3){" "}
-        <a className={enlace} href={ENLACES_APP.play} target="_blank" rel="noopener noreferrer">
-          instalá desde Google Play
+          2. Activar la prueba
         </a>
-        . En la app se entra con esta misma cuenta de SENSOR.
+        {" · "}
+        <a className={enlace} href={ENLACES_APP.play} target="_blank" rel="noopener noreferrer">
+          3. Instalar desde Google Play
+        </a>
       </p>
       <button
         type="button"
