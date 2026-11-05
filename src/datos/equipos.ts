@@ -85,3 +85,30 @@ export async function quitarAcceso(id: string, usuario: string): Promise<Resulta
   const { error } = await supabase.rpc("unshare_device", { p_device_id: id, p_user_id: usuario });
   return error ? { ok: false, mensaje: mensajeBase(error.message) } : { ok: true };
 }
+
+/** Última temperatura de la carcasa (DS3231) que trajo la SD de un B01 o C01. */
+export type Carcasa = { temperatura: number; momento: string };
+
+/**
+ * La carcasa llega solo con la SD (no viaja por LoRa): la última lectura con `case_temp`, o null si
+ * el modelo no la tiene o todavía no se subió una SD con esa columna (B01-FW-1.2.0, C01-FW-1.5.0).
+ */
+export async function ultimaCarcasa(id: string, tipo: string): Promise<Carcasa | null> {
+  const tabla = tipo === "B01" ? "readings_b01" : tipo === "C01" ? "readings_c01" : null;
+  if (!tabla) return null;
+  const { data, error } = await supabase
+    .from(tabla)
+    .select("case_temp, timestamp")
+    .eq("sensor_id", id)
+    .not("case_temp", "is", null)
+    .order("timestamp", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error || !data || data.case_temp == null) return null;
+  return { temperatura: Number(data.case_temp), momento: String(data.timestamp) };
+}
+
+/** "28,4 °C · hace 3 h": temperatura con coma decimal y antigüedad. */
+export function textoCarcasa(c: Carcasa, hace: (fecha: string) => string): string {
+  return `${c.temperatura.toFixed(1).replace(".", ",")} °C · ${hace(c.momento)}`;
+}

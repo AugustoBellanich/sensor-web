@@ -3,6 +3,7 @@
 // calibración se hacen desde la app, en el campo.
 import {
   Battery,
+  Box,
   CalendarClock,
   Clock,
   Gauge,
@@ -35,6 +36,8 @@ import {
   miembros,
   quitarAcceso,
   renombrarEquipo,
+  textoCarcasa,
+  ultimaCarcasa,
 } from "@/datos/equipos";
 import { duracion, hace } from "@/datos/estado";
 import { aliasPropio, familiaDeModelo, tituloEquipo } from "@/datos/familias";
@@ -58,8 +61,11 @@ export function Equipo() {
         saludRed(),
         historialEquipo(id),
       ]);
+      const equipo = e.equipos.find((x) => x.id === id) ?? null;
+      const carcasa = equipo ? await ultimaCarcasa(id, equipo.type) : null;
       return {
-        e: e.equipos.find((x) => x.id === id) ?? null,
+        carcasa,
+        e: equipo,
         s: h.equipos.find((x) => x.device_id === id) ?? null,
         pasos: p.pasos,
         error: e.error ?? h.error ?? p.error,
@@ -209,6 +215,11 @@ export function Equipo() {
                         ]
                           .filter(Boolean)
                           .join(" · ") || "Sin dato"}
+                      </FilaDato>
+                    ) : null}
+                    {c.datos?.carcasa ? (
+                      <FilaDato icono={Box} etiqueta="Carcasa (SD)">
+                        {textoCarcasa(c.datos.carcasa, (f) => hace(f))}
                       </FilaDato>
                     ) : null}
                   </Tarjeta>
