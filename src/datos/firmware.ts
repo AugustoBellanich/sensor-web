@@ -24,19 +24,32 @@ export type VersionFirmware = {
 
 export type Binario = { valido: boolean; problema: string | null; modelo: string | null; version: string | null };
 
-/** Espacio de programa del ESP32 con el esquema "Default 4MB with spiffs". */
+/**
+ * Espacio para el programa de cada modelo (una de las dos particiones de actualización).
+ * B01 y C01: esquema "Default 4MB with spiffs" (0x140000). N01: `N01/partitions.csv` (0x1A0000,
+ * D-94); Arduino IDE informa otro máximo porque toma el del menú, no el del archivo.
+ */
+export const MAXIMO_POR_MODELO: Record<string, number> = { B01: 1310720, C01: 1310720, N01: 1703936 };
 export const MAXIMO_BYTES = 1310720;
 
-/** Que sea una imagen del ESP32 (0xE9 al principio) y diga de qué modelo y versión es. */
+const kb = (n: number) => `${Math.round(n / 1024).toLocaleString("es-AR")} KB`;
+
+/** Que sea una imagen del ESP32 (0xE9 al principio), de qué modelo y versión es, y que entre. */
 export function revisarBinario(bytes: Uint8Array): Binario {
   const vacio = { modelo: null, version: null };
   if (bytes.length < 1024 || bytes[0] !== 0xe9)
     return { valido: false, problema: "No es un firmware del ESP32: elegí el .bin que exporta Arduino IDE.", ...vacio };
-  if (bytes.length > MAXIMO_BYTES)
-    return { valido: false, problema: "El archivo es más grande que el espacio del equipo.", ...vacio };
   const texto = new TextDecoder("latin1").decode(bytes);
   const m = /(B01|C01|N01|C02|A01)-FW-\d+\.\d+\.\d+(?:-[A-Za-z0-9]+)?/.exec(texto);
   if (!m) return { valido: false, problema: "No se encontró la versión dentro del archivo.", ...vacio };
+  const limite = MAXIMO_POR_MODELO[m[1]] ?? MAXIMO_BYTES;
+  if (bytes.length > limite)
+    return {
+      valido: false,
+      problema: `El archivo (${kb(bytes.length)}) es más grande que el espacio del ${m[1]} (${kb(limite)}).`,
+      modelo: m[1],
+      version: m[0],
+    };
   return { valido: true, problema: null, modelo: m[1], version: m[0] };
 }
 
