@@ -27,6 +27,11 @@ describe("revisar el .bin", () => {
     expect(revisarBinario(imagen(null)).problema).toMatch(/versión/);
     expect(revisarBinario(imagen("C01-FW-1.6.1", MAXIMO_BYTES + 1)).problema).toMatch(/más grande/);
   });
+  it("el espacio depende del modelo: el N01 tiene particiones más grandes (D-94)", () => {
+    expect(revisarBinario(imagen("N01-FW-1.6.2-dev", 1433111)).valido).toBe(true);
+    expect(revisarBinario(imagen("B01-FW-1.4.2-dev", 1433111)).problema).toMatch(/espacio del B01/);
+    expect(revisarBinario(imagen("N01-FW-1.6.2-dev", 1703937)).problema).toMatch(/más grande/);
+  });
 });
 
 describe("huella", () => {
