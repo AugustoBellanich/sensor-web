@@ -108,7 +108,7 @@ export async function ultimaCarcasa(id: string, tipo: string): Promise<Carcasa |
   return { temperatura: Number(data.case_temp), momento: String(data.timestamp) };
 }
 
-/** "28,4 °C · hace 3 h": temperatura con coma decimal y antigüedad. */
+/** "28,4 °C · hace 3 h": temperatura con coma decimal y antigüedad (solo en la web; la app lo arma en la ficha). */
 export function textoCarcasa(c: Carcasa, hace: (fecha: string) => string): string {
   return `${c.temperatura.toFixed(1).replace(".", ",")} °C · ${hace(c.momento)}`;
 }
