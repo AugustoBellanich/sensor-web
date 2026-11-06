@@ -218,7 +218,7 @@ export function Equipo() {
                       </FilaDato>
                     ) : null}
                     {c.datos?.carcasa ? (
-                      <FilaDato icono={Box} etiqueta="Carcasa (SD)">
+                      <FilaDato icono={Box} etiqueta="Carcasa">
                         {textoCarcasa(c.datos.carcasa, (f) => hace(f))}
                       </FilaDato>
                     ) : null}

@@ -86,12 +86,12 @@ export async function quitarAcceso(id: string, usuario: string): Promise<Resulta
   return error ? { ok: false, mensaje: mensajeBase(error.message) } : { ok: true };
 }
 
-/** Última temperatura de la carcasa (DS3231) que trajo la SD de un B01 o C01. */
+/** Última temperatura de la carcasa (DS3231) de un B01 o C01. */
 export type Carcasa = { temperatura: number; momento: string };
 
 /**
- * La carcasa llega solo con la SD (no viaja por LoRa): la última lectura con `case_temp`, o null si
- * el modelo no la tiene o todavía no se subió una SD con esa columna (B01-FW-1.2.0, C01-FW-1.5.0).
+ * La carcasa llega por LoRa (B01-FW-1.5.0 y C01-FW-1.7.0 en adelante, D-103) o con la SD (desde
+ * B01-FW-1.2.0 y C01-FW-1.5.0): la última lectura con `case_temp`, o null si no hay ninguna.
  */
 export async function ultimaCarcasa(id: string, tipo: string): Promise<Carcasa | null> {
   const tabla = tipo === "B01" ? "readings_b01" : tipo === "C01" ? "readings_c01" : null;

@@ -111,6 +111,29 @@ export async function serieSitio(
   };
 }
 
+export type PuntoCarcasa = {
+  t: string;
+  n: number;
+  case_temp: number | null;
+  case_temp_min: number | null;
+  case_temp_max: number | null;
+};
+
+/**
+ * Temperatura de la carcasa por intervalo (DS3231, por LoRa o con la SD; site_case_temp, D-102 y D-103).
+ * Es un dato de diagnóstico: si falla o no hay, se devuelve vacío y el gráfico no se muestra.
+ */
+export async function serieCarcasa(id: string, desde: number, hasta: number, intervalo: number): Promise<PuntoCarcasa[]> {
+  const { data, error } = await supabase.rpc("site_case_temp", {
+    p_site_id: id,
+    p_from: new Date(desde).toISOString(),
+    p_to: new Date(hasta).toISOString(),
+    p_bucket_s: intervalo,
+  });
+  if (error) return [];
+  return ((data ?? []) as PuntoCarcasa[]).sort((a, b) => a.t.localeCompare(b.t));
+}
+
 /** Resumen por día (hora argentina) de un rango de fechas "AAAA-MM-DD". */
 export async function diarioSitio(
   id: string,

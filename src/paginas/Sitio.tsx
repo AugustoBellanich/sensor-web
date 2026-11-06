@@ -77,8 +77,10 @@ import {
   type Formato,
   diarioSitio,
   infoSitio,
+  serieCarcasa,
   serieSitio,
   type InfoSitio,
+  type PuntoCarcasa,
   type PuntoSerie,
 } from "@/datos/series";
 import { aguaSitio, type AguaSitio } from "@/datos/sitios";
@@ -86,6 +88,7 @@ import { AYUDA } from "@/datos/textos";
 import { useConsulta } from "@/datos/useConsulta";
 
 const COLOR_E = ["#2563eb", "#16a34a", "#ea580c"];
+const COLOR_CARCASA = "#a16207"; // temperatura dentro de la caja, como en la app
 const TIERRA = ["#a9875a", "#8f6f45", "#755a36"];
 const diaArg = (t: number) => fechaHoraArg(t).slice(0, 10);
 const fecha = (t: string) =>
@@ -108,21 +111,24 @@ export function Sitio() {
       return {
         b01: [] as PuntoSerie[],
         c01: [] as PuntoSerie[],
+        carcasa: [] as PuntoCarcasa[],
         dias: [] as Dia[],
         agua: [] as AguaSitio[],
         error: null,
         r: null,
       };
-    const [s, d, w] = await Promise.all([
+    const [s, d, w, k] = await Promise.all([
       serieSitio(id, r.desde, r.hasta, r.intervalo),
       diarioSitio(id, diaArg(r.desde), diaArg(r.hasta)),
       conSuelo
         ? aguaSitio(id, r.desde, r.hasta)
         : Promise.resolve({ eventos: [] as AguaSitio[], error: null }),
+      serieCarcasa(id, r.desde, r.hasta, r.intervalo),
     ]);
     return {
       b01: s.b01,
       c01: s.c01,
+      carcasa: k,
       dias: d.dias,
       agua: w.eventos,
       error: s.error ?? d.error ?? w.error,
@@ -287,6 +293,34 @@ export function Sitio() {
                       hasta={r.hasta}
                       intervalo={r.intervalo}
                     />
+                  ) : null}
+                  {s.datos.carcasa.length ? (
+                    <Tarjeta>
+                      <Grafico
+                        titulo="Temperatura de la carcasa"
+                        unidad="°C"
+                        decimales={1}
+                        alto={130}
+                        nota="Interior de la caja (DS3231, ±3 °C), por LoRa o con la SD."
+                        tiempos={s.datos.carcasa.map((p) => Date.parse(p.t))}
+                        series={[
+                          {
+                            nombre: "Carcasa",
+                            color: COLOR_CARCASA,
+                            valores: s.datos.carcasa.map((p) => p.case_temp),
+                          },
+                        ]}
+                        banda={{
+                          nombre: "Mín–máx",
+                          color: COLOR_CARCASA,
+                          min: s.datos.carcasa.map((p) => p.case_temp_min),
+                          max: s.datos.carcasa.map((p) => p.case_temp_max),
+                        }}
+                        desde={r.desde}
+                        hasta={r.hasta}
+                        intervaloS={r.intervalo}
+                      />
+                    </Tarjeta>
                   ) : null}
                   <Tarjeta>
                     <Grafico
