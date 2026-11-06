@@ -204,11 +204,14 @@ function Electrodo({
               </div>
             ) : null}
             <CurvaCalibracion e={e} color={COLOR_E[e.index - 1]} />
-            <p className="mt-2 text-xs text-texto-3">
-              ● punto medido · ○ desactivado · ◯ blanco: punto de la calibración
-              anterior · línea cortada: extrapolado (fuera del rango medido, con
-              más error). Más allá no se calcula humedad: se muestra el mV.
-            </p>
+            {e.puntos.length ? (
+              <p className="mt-2 text-xs text-texto-3">
+                ● punto medido · ○ desactivado · ◯ blanco: punto de la
+                calibración anterior · línea cortada: extrapolado (fuera del
+                rango medido, con más error; más clara lejos del rango, muy
+                incierta).
+              </p>
+            ) : null}
             {curva?.candidates && curva.candidates.length > 1 ? (
               <p className="mt-1 text-xs text-texto-3">
                 Modelos probados:{" "}

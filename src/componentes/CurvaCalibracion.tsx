@@ -38,12 +38,12 @@ export function CurvaCalibracion({ e, color, alto = 300 }: { e: ElectrodoCal; co
   const x = (v: number) => IZQ + ((v - x0) / (x1 - x0 || 1)) * w;
   const y = (v: number) => ARRIBA + (1 - (v - y0) / (y1 - y0 || 1)) * h;
 
-  const segmentos: { d: string; extrapolado: boolean }[] = [];
+  const segmentos: { d: string; extrapolado: boolean; lejos: boolean }[] = [];
   for (let i = 1; i < muestras.length; i++) {
     const a = muestras[i - 1];
     const b = muestras[i];
     if (a.hv == null || b.hv == null) continue;
-    segmentos.push({ d: `M${x(a.mv).toFixed(1)} ${y(a.hv).toFixed(1)} L${x(b.mv).toFixed(1)} ${y(b.hv).toFixed(1)}`, extrapolado: a.estado === "extrapolado" || b.estado === "extrapolado" });
+    segmentos.push({ d: `M${x(a.mv).toFixed(1)} ${y(a.hv).toFixed(1)} L${x(b.mv).toFixed(1)} ${y(b.hv).toFixed(1)}`, extrapolado: a.estado !== b.estado || (a.estado !== "calibrado" && a.estado !== "provisional"), lejos: a.estado === "extrapolado_lejos" || b.estado === "extrapolado_lejos" });
   }
 
   return (
@@ -80,7 +80,7 @@ export function CurvaCalibracion({ e, color, alto = 300 }: { e: ElectrodoCal; co
             ) : null,
           )}
           {segmentos.map((s, i) => (
-            <path key={`s${i}`} d={s.d} stroke={color} strokeWidth={s.extrapolado ? 1.5 : 2.5} strokeDasharray={s.extrapolado ? "5 4" : undefined} fill="none" />
+            <path key={`s${i}`} d={s.d} stroke={color} strokeWidth={s.extrapolado ? 1.5 : 2.5} strokeDasharray={s.extrapolado ? "5 4" : undefined} strokeOpacity={s.lejos ? 0.45 : 1} fill="none" />
           ))}
           {e.puntos.map((p) => (
             <circle
