@@ -245,7 +245,26 @@ export async function guardarNivel(
   return error ? { ok: false, mensaje: mensajeBase(error.message) } : { ok: true };
 }
 
-export type Estimacion = { pmp: number; cc: number; sat: number; sat_origen: "densidad" | "textura"; om_supuesta: boolean };
+export type Estimacion = {
+  pmp: number;
+  cc: number;
+  sat: number;
+  sat_origen: "densidad" | "textura";
+  om_supuesta: boolean;
+  /** Ajuste por densidad de Saxton y Rawls (D-105); null sin densidad medida. */
+  densidad?: number | null;
+  densidad_normal?: number | null;
+  df?: number | null;
+  cc_normal?: number | null;
+};
+
+/** "CC ajustada por densidad: 1,40 g/cm³ (normal para esa textura 1,43) …" o null sin densidad. */
+export function textoAjusteDensidad(e: Estimacion): string | null {
+  if (e.df == null || e.densidad == null || e.densidad_normal == null || e.cc_normal == null) return null;
+  const n = (v: number, d: number) => v.toLocaleString("es-AR", { minimumFractionDigits: d, maximumFractionDigits: d });
+  const acotado = e.df === 0.9 || e.df === 1.3 ? ", acotado" : "";
+  return `CC ajustada por densidad: ${n(e.densidad, 2)} g/cm³, normal para esa textura ${n(e.densidad_normal, 2)} (factor ${n(e.df, 2)}${acotado}); sin ajuste sería ${n(e.cc_normal, 1)} %.`;
+}
 
 export async function estimarNiveles(sitio: string, electrodo: number): Promise<{ estimacion: Estimacion | null; error: string | null }> {
   const { data, error } = await supabase.rpc("estimate_soil_levels", { p_site_id: sitio, p_electrode: electrodo });

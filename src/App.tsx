@@ -24,6 +24,7 @@ import { Mapa } from "@/paginas/Mapa";
 import { RiegoLote } from "@/paginas/RiegoLote";
 import { MiCuenta } from "@/paginas/MiCuenta";
 import { Sitio } from "@/paginas/Sitio";
+import { SueloSitio } from "@/paginas/SueloSitio";
 import { Vincular } from "@/paginas/Vincular";
 import { ProveedorDeSesion, useSesion } from "@/sesion/SesionContexto";
 
@@ -72,6 +73,7 @@ export function App() {
           <Route path="/sitio/:id/calibracion/punto" element={<ConSesion><PuntoCalibracion /></ConSesion>} />
           <Route path="/sitio/:id/calibracion/suelo" element={<ConSesion><SueloElectrodo /></ConSesion>} />
           <Route path="/sitio/:id/calibracion" element={<ConSesion><Calibracion /></ConSesion>} />
+          <Route path="/sitio/:id/suelo" element={<ConSesion><SueloSitio /></ConSesion>} />
           <Route path="/admin/:seccion?" element={<ConSesion><Admin /></ConSesion>} />
           <Route path="/vincular" element={<ConSesion><Vincular /></ConSesion>} />
           <Route path="/cuenta" element={<ConSesion><MiCuenta /></ConSesion>} />
