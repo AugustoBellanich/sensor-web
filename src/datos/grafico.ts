@@ -34,9 +34,14 @@ export function soloHora(t: number): string {
 
 // ---------------------------------------------------------------- períodos
 
-export type Periodo = "24h" | "7d" | "30d" | "90d" | "todo";
+/** Períodos fijos (botones) o "fechas": días elegidos en el calendario (`Dias`). */
+export type Periodo = "24h" | "7d" | "30d" | "90d" | "todo" | "fechas";
 
-export const PERIODOS: { valor: Periodo; texto: string; ms: number | null }[] = [
+/** Días elegidos en el calendario, AAAA-MM-DD en hora argentina; `hasta` incluido. */
+export type Dias = { desde: string; hasta: string };
+
+// Sin "fechas": esa opción abre el calendario y se muestra aparte.
+export const PERIODOS: { valor: Exclude<Periodo, "fechas">; texto: string; ms: number | null }[] = [
   { valor: "24h", texto: "24 h", ms: 24 * 3600e3 },
   { valor: "7d", texto: "7 días", ms: 7 * 24 * 3600e3 },
   { valor: "30d", texto: "30 días", ms: 30 * 24 * 3600e3 },
@@ -60,10 +65,16 @@ export function textoIntervalo(s: number): string {
 }
 
 /**
- * Desde y hasta de un período. "Todo" va desde el primer dato (`primero`) hasta ahora.
- * Devuelve null si no hay desde dónde (todo, sin datos).
+ * Desde y hasta de un período. "Todo" va desde el primer dato (`primero`) hasta ahora; "fechas",
+ * los días elegidos (`dias`). Devuelve null si no hay desde dónde (todo sin datos, fechas sin elegir).
  */
-export function rango(periodo: Periodo, ahora: number, primero: string | null = null): { desde: number; hasta: number; intervalo: number } | null {
+export function rango(
+  periodo: Periodo,
+  ahora: number,
+  primero: string | null = null,
+  dias: Dias | null = null,
+): { desde: number; hasta: number; intervalo: number } | null {
+  if (periodo === "fechas") return dias ? rangoDias(dias, ahora) : null;
   const p = PERIODOS.find((x) => x.valor === periodo)!;
   let desde: number;
   if (p.ms != null) desde = ahora - p.ms;
@@ -71,6 +82,25 @@ export function rango(periodo: Periodo, ahora: number, primero: string | null = 
   else return null;
   if (!(ahora > desde)) desde = ahora - 3600e3;
   return { desde, hasta: ahora, intervalo: elegirIntervalo(ahora - desde) };
+}
+
+/**
+ * Días elegidos: desde las 00:00 del primero hasta las 24:00 del último, en hora argentina. Si el
+ * último es hoy, hasta ahora. Acepta los días invertidos. Null si todo cae en el futuro.
+ */
+export function rangoDias(dias: Dias, ahora: number): { desde: number; hasta: number; intervalo: number } | null {
+  const [a, b] = dias.desde <= dias.hasta ? [dias.desde, dias.hasta] : [dias.hasta, dias.desde];
+  const desde = Date.parse(`${a}T00:00:00-03:00`);
+  const hasta = Math.min(Date.parse(`${b}T00:00:00-03:00`) + 86400e3, ahora);
+  if (!Number.isFinite(desde) || !(hasta > desde)) return null;
+  return { desde, hasta, intervalo: elegirIntervalo(hasta - desde) };
+}
+
+/** "12/10/2026" o "12/10/2026 – 18/10/2026". */
+export function textoDias(dias: Dias): string {
+  const f = (iso: string) => iso.split("-").reverse().join("/");
+  const [a, b] = dias.desde <= dias.hasta ? [dias.desde, dias.hasta] : [dias.hasta, dias.desde];
+  return a === b ? f(a) : `${f(a)} – ${f(b)}`;
 }
 
 // ---------------------------------------------------------------- escalas

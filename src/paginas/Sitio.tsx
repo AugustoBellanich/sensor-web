@@ -31,6 +31,7 @@ import {
 import { Barra, Contenido } from "@/componentes/Marco";
 import { Medidor } from "@/componentes/Medidor";
 import { Receptor } from "@/componentes/Receptor";
+import { SelectorPeriodo } from "@/componentes/SelectorPeriodo";
 import {
   Aviso,
   Cargando,
@@ -61,6 +62,7 @@ import {
   PERIODOS,
   rango,
   textoIntervalo,
+  type Dias,
   type Periodo,
 } from "@/datos/grafico";
 import {
@@ -94,13 +96,14 @@ export function Sitio() {
   const c = useConsulta(useCallback(() => infoSitio(id), [id]));
   const info = c.datos?.info ?? null;
   const [periodo, setPeriodo] = useState<Periodo>("7d");
+  const [dias, setDias] = useState<Dias | null>(null);
   const primero = info
     ? ([info.b01?.first, info.c01?.first].filter(Boolean).sort()[0] ?? null)
     : null;
   const conSuelo = !!info?.b01;
 
   const cargarPeriodo = useCallback(async () => {
-    const r = rango(periodo, Date.now(), primero);
+    const r = rango(periodo, Date.now(), primero, dias);
     if (!r)
       return {
         b01: [] as PuntoSerie[],
@@ -125,7 +128,7 @@ export function Sitio() {
       error: s.error ?? d.error ?? w.error,
       r,
     };
-  }, [id, periodo, primero, conSuelo]);
+  }, [id, periodo, dias, primero, conSuelo]);
   const s = useConsulta(cargarPeriodo);
   const r = s.datos?.r ?? null;
   const hayDatos = !!(info?.b01 || info?.c01);
@@ -244,11 +247,15 @@ export function Sitio() {
             </div>
             <div className="flex min-w-0 flex-[1_1_560px] flex-col gap-3.5">
               <div className="flex flex-wrap items-center justify-between gap-2.5">
-                <Segmento
-                  etiqueta="Período"
+                <SelectorPeriodo
                   opciones={PERIODOS}
-                  valor={periodo}
-                  alCambiar={setPeriodo}
+                  periodo={periodo}
+                  dias={dias}
+                  minimo={primero ? diaArg(Date.parse(primero)) : undefined}
+                  alCambiar={(p, d) => {
+                    setPeriodo(p);
+                    setDias(d);
+                  }}
                 />
                 {r ? (
                   <span className="text-xs text-texto-3">
