@@ -31,6 +31,7 @@ import {
   TEXTO_MODELO,
   TEXTO_NIVEL,
   TEXTO_ORIGEN,
+  textoAjusteDensidad,
   type ElectrodoCal,
   type Estimacion,
   type Nivel,
@@ -543,6 +544,9 @@ function Niveles({
               CC {coma(estimacion.cc)} % · SAT {coma(estimacion.sat)} %
             </span>
             <span className="text-xs text-texto-3">
+              {textoAjusteDensidad(estimacion)
+                ? `${textoAjusteDensidad(estimacion)} `
+                : ""}
               Saturación{" "}
               {estimacion.sat_origen === "densidad"
                 ? "por la densidad (1 − ρb/2,65)"

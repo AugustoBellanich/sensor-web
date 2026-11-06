@@ -1,7 +1,7 @@
 // Copiado de sensor-app/src/__tests__/calibracion.test.ts.
 import { describe, expect, it, vi } from "vitest";
 
-import { estadoDeMarcas, fechaHoraArg, leerHora, leerNumero, momentoArg } from "@/datos/calibracion";
+import { estadoDeMarcas, fechaHoraArg, leerHora, leerNumero, momentoArg, textoAjusteDensidad } from "@/datos/calibracion";
 
 // Solo se prueban las funciones puras: el cliente de la base no hace falta (vi.mock se eleva).
 vi.mock("@/datos/supabase", () => ({ supabase: {}, URL_BASE: "https://x.supabase.co" }));
@@ -64,5 +64,19 @@ describe("estadoDeMarcas", () => {
   });
   it("la marca vieja fuera_de_calibracion cuenta como extrapolado", () => {
     expect(estadoDeMarcas(["e1_fuera_de_calibracion"], 1)).toBe("extrapolado");
+  });
+});
+
+describe("textoAjusteDensidad (D-105)", () => {
+  const base = { pmp: 12, cc: 27.6, sat: 47.2, sat_origen: "densidad" as const, om_supuesta: false };
+  it("sin densidad no dice nada", () => {
+    expect(textoAjusteDensidad({ ...base, df: null })).toBeNull();
+  });
+  it("explica el ajuste", () => {
+    const t = textoAjusteDensidad({ ...base, densidad: 1.4, densidad_normal: 1.43, df: 0.98, cc_normal: 27.8 });
+    expect(t).toBe("CC ajustada por densidad: 1,40 g/cm³, normal para esa textura 1,43 (factor 0,98); sin ajuste sería 27,8 %.");
+  });
+  it("avisa si el factor quedó acotado", () => {
+    expect(textoAjusteDensidad({ ...base, densidad: 2, densidad_normal: 1.43, df: 1.3, cc_normal: 27.8 })).toContain("acotado");
   });
 });
