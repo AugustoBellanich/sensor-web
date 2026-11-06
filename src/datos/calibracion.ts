@@ -313,8 +313,8 @@ export const TEXTO_ESTADO_VALOR: Record<EstadoValor, string> = {
   calibrado: "dentro del rango calibrado",
   provisional: "provisional",
   extrapolado: "extrapolado",
-  extrapolado_lejos: "extrapolado lejos del rango calibrado, muy incierto",
-  fuera_de_rango: "imposible con esta curva",
+  extrapolado_lejos: "extrapolado fuera del margen, alta incertidumbre",
+  fuera_de_rango: "fuera de rango (resultado menor que 0 o mayor que 100 %)",
   sin_calibracion: "sin curva",
 };
 

@@ -242,7 +242,7 @@ export function Sitio() {
             <p className="text-[13px] text-texto-2">
               Este sitio todavía no tiene datos.
               {conCalibracion(info)
-                ? " La calibración se puede cargar antes: los mV que lleguen se pasan a humedad con ella."
+                ? " La calibración se puede cargar antes de recibir lecturas: los mV se convertirán a humedad con ella."
                 : ""}
             </p>
             {conCalibracion(info) ? (
@@ -314,7 +314,7 @@ export function Sitio() {
                         unidad="°C"
                         decimales={1}
                         alto={130}
-                        nota="Interior de la caja (DS3231, ±3 °C), por LoRa o con la SD."
+                        nota="Interior de la carcasa (DS3231, ±3 °C); llega por LoRa o desde la SD."
                         tiempos={s.datos.carcasa.map((p) => Date.parse(p.t))}
                         series={[
                           {
