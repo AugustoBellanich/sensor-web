@@ -12,6 +12,8 @@ import {
   marcasTiempo,
   masCercano,
   rango,
+  rangoDias,
+  textoDias,
   textoIntervalo,
   trazo,
 } from "@/datos/grafico";
@@ -40,6 +42,24 @@ describe("períodos e intervalos", () => {
     expect(rango("7d", ahora)).toEqual({ desde: ahora - 7 * 24 * H, hasta: ahora, intervalo: 3600 });
     expect(rango("todo", ahora, "2026-09-01T03:00:00Z")?.desde).toBe(Date.parse("2026-09-01T03:00:00Z"));
     expect(rango("todo", ahora, null)).toBeNull();
+  });
+  it("arma el rango de días elegidos en hora argentina", () => {
+    const ahora = Date.parse("2026-10-20T15:00:00Z"); // 12:00 en Argentina
+    const unDia = rangoDias({ desde: "2026-10-12", hasta: "2026-10-12" }, ahora)!;
+    expect(unDia.desde).toBe(Date.parse("2026-10-12T03:00:00Z"));
+    expect(unDia.hasta).toBe(Date.parse("2026-10-13T03:00:00Z"));
+    expect(unDia.intervalo).toBe(600);
+    expect(rangoDias({ desde: "2026-10-18", hasta: "2026-10-12" }, ahora)).toEqual(
+      rangoDias({ desde: "2026-10-12", hasta: "2026-10-18" }, ahora),
+    );
+    expect(rangoDias({ desde: "2026-10-19", hasta: "2026-10-20" }, ahora)?.hasta).toBe(ahora);
+    expect(rangoDias({ desde: "2026-10-21", hasta: "2026-10-22" }, ahora)).toBeNull();
+    expect(rango("fechas", ahora, null, { desde: "2026-10-12", hasta: "2026-10-12" })).toEqual(unDia);
+    expect(rango("fechas", ahora)).toBeNull();
+  });
+  it("nombra los días elegidos", () => {
+    expect(textoDias({ desde: "2026-10-12", hasta: "2026-10-12" })).toBe("12/10/2026");
+    expect(textoDias({ desde: "2026-10-18", hasta: "2026-10-12" })).toBe("12/10/2026 – 18/10/2026");
   });
   it("nombra el intervalo", () => {
     expect(textoIntervalo(600)).toBe("10 min");
