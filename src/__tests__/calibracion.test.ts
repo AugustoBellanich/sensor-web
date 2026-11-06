@@ -58,6 +58,10 @@ describe("estadoDeMarcas", () => {
     expect(estadoDeMarcas(["e2_sin_calibracion"], 2)).toBe("sin_calibracion");
     expect(estadoDeMarcas(null, 1)).toBeNull();
   });
+  it("extrapolado lejos se distingue del extrapolado cerca (D-104)", () => {
+    expect(estadoDeMarcas(["e1_extrapolado_lejos"], 1)).toBe("extrapolado_lejos");
+    expect(estadoDeMarcas(["e1_extrapolado"], 1)).toBe("extrapolado");
+  });
   it("la marca vieja fuera_de_calibracion cuenta como extrapolado", () => {
     expect(estadoDeMarcas(["e1_fuera_de_calibracion"], 1)).toBe("extrapolado");
   });

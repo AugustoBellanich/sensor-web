@@ -8,7 +8,18 @@ import { supabase } from "./supabase";
 
 export type EstadoCurva = "insuficiente" | "provisional" | "incierta" | "calibrada";
 export type ModeloCurva = "lineal" | "inversa" | "tramos";
-export type EstadoValor = "calibrado" | "provisional" | "extrapolado" | "fuera_de_rango" | "sin_calibracion";
+/**
+ * Estado de un valor calculado (D-41, D-104): dentro del rango de mV de los puntos, calibrado o
+ * provisional; hasta un margen (20 % del rango), extrapolado; más lejos, extrapolado lejos (se
+ * calcula igual, muy incierto); fuera de rango solo si la curva da algo imposible (< 0 o > 100 %).
+ */
+export type EstadoValor =
+  | "calibrado"
+  | "provisional"
+  | "extrapolado"
+  | "extrapolado_lejos"
+  | "fuera_de_rango"
+  | "sin_calibracion";
 
 export type Curva = {
   status: EstadoCurva;
@@ -283,7 +294,8 @@ export const TEXTO_ESTADO_VALOR: Record<EstadoValor, string> = {
   calibrado: "dentro del rango calibrado",
   provisional: "provisional",
   extrapolado: "extrapolado",
-  fuera_de_rango: "fuera del rango calibrado",
+  extrapolado_lejos: "extrapolado lejos del rango calibrado, muy incierto",
+  fuera_de_rango: "imposible con esta curva",
   sin_calibracion: "sin curva",
 };
 
@@ -336,7 +348,7 @@ export function leerNumero(texto: string): number | null {
 /** Estado de un electrodo según las marcas de control de calidad de una lectura. */
 export function estadoDeMarcas(flags: string[] | null | undefined, electrodo: number): EstadoValor | null {
   const f = new Set(flags ?? []);
-  for (const e of ["provisional", "extrapolado", "fuera_de_rango", "sin_calibracion"] as const) {
+  for (const e of ["provisional", "extrapolado", "extrapolado_lejos", "fuera_de_rango", "sin_calibracion"] as const) {
     if (f.has(`e${electrodo}_${e}`)) return e;
   }
   if (f.has(`e${electrodo}_fuera_de_calibracion`)) return "extrapolado";
