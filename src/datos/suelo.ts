@@ -1,4 +1,4 @@
-// Suelo del sitio por capas (D-106): la descripción del pozo del sensor con sus capas y lo que toma
+// Suelo del sitio por capas (D-106): el perfil observado en la excavación del sensor, con sus capas, y lo que toma
 // cada sonda. Una lista de renglones (RENGLONES) arma la tabla y el formulario: cada renglón tiene
 // uno o más valores y, si corresponde, el método al lado (lista corta con "otro").
 import type { Resultado } from "./cuenta";

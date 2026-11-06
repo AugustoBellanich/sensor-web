@@ -1,7 +1,7 @@
-// Suelo del sitio (D-106): la descripción del pozo del sensor por capas y lo que toma cada sonda.
-// Arriba el esquema del pozo con las sondas a su profundidad; al lado, los datos de cada capa con
-// su método. El dueño y los editores del campo describen el pozo (o lo corrigen), cargan la
-// profundidad de las sondas y, si rehacen el pozo, la descripción anterior queda en el historial.
+// Suelo del sitio (D-106): el perfil observado en la excavación del sensor, por capas, y lo que toma
+// cada sonda. Arriba el esquema del perfil con las sondas a su profundidad; al lado, los datos de
+// cada capa con su método. El dueño y los editores del campo describen el perfil (o lo corrigen),
+// cargan la profundidad de las sondas y, si lo vuelven a describir, el anterior queda en el historial.
 import {
   ExternalLink,
   History,
@@ -92,7 +92,7 @@ export function SueloSitio() {
           />
         ) : null}
         {suelo && editando ? (
-          <EditorPozo
+          <EditorPerfil
             suelo={suelo}
             base={editando.base}
             corregir={editando.corregir}
@@ -113,7 +113,9 @@ export function SueloSitio() {
               datos={
                 vigente ? (
                   <>
-                    <span>Pozo descripto el {fecha(vigente.described_at)}</span>
+                    <span>
+                      Perfil descripto el {fecha(vigente.described_at)}
+                    </span>
                     {vigente.created_by_name ? (
                       <span className="text-texto-3">
                         por {vigente.created_by_name}
@@ -121,7 +123,7 @@ export function SueloSitio() {
                     ) : null}
                   </>
                 ) : (
-                  <span>Sin descripción del pozo</span>
+                  <span>Sin descripción del perfil</span>
                 )
               }
               acciones={
@@ -144,7 +146,7 @@ export function SueloSitio() {
                         setEditando({ base: vigente, corregir: false })
                       }
                     >
-                      {vigente ? "Nuevo pozo" : "Describir el pozo"}
+                      {vigente ? "Nuevo perfil" : "Describir el perfil"}
                     </Boton>
                   </span>
                 ) : null
@@ -152,8 +154,8 @@ export function SueloSitio() {
             />
             <div className="flex flex-wrap items-start gap-4">
               <div className="flex min-w-0 flex-[1_1_320px] flex-col gap-4">
-                <Tarjeta titulo="Pozo y sondas">
-                  <EsquemaPozo
+                <Tarjeta titulo="Perfil y sondas">
+                  <EsquemaPerfil
                     capas={vigente?.layers ?? []}
                     sondas={suelo.electrodes}
                   />
@@ -166,11 +168,11 @@ export function SueloSitio() {
                 ) : (
                   <Tarjeta>
                     <p className="text-[13px] text-texto-2">
-                      Todavía no se describió el pozo de este sitio. Al instalar
-                      el sensor, cargá las capas que veas (si no hay
-                      diferencias, una sola). Las sondas toman de ahí la
-                      densidad y la textura para la calibración; lo que midas
-                      junto a una sonda manda sobre la capa.
+                      Este sitio no tiene el perfil descripto. Al instalar el
+                      sensor, cargá las capas observadas en la excavación (si el
+                      perfil es homogéneo, una sola). Cada sonda toma de su capa
+                      la densidad y la textura para la calibración; lo medido
+                      junto a una sonda tiene prioridad.
                     </p>
                   </Tarjeta>
                 )}
@@ -190,9 +192,9 @@ export function SueloSitio() {
   );
 }
 
-// ------------------------------------------------------------------ esquema del pozo
+// ------------------------------------------------------------------ esquema del perfil
 
-function EsquemaPozo({
+function EsquemaPerfil({
   capas,
   sondas,
 }: {
@@ -217,7 +219,7 @@ function EsquemaPozo({
       viewBox={`0 0 300 ${ALTO}`}
       className="w-full"
       role="img"
-      aria-label="Esquema del pozo con sus capas y las sondas"
+      aria-label="Esquema del perfil con sus capas y las sondas"
     >
       {marcas.map((m) => (
         <g key={m}>
@@ -460,15 +462,15 @@ function Sondas({ suelo, alCambiar }: { suelo: Suelo; alCambiar: () => void }) {
           )
         ) : null}
         <p className="text-xs text-texto-3">
-          Cada sonda toma los datos de la capa que contiene su profundidad (con
-          una sola capa, esa). Lo medido junto a una sonda se carga en la{" "}
+          Cada sonda toma los datos de la capa que contiene su profundidad (si
+          hay una sola capa, de esa). Lo medido junto a una sonda se carga en la{" "}
           <Link
             to={`/sitio/${suelo.site_id}/calibracion`}
             className="text-acento-oscuro"
           >
             calibración
           </Link>{" "}
-          y manda sobre la capa.
+          y tiene prioridad sobre la capa.
         </p>
       </form>
     </div>
@@ -655,7 +657,7 @@ function Historial({
                 alCambiar();
               }}
             >
-              Volver a usar
+              Reactivar
             </button>
           ) : null}
         </div>
@@ -865,7 +867,7 @@ function EditorCapa({
   );
 }
 
-function EditorPozo({
+function EditorPerfil({
   suelo,
   base,
   corregir,
@@ -878,7 +880,7 @@ function EditorPozo({
   alCancelar: () => void;
   alGuardar: () => void;
 }) {
-  // Corregir parte de la vigente; un pozo nuevo arranca de las mismas capas (se suele repetir la
+  // Corregir parte de la vigente; un perfil nuevo arranca de las mismas capas (se suele repetir la
   // división) pero sin datos de laboratorio, salvo que no haya ninguna.
   const [capas, setCapas] = useState<CapaFormulario[]>(() =>
     base
@@ -889,7 +891,7 @@ function EditorPozo({
           )
       : [capaVacia("0", "")],
   );
-  const [fechaPozo, setFechaPozo] = useState(
+  const [fechaPerfil, setFechaPerfil] = useState(
     corregir && base ? base.described_at.slice(0, 10) : fechaArgHoy(),
   );
   const [notas, setNotas] = useState(
@@ -916,7 +918,7 @@ function EditorPozo({
     setGuardando(true);
     const g = await guardarDescripcion({
       sitio: suelo.site_id,
-      fecha: fechaPozo,
+      fecha: fechaPerfil,
       capas: r.listas,
       notas,
       informe,
@@ -935,28 +937,28 @@ function EditorPozo({
       <Titulo
         titulo={
           corregir
-            ? `Corregir el pozo · ${suelo.name}`
-            : `Describir el pozo · ${suelo.name}`
+            ? `Corregir el perfil · ${suelo.name}`
+            : `Describir el perfil · ${suelo.name}`
         }
         datos={
           <span>
             {corregir
               ? "Cambia la descripción vigente."
               : base
-                ? "Pozo nuevo: la descripción actual queda en el historial."
-                : "Las capas que veas al hacer el pozo del sensor; si no hay diferencias, una sola."}
+                ? "Perfil nuevo: la descripción vigente pasa al historial."
+                : "Capas observadas en la excavación del sensor; si el perfil es homogéneo, una sola."}
           </span>
         }
       />
       <Tarjeta>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-[170px_1fr]">
           <label className="flex flex-col gap-1 text-xs text-texto-2">
-            Fecha del pozo
+            Fecha de la descripción
             <input
               type="date"
-              value={fechaPozo}
+              value={fechaPerfil}
               max={fechaArgHoy()}
-              onChange={(e) => setFechaPozo(e.target.value)}
+              onChange={(e) => setFechaPerfil(e.target.value)}
               className={ENTRADA}
               required
             />
@@ -974,7 +976,7 @@ function EditorPozo({
             Notas (opcional)
             <input
               value={notas}
-              placeholder="Ej.: pozo a 30 cm del gotero; capa compactada a 40 cm"
+              placeholder="Ej.: excavación a 30 cm del gotero; capa compactada a 40 cm"
               onChange={(e) => setNotas(e.target.value)}
               className={ENTRADA}
             />

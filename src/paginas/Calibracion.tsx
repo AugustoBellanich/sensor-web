@@ -336,7 +336,7 @@ function Electrodo({
               />
             ) : (
               <p className="text-[13px] text-texto-2">
-                Sin datos del suelo. Describí el pozo del sitio (las capas) o
+                Sin datos del suelo. Describí el perfil del sitio (capas) o
                 cargá lo medido junto a esta sonda.
               </p>
             )}
@@ -353,7 +353,7 @@ function Electrodo({
                   className="inline-flex h-[34px] items-center gap-1.5 rounded-lg border border-linea bg-white px-3 text-[13px] font-medium text-texto-2 no-underline hover:bg-fondo hover:text-tinta"
                 >
                   <Layers size={15} strokeWidth={1.9} aria-hidden />
-                  Medido junto a la sonda
+                  Cargar medición junto a la sonda
                 </Link>
               </div>
             ) : null}
@@ -719,7 +719,7 @@ function ActivarPunto({ p, alCambiar }: { p: Punto; alCambiar: () => void }) {
         title={error ?? undefined}
         className="text-xs font-medium text-acento-oscuro hover:underline"
       >
-        Volver a usar
+        Reactivar
       </button>
     );
   if (!abierto)
