@@ -301,7 +301,7 @@ export function Sitio() {
                         unidad="°C"
                         decimales={1}
                         alto={130}
-                        nota="Interior de la caja (DS3231, ±3 °C). Llega solo con la SD."
+                        nota="Interior de la caja (DS3231, ±3 °C), por LoRa o con la SD."
                         tiempos={s.datos.carcasa.map((p) => Date.parse(p.t))}
                         series={[
                           {

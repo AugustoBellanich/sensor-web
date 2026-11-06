@@ -120,7 +120,7 @@ export type PuntoCarcasa = {
 };
 
 /**
- * Temperatura de la carcasa por intervalo (DS3231, solo llega con la SD; site_case_temp, D-102).
+ * Temperatura de la carcasa por intervalo (DS3231, por LoRa o con la SD; site_case_temp, D-102 y D-103).
  * Es un dato de diagnóstico: si falla o no hay, se devuelve vacío y el gráfico no se muestra.
  */
 export async function serieCarcasa(id: string, desde: number, hasta: number, intervalo: number): Promise<PuntoCarcasa[]> {
