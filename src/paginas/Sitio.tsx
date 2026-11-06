@@ -241,7 +241,11 @@ export function Sitio() {
           <Tarjeta>
             <p className="text-[13px] text-texto-2">
               Este sitio todavía no tiene datos.
+              {conCalibracion(info)
+                ? " La calibración se puede cargar antes: los mV que lleguen se pasan a humedad con ella."
+                : ""}
             </p>
+            {conCalibracion(info) ? <EnlaceCalibracion id={info.id} texto="Cargar la calibración" /> : null}
           </Tarjeta>
         ) : null}
         {info && hayDatos ? (
@@ -455,16 +459,28 @@ function ElSitio({ info }: { info: InfoSitio }) {
               : "Sin calibración"}
         </FilaDato>
       ) : null}
-      {info.b01 ? (
-        <Link
-          to={`/sitio/${info.id}/calibracion`}
-          className="mt-2 inline-flex items-center gap-1 text-[13px] font-medium text-acento-oscuro no-underline hover:underline"
-        >
-          Ver la calibración
-          <ChevronRight size={14} aria-hidden />
-        </Link>
-      ) : null}
+      {conCalibracion(info) ? <EnlaceCalibracion id={info.id} texto="Ver la calibración" /> : null}
     </Tarjeta>
+  );
+}
+
+/**
+ * La calibración es del sitio (D-41) y se carga sin el equipo ni lecturas: profundidad, suelo y
+ * puntos con el mV escrito a mano. Como en la app: si el equipo es un B01 o todavía no hay equipo.
+ */
+function conCalibracion(info: InfoSitio): boolean {
+  return info.b01 !== null || !info.device || info.device.type === "B01";
+}
+
+function EnlaceCalibracion({ id, texto }: { id: string; texto: string }) {
+  return (
+    <Link
+      to={`/sitio/${id}/calibracion`}
+      className="mt-2 inline-flex items-center gap-1 text-[13px] font-medium text-acento-oscuro no-underline hover:underline"
+    >
+      {texto}
+      <ChevronRight size={14} aria-hidden />
+    </Link>
   );
 }
 
