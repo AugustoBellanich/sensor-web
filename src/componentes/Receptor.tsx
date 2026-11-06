@@ -22,10 +22,11 @@ import { IconoEstado } from "@/componentes/EstadoEquipo";
 import { FamiliaYCodigo, HaceCorto } from "@/componentes/familia";
 import { Grafico } from "@/componentes/Grafico";
 import { Medidor } from "@/componentes/Medidor";
-import { Aviso, Cargando, Estado, Segmento, Tarjeta } from "@/componentes/ui";
+import { SelectorPeriodo } from "@/componentes/SelectorPeriodo";
+import { Aviso, Cargando, Estado, Tarjeta } from "@/componentes/ui";
 import { calidadWifi, duracion, hace, semaforo } from "@/datos/estado";
 import { aliasPropio, familiaDeModelo } from "@/datos/familias";
-import { etiquetaCorta, rango, type Periodo } from "@/datos/grafico";
+import { etiquetaCorta, rango, type Dias, type Periodo } from "@/datos/grafico";
 import { ESCALA_WIFI } from "@/datos/medidor";
 import { saludRed, sensoresDe } from "@/datos/salud";
 import { actividadGateway, type Envio } from "@/datos/series";
@@ -38,13 +39,14 @@ const PERIODOS_GW = [
 ] as const;
 
 export function Receptor({ id }: { id: string }) {
-  const [periodo, setPeriodo] = useState<Extract<Periodo, "24h" | "7d" | "30d">>("24h");
+  const [periodo, setPeriodo] = useState<Periodo>("24h");
+  const [dias, setDias] = useState<Dias | null>(null);
   const c = useConsulta(
     useCallback(async () => {
-      const r = rango(periodo, Date.now())!;
+      const r = rango(periodo, Date.now(), null, dias) ?? rango("24h", Date.now())!;
       const [a, s] = await Promise.all([actividadGateway(id, r.desde, r.hasta, r.intervalo), saludRed()]);
       return { ...a, sensores: sensoresDe(id, s.equipos), r, error: a.error ?? s.error };
-    }, [id, periodo]),
+    }, [id, periodo, dias]),
   );
   const d = c.datos;
   const e = d?.estado ?? null;
@@ -119,7 +121,15 @@ export function Receptor({ id }: { id: string }) {
 
       <div className="flex min-w-0 flex-[1_1_560px] flex-col gap-3.5">
         <div className="flex flex-wrap items-center justify-between gap-2.5">
-          <Segmento etiqueta="Período" opciones={PERIODOS_GW} valor={periodo} alCambiar={setPeriodo} />
+          <SelectorPeriodo
+            opciones={PERIODOS_GW}
+            periodo={periodo}
+            dias={dias}
+            alCambiar={(p, d) => {
+              setPeriodo(p);
+              setDias(d);
+            }}
+          />
         </div>
         <section className="flex flex-wrap items-stretch gap-y-2.5 rounded-xl border border-linea bg-white px-1 py-3.5">
           <h2 className="self-center px-3.5 text-[13px] font-semibold text-tinta">Envíos a la base</h2>
