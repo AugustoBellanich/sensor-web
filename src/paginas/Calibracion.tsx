@@ -39,6 +39,12 @@ import {
   type Punto,
 } from "@/datos/calibracion";
 import { fechaHoraArg } from "@/datos/grafico";
+import {
+  sueloSitio,
+  textoCapa,
+  type DatoSonda,
+  type SueloDeSonda,
+} from "@/datos/suelo";
 import { infoSitio } from "@/datos/series";
 import { AYUDA } from "@/datos/textos";
 import { useConsulta } from "@/datos/useConsulta";
@@ -53,14 +59,26 @@ export function Calibracion() {
   const { id = "" } = useParams();
   const c = useConsulta(
     useCallback(async () => {
-      const [f, i] = await Promise.all([fichaCalibracion(id), infoSitio(id)]);
-      return { ficha: f.ficha, info: i.info, error: f.error ?? i.error };
+      const [f, i, s] = await Promise.all([
+        fichaCalibracion(id),
+        infoSitio(id),
+        sueloSitio(id),
+      ]);
+      // El suelo por capas (D-106) es un agregado: si falla, la calibración se muestra igual.
+      return {
+        ficha: f.ficha,
+        info: i.info,
+        suelo: s.suelo,
+        error: f.error ?? i.error,
+      };
     }, [id]),
   );
   const ficha = c.datos?.ficha ?? null;
   const info = c.datos?.info ?? null;
   const [elegido, setElegido] = useState<"1" | "2" | "3">("1");
   const e = ficha?.electrodes.find((x) => String(x.index) === elegido) ?? null;
+  const sonda =
+    c.datos?.suelo?.electrodes.find((x) => String(x.index) === elegido) ?? null;
 
   return (
     <>
@@ -122,6 +140,7 @@ export function Calibracion() {
             {e ? (
               <Electrodo
                 e={e}
+                sonda={sonda}
                 sitio={id}
                 puedeEditar={ficha.can_edit}
                 alCambiar={c.actualizar}
@@ -136,11 +155,13 @@ export function Calibracion() {
 
 function Electrodo({
   e,
+  sonda,
   sitio,
   puedeEditar,
   alCambiar,
 }: {
   e: ElectrodoCal;
+  sonda: SueloDeSonda | null;
   sitio: string;
   puedeEditar: boolean;
   alCambiar: () => void;
@@ -275,51 +296,56 @@ function Electrodo({
               ) : null
             }
           >
-            {e.suelo ? (
-              <>
-                <FilaDato etiqueta="Profundidad">
-                  {e.suelo.depth_cm != null
-                    ? `${coma(e.suelo.depth_cm, 0)} cm`
-                    : e.depth != null
-                      ? `${coma(e.depth, 0)} cm`
-                      : "—"}
-                </FilaDato>
-                <FilaDato
-                  etiqueta={
-                    <ConAyuda que="densidad aparente" texto={AYUDA.densidad}>
-                      Densidad aparente
-                    </ConAyuda>
-                  }
-                >
-                  {e.densidad != null ? `${coma(e.densidad, 2)} g/cm³` : "—"}
-                </FilaDato>
-                <FilaDato etiqueta="Textura">
-                  {e.suelo.texture_class ?? "—"}
-                </FilaDato>
-                {e.suelo.sand_pct != null ? (
-                  <FilaDato etiqueta="Arena · limo · arcilla">
-                    {coma(e.suelo.sand_pct, 0)} · {coma(e.suelo.silt_pct, 0)} ·{" "}
-                    {coma(e.suelo.clay_pct, 0)} %
-                  </FilaDato>
-                ) : null}
-                <FilaDato etiqueta="Materia orgánica">
-                  {e.suelo.organic_matter_pct != null
-                    ? `${coma(e.suelo.organic_matter_pct)} %`
-                    : "—"}
-                </FilaDato>
-                {e.historial_suelo.length > 1 ? (
-                  <p className="mt-1 text-xs text-texto-3">
-                    {e.historial_suelo.length} registros guardados; se usa el
-                    más reciente.
-                  </p>
-                ) : null}
-              </>
+            {sonda &&
+            (sonda.capa ||
+              sonda.bulk_density ||
+              sonda.texture_class ||
+              sonda.sand_pct ||
+              sonda.depth != null) ? (
+              <SueloEfectivo sonda={sonda} />
+            ) : e.suelo ? (
+              <SueloEfectivo
+                sonda={{
+                  index: e.index,
+                  depth: e.suelo.depth_cm ?? e.depth,
+                  capa: null,
+                  bulk_density:
+                    e.densidad != null
+                      ? { value: e.densidad, origen: "sonda" }
+                      : undefined,
+                  texture_class: e.suelo.texture_class
+                    ? { value: e.suelo.texture_class, origen: "sonda" }
+                    : undefined,
+                  sand_pct:
+                    e.suelo.sand_pct != null
+                      ? { value: e.suelo.sand_pct, origen: "sonda" }
+                      : undefined,
+                  silt_pct:
+                    e.suelo.silt_pct != null
+                      ? { value: e.suelo.silt_pct, origen: "sonda" }
+                      : undefined,
+                  clay_pct:
+                    e.suelo.clay_pct != null
+                      ? { value: e.suelo.clay_pct, origen: "sonda" }
+                      : undefined,
+                  organic_matter_pct:
+                    e.suelo.organic_matter_pct != null
+                      ? { value: e.suelo.organic_matter_pct, origen: "sonda" }
+                      : undefined,
+                }}
+              />
             ) : (
               <p className="text-[13px] text-texto-2">
-                Sin datos del suelo. Al instalar: densidad con cilindros y
-                textura, cerca de la sonda en suelo sin remover.
+                Sin datos del suelo. Describí el pozo del sitio (las capas) o
+                cargá lo medido junto a esta sonda.
               </p>
             )}
+            <Link
+              to={`/sitio/${sitio}/suelo`}
+              className="mt-2 inline-flex items-center text-[13px] font-medium text-acento-oscuro no-underline hover:underline"
+            >
+              Suelo del sitio (capas)
+            </Link>
             {puedeEditar ? (
               <div className="mt-3">
                 <Link
@@ -327,7 +353,7 @@ function Electrodo({
                   className="inline-flex h-[34px] items-center gap-1.5 rounded-lg border border-linea bg-white px-3 text-[13px] font-medium text-texto-2 no-underline hover:bg-fondo hover:text-tinta"
                 >
                   <Layers size={15} strokeWidth={1.9} aria-hidden />
-                  {e.suelo ? "Actualizar el suelo" : "Cargar el suelo"}
+                  Medido junto a la sonda
                 </Link>
               </div>
             ) : null}
@@ -741,5 +767,55 @@ function ActivarPunto({ p, alCambiar }: { p: Punto; alCambiar: () => void }) {
         ✕
       </button>
     </form>
+  );
+}
+
+/** Suelo que usa la sonda, dato por dato, con su origen (D-106): medido junto a la sonda o de su capa. */
+function SueloEfectivo({ sonda }: { sonda: SueloDeSonda }) {
+  const de = (d: DatoSonda<unknown> | undefined) =>
+    d ? (
+      <span className="block text-[11.5px] font-normal text-texto-3">
+        {d.origen === "sonda"
+          ? "medido junto a la sonda"
+          : sonda.capa
+            ? `de la capa ${textoCapa(sonda.capa)}`
+            : "de la capa"}
+      </span>
+    ) : null;
+  const fr = [sonda.sand_pct, sonda.silt_pct, sonda.clay_pct];
+  return (
+    <>
+      <FilaDato etiqueta="Profundidad">
+        {sonda.depth != null ? `${coma(sonda.depth, 0)} cm` : "—"}
+      </FilaDato>
+      <FilaDato
+        etiqueta={
+          <ConAyuda que="densidad aparente" texto={AYUDA.densidad}>
+            Densidad aparente
+          </ConAyuda>
+        }
+      >
+        {sonda.bulk_density
+          ? `${coma(sonda.bulk_density.value, 2)} g/cm³`
+          : "—"}
+        {de(sonda.bulk_density)}
+      </FilaDato>
+      <FilaDato etiqueta="Textura">
+        {sonda.texture_class?.value ?? "—"}
+        {de(sonda.texture_class)}
+      </FilaDato>
+      {fr.some(Boolean) ? (
+        <FilaDato etiqueta="Arena · limo · arcilla">
+          {fr.map((x) => (x ? coma(x.value, 0) : "—")).join(" · ")} %
+          {de(sonda.sand_pct ?? sonda.clay_pct)}
+        </FilaDato>
+      ) : null}
+      <FilaDato etiqueta="Materia orgánica">
+        {sonda.organic_matter_pct
+          ? `${coma(sonda.organic_matter_pct.value)} %`
+          : "—"}
+        {de(sonda.organic_matter_pct)}
+      </FilaDato>
+    </>
   );
 }

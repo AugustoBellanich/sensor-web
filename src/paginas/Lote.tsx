@@ -41,6 +41,7 @@ import { cultivoDe, FilaSitio } from "@/paginas/Campo";
 import { IconoCultivo } from "@/componentes/IconoCultivo";
 import { grupoDeLote, useGruposCultivo } from "@/datos/gruposCultivo";
 import { BotonQuitar } from "@/componentes/Quitar";
+import { SueloLote } from "@/componentes/SueloLote";
 import { useSesion } from "@/sesion/SesionContexto";
 import { SelectorDato, useDatoAhora } from "@/componentes/SelectorDato";
 
@@ -185,6 +186,7 @@ export function Lote() {
                     </p>
                   )}
                 </Tarjeta>
+                {sitios.length ? <SueloLote lote={id} /> : null}
                 <Tarjeta
                   titulo="Riegos y lluvias"
                   derecha={

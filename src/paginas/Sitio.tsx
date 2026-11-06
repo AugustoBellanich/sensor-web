@@ -245,7 +245,16 @@ export function Sitio() {
                 ? " La calibración se puede cargar antes: los mV que lleguen se pasan a humedad con ella."
                 : ""}
             </p>
-            {conCalibracion(info) ? <EnlaceCalibracion id={info.id} texto="Cargar la calibración" /> : null}
+            {conCalibracion(info) ? (
+              <span className="flex flex-wrap gap-x-5">
+                <EnlaceCalibracion id={info.id} texto="Cargar la calibración" />
+                <EnlaceCalibracion
+                  id={info.id}
+                  texto="Describir el suelo"
+                  a="suelo"
+                />
+              </span>
+            ) : null}
           </Tarjeta>
         ) : null}
         {info && hayDatos ? (
@@ -459,7 +468,12 @@ function ElSitio({ info }: { info: InfoSitio }) {
               : "Sin calibración"}
         </FilaDato>
       ) : null}
-      {conCalibracion(info) ? <EnlaceCalibracion id={info.id} texto="Ver la calibración" /> : null}
+      {conCalibracion(info) ? (
+        <span className="flex flex-wrap gap-x-5">
+          <EnlaceCalibracion id={info.id} texto="Ver la calibración" />
+          <EnlaceCalibracion id={info.id} texto="Suelo del sitio" a="suelo" />
+        </span>
+      ) : null}
     </Tarjeta>
   );
 }
@@ -472,10 +486,18 @@ function conCalibracion(info: InfoSitio): boolean {
   return info.b01 !== null || !info.device || info.device.type === "B01";
 }
 
-function EnlaceCalibracion({ id, texto }: { id: string; texto: string }) {
+function EnlaceCalibracion({
+  id,
+  texto,
+  a = "calibracion",
+}: {
+  id: string;
+  texto: string;
+  a?: "calibracion" | "suelo";
+}) {
   return (
     <Link
-      to={`/sitio/${id}/calibracion`}
+      to={`/sitio/${id}/${a}`}
       className="mt-2 inline-flex items-center gap-1 text-[13px] font-medium text-acento-oscuro no-underline hover:underline"
     >
       {texto}
