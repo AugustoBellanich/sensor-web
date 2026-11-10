@@ -38,6 +38,7 @@ import {
   TEXTO_NIVEL,
   TEXTO_ORIGEN,
   textoAjusteDensidad,
+  textoEstandar,
   type ElectrodoCal,
   type Estimacion,
   type Nivel,
@@ -259,6 +260,14 @@ function Electrodo({
                   }
                 />
               </div>
+            ) : null}
+            {e.estandar && curva?.model?.startsWith("estandar") ? (
+              <p className="mb-2 text-xs text-texto-3">
+                {textoEstandar(e.estandar)}, con N = (mV aire − mV) / (mV aire − mV agua)
+                {e.referencia?.mv_air != null && e.referencia?.mv_water != null
+                  ? " y la referencia de banco de esta sonda."
+                  : ` y referencias nominales (${coma(e.estandar.mv_air, 0)} y ${coma(e.estandar.mv_water, 0)} mV): cargá la de la sonda para afinarla.`}
+              </p>
             ) : null}
             <CurvaCalibracion e={e} color={COLOR_E[e.index - 1]} />
             {e.puntos.length ? (
