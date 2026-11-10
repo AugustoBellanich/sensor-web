@@ -276,14 +276,25 @@ export function Sitio() {
                     setDias(d);
                   }}
                 />
-                {r ? (
+                {s.cambiando ? (
+                  <span
+                    role="status"
+                    className="inline-flex items-center gap-1.5 text-xs font-medium text-texto-2"
+                  >
+                    <LoaderCircle size={14} className="animate-spin" aria-hidden />
+                    Actualizando el período…
+                  </span>
+                ) : r ? (
                   <span className="text-xs text-texto-3">
                     Promedios cada {textoIntervalo(r.intervalo)}
                   </span>
                 ) : null}
               </div>
               {r && s.datos ? (
-                <>
+                <div
+                  aria-busy={s.cambiando || undefined}
+                  className={`flex flex-col gap-3.5 transition-opacity ${s.cambiando ? "pointer-events-none opacity-45" : ""}`}
+                >
                   <Periodo
                     dias={s.datos.dias}
                     suelo={conSuelo}
@@ -357,7 +368,7 @@ export function Sitio() {
                       intervaloS={r.intervalo}
                     />
                   </Tarjeta>
-                </>
+                </div>
               ) : (
                 <Tarjeta>
                   <Cargando texto="Leyendo el período…" />
@@ -561,9 +572,9 @@ function PerfilSuelo({ info }: { info: InfoSitio }) {
           <span
             className="flex h-[34px] w-[34px] shrink-0 flex-col items-center justify-center rounded-lg text-xs leading-tight font-semibold text-white"
             style={{ background: TIERRA[n] }}
-            title={`Electrodo ${k.i}`}
+            title={`Sonda S${k.i}`}
           >
-            {k.profundidad ?? `E${k.i}`}
+            {k.profundidad ?? `S${k.i}`}
             {k.profundidad != null ? (
               <span className="text-[9.5px] font-normal">cm</span>
             ) : null}
@@ -579,7 +590,7 @@ function PerfilSuelo({ info }: { info: InfoSitio }) {
               <Medidor
                 escala={escalaSuelo(k.refs, k.valor)}
                 valor={k.valor}
-                nombre={`Electrodo ${k.i}`}
+                nombre={`Sonda S${k.i}`}
                 oracion={fraseSuelo(k.valor, k.refs)}
               />
             ) : (
@@ -632,7 +643,7 @@ function Suelo({
     const e = info.electrodes.find((x) => x.index === i);
     const refs = referencias(e, unidad);
     return {
-      nombre: e?.depth != null ? `${e.depth} cm` : `E${i}`,
+      nombre: e?.depth != null ? `${e.depth} cm` : `S${i}`,
       color: COLOR_E[i - 1],
       valores: serie.map((p) => p[`e${i}_${unidad}`]),
       referencia: refs
@@ -962,8 +973,8 @@ function Periodo({
     celdas.push({
       que: "tempSuelo",
       titulo: "Temp. del suelo",
-      valor: `${num(rs.reciente)} °C`,
-      nota: `promedio de ${rs.diasReciente} días`,
+      valor: `${num(rs.media)} °C`,
+      nota: `promedio de ${rs.dias} ${rs.dias === 1 ? "día" : "días"}`,
     });
     celdas.push({
       que: "amplitud",

@@ -25,7 +25,9 @@ import {
 } from "@/componentes/ui";
 import {
   activarPunto,
+  borrarDesactivados,
   borrarPunto,
+  desactivadosBorrables,
   estimarNiveles,
   fichaCalibracion,
   guardarNivel,
@@ -146,13 +148,13 @@ export function Calibracion() {
               }
               acciones={
                 <Segmento
-                  etiqueta="Electrodo"
+                  etiqueta="Sonda"
                   opciones={ficha.electrodes.map((x) => ({
                     valor: String(x.index) as "1" | "2" | "3",
                     texto:
                       x.depth != null
                         ? `${coma(x.depth, 0)} cm`
-                        : `E${x.index}`,
+                        : `S${x.index}`,
                   }))}
                   valor={elegido}
                   alCambiar={setElegido}
@@ -411,10 +413,13 @@ function Electrodo({
         }
         derecha={
           puedeEditar ? (
-            <Link to={aPunto} className={ENLACE_SECUNDARIO}>
-              <Plus size={15} strokeWidth={1.9} aria-hidden />
-              Agregar
-            </Link>
+            <span className="inline-flex items-center gap-2">
+              <BorrarDesactivados sitio={sitio} e={e} alCambiar={alCambiar} ejecutar={ejecutar} />
+              <Link to={aPunto} className={ENLACE_SECUNDARIO}>
+                <Plus size={15} strokeWidth={1.9} aria-hidden />
+                Agregar
+              </Link>
+            </span>
           ) : null
         }
       >
@@ -766,7 +771,7 @@ function AccionesPunto({ p, alCambiar, ejecutar }: { p: Punto; alCambiar: Cambio
               type="button"
               onClick={() => setModo("borrar")}
               className={`${enlace} inline-flex items-center gap-1 text-error`}
-              title="Se puede borrar hasta 24 h después de cargarlo"
+              title={p.active ? "Se puede borrar hasta 24 h después de cargarlo" : "Ya no entra en la curva: se puede borrar"}
             >
               <Trash2 size={13} aria-hidden />
               Borrar
@@ -819,6 +824,52 @@ function AccionesPunto({ p, alCambiar, ejecutar }: { p: Punto; alCambiar: Cambio
   );
 }
 
+/** Borra de una vez los puntos desactivados de la sonda (D-116), con confirmación. */
+function BorrarDesactivados({ sitio, e, alCambiar, ejecutar }: { sitio: string; e: ElectrodoCal; alCambiar: Cambio; ejecutar: Ejecutar }) {
+  const [confirmar, setConfirmar] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const n = desactivadosBorrables(e);
+  if (!n) return null;
+  if (!confirmar)
+    return (
+      <button
+        type="button"
+        onClick={() => setConfirmar(true)}
+        className="inline-flex h-[34px] items-center gap-1.5 rounded-lg px-2.5 text-[13px] font-medium text-error hover:bg-fondo"
+      >
+        <Trash2 size={14} aria-hidden />
+        Borrar desactivados ({n})
+      </button>
+    );
+  return (
+    <span className="inline-flex flex-wrap items-center justify-end gap-1.5">
+      <span className="text-xs text-texto-2">
+        {n === 1 ? "Se borra el punto desactivado." : `Se borran los ${n} desactivados.`} La curva no cambia.
+      </span>
+      <Boton
+        type="button"
+        variante="secundario"
+        icono={Trash2}
+        onClick={() =>
+          void ejecutar("Borrando los puntos desactivados…", async () => {
+            setError(null);
+            const r = await borrarDesactivados(sitio, e.index);
+            if (!r.ok) return setError(r.mensaje ?? null);
+            setConfirmar(false);
+            await alCambiar();
+          })
+        }
+      >
+        Borrar
+      </Boton>
+      <Boton type="button" variante="texto" onClick={() => setConfirmar(false)}>
+        Cancelar
+      </Boton>
+      {error ? <span className="w-full text-right text-xs text-error">{error}</span> : null}
+    </span>
+  );
+}
+
 /** Profundidad de la sonda (donde quedó el electrodo al instalar) y su referencia de banco: mV al
  * aire y en agua, que acotan la curva y avisan si un punto cae afuera (D-109). */
 function Sonda({
@@ -862,7 +913,7 @@ function Sonda({
       titulo={
         <span className="inline-flex items-center gap-1.5">
           <Ruler size={15} strokeWidth={1.9} className="text-texto-3" aria-hidden />
-          Sonda E{e.index}
+          Sonda S{e.index}
         </span>
       }
     >
@@ -905,12 +956,12 @@ function Sonda({
           }}
         >
           <Campo
-            etiqueta="Profundidad del electrodo (cm)"
+            etiqueta="Profundidad de la sonda (cm)"
             inputMode="decimal"
             value={cm}
             onChange={(ev) => setCm(ev.target.value)}
             placeholder="Ej.: 20"
-            ayuda={profundidadInvalida ? "Entre 1 y 300 cm." : "Donde quedó el electrodo al instalar. Con ella la sonda toma los datos de su capa del perfil."}
+            ayuda={profundidadInvalida ? "Entre 1 y 300 cm." : "Donde quedó la sonda al instalar. Con ella toma los datos de su capa del perfil."}
           />
           <div className="flex gap-2">
             <Boton type="submit" disabled={profundidad == null || profundidadInvalida}>
@@ -965,7 +1016,7 @@ function Sonda({
 }
 
 const AYUDA_REFERENCIA =
-  "mV del electrodo medidos en banco con la sonda limpia y seca al aire, y sumergida en agua hasta la marca. Acotan la curva del sensor (la asíntota húmeda de la exponencial) y avisan si un punto cae fuera de ese rango.";
+  "mV de la sonda medidos en banco, limpia y seca al aire, y sumergida en agua hasta la marca. Acotan la curva del sensor (la asíntota húmeda de la exponencial) y avisan si un punto cae fuera de ese rango.";
 
 /** Suelo que usa la sonda, dato por dato, con su origen (D-106): medido junto a la sonda o de su capa. */
 function SueloEfectivo({ sonda }: { sonda: SueloDeSonda }) {

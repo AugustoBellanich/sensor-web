@@ -86,7 +86,7 @@ function Marco({
       />
       <Contenido ancho={1000}>
         <Titulo
-          titulo={`${titulo} · ${profundidad != null ? `${coma(profundidad, 0)} cm` : `E${e}`}`}
+          titulo={`${titulo} · ${profundidad != null ? `${coma(profundidad, 0)} cm` : `S${e}`}`}
           datos={nombre}
         />
         {children}
@@ -243,7 +243,7 @@ export function PuntoCalibracion() {
                 />
                 {origen === "manual" ? (
                   <Campo
-                    etiqueta="mV del electrodo"
+                    etiqueta="mV de la sonda"
                     inputMode="decimal"
                     value={mvManual}
                     onChange={(ev) => setMvManual(ev.target.value)}
@@ -597,7 +597,7 @@ export function SueloElectrodo() {
                 inputMode="numeric"
                 value={profundidad}
                 onChange={(ev) => setProfundidad(ev.target.value)}
-                placeholder="La del electrodo"
+                placeholder="La de la sonda"
               />
             </div>
           </Tarjeta>

@@ -132,7 +132,7 @@ describe("clima", () => {
     expect(lecturaDpv(3)?.texto).toMatch(/Muy alto/);
     expect(lecturaDpv(null)).toBeNull();
   });
-  it("suelo: reciente de 3 días y amplitud", () => {
+  it("suelo: media del período, reciente de 3 días y amplitud", () => {
     const r = resumenSuelo([
       dia("2026-10-01", { family: "B01", tmed: 18, tmin: 17, tmax: 19 }),
       dia("2026-10-02", { family: "B01", tmed: 19, tmin: 18, tmax: 20 }),
@@ -140,6 +140,8 @@ describe("clima", () => {
       dia("2026-10-04", { family: "B01", tmed: 21, tmin: 20, tmax: 22 }),
     ]);
     expect(r.reciente).toBe(20);
+    expect(r.media).toBe(19.5);
+    expect(r.dias).toBe(4);
     expect(r.amplitud).toBeCloseTo(9 / 4);
   });
   it("formatos", () => {

@@ -18,7 +18,7 @@ export const AYUDA = {
   muestraBase: "La app toma el mV promedio de ±30 min alrededor de esa hora.",
   muestraManual: "El punto queda asociado al equipo instalado en el sitio en esa fecha.",
   muestraVivo: "Es el promedio de las últimas lecturas, cuando dejaron de variar.",
-  porcentajeVol: "Se calcula con la densidad aparente cargada en el suelo de este electrodo.",
+  porcentajeVol: "Se calcula con la densidad aparente cargada en el suelo de esta sonda.",
   muestrasSuelo: "Muestras cerca de la sonda, en suelo sin remover y a la misma profundidad. Cada cambio queda en el historial.",
   densidad: "Pasa la humedad gravimétrica a volumétrica y estima la saturación.",
   eventos: "Explican las subidas de humedad del gráfico.",

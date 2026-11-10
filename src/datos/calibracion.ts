@@ -129,6 +129,8 @@ export type ElectrodoCal = {
   niveles: Nivel[];
   curva: Curva | null;
   curva_muestras: { mv: number; hv: number | null; estado: EstadoValor }[] | null;
+  /** La estándar sin corregir, de referencia, en las curvas que parten de ella con muestras (D-114). */
+  estandar_muestras?: { mv: number; hv: number }[] | null;
   puntos: Punto[];
 };
 
@@ -250,6 +252,16 @@ export async function borrarPunto(id: string): Promise<Resultado> {
   return error ? { ok: false, mensaje: mensajeBase(error.message) } : { ok: true };
 }
 
+/** Borra todos los puntos desactivados de una sonda (D-116). No cambian la curva; cada uno queda en el registro. */
+export async function borrarDesactivados(sitio: string, electrodo: number): Promise<Resultado> {
+  const { error } = await supabase.rpc("delete_inactive_calibration_points", { p_site_id: sitio, p_electrode: electrodo });
+  return error ? { ok: false, mensaje: mensajeBase(error.message) } : { ok: true };
+}
+
+/** Puntos desactivados que se pueden borrar (los de la calibración anterior no). */
+export const desactivadosBorrables = (e: { puntos: { active: boolean; method: string }[] }) =>
+  e.puntos.filter((p) => !p.active && p.method !== "legado").length;
+
 /** Guarda el mV de la sonda al aire y en agua (D-109). Los dos vacíos quitan la referencia. */
 export async function guardarReferencia(
   equipo: string,
@@ -362,7 +374,7 @@ export const TEXTO_ESTADO_CURVA: Record<EstadoCurva, { titulo: string; detalle: 
   insuficiente: { titulo: "Sin curva", detalle: "Hacen falta al menos dos puntos con mV distintos.", color: "#64748b" },
   estandar: {
     titulo: "Curva estándar",
-    detalle: "Sin muestras de este electrodo: usa la curva estándar normalizada, sin corregir. Una muestra gravimétrica la ajusta.",
+    detalle: "Sin muestras de esta sonda: usa la curva estándar normalizada, sin corregir. Una muestra gravimétrica la ajusta.",
     color: "#b45309",
   },
   provisional: { titulo: "Provisional", detalle: "1 o 2 puntos: la curva pasa por ellos; el error todavía no se puede estimar bien.", color: "#b45309" },
@@ -403,7 +415,7 @@ export const TEXTO_NIVEL: Record<Nivel["level"], { corto: string; largo: string 
 };
 
 export const TEXTO_ESTADO_VALOR: Record<EstadoValor, string> = {
-  estandar: "curva estándar sin corregir, alta incertidumbre",
+  estandar: "según la curva estándar (sin muestras de la sonda en ese rango)",
   calibrado: "dentro del rango calibrado",
   provisional: "provisional",
   extrapolado: "extrapolado",

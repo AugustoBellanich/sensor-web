@@ -178,12 +178,14 @@ export function resumenClima(dias: Dia[]) {
   };
 }
 
-/** Temperatura de suelo: promedio de los últimos 3 días con datos y amplitud diaria media. */
+/** Temperatura de suelo: promedio del período, de los últimos 3 días con datos y amplitud diaria media. */
 export function resumenSuelo(dias: Dia[]) {
   const d = dias.filter((x) => x.family === "B01" && x.tmed != null);
   const ult = d.slice(-3);
   const amp = d.filter((x) => x.tmax != null && x.tmin != null).map((x) => x.tmax! - x.tmin!);
   return {
+    media: d.length ? suma(d.map((x) => x.tmed)) / d.length : null,
+    dias: d.length,
     reciente: ult.length ? suma(ult.map((x) => x.tmed)) / ult.length : null,
     diasReciente: ult.length,
     amplitud: amp.length ? amp.reduce((a, b) => a + b, 0) / amp.length : null,
