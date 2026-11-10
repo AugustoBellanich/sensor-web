@@ -8,15 +8,24 @@ import { mensajeBase } from "./errores";
 import { nuevoId } from "./ids";
 import { supabase } from "./supabase";
 
-export type EstadoCurva = "insuficiente" | "provisional" | "incierta" | "calibrada";
+/** "estandar": la curva estándar normalizada, sin puntos del electrodo que la corrijan (D-112). */
+export type EstadoCurva = "insuficiente" | "estandar" | "provisional" | "incierta" | "calibrada";
 /** "tramos" solo aparece en curvas guardadas antes de D-109. */
-export type ModeloCurva = "lineal" | "inversa" | "exponencial" | "tramos";
+export type ModeloCurva =
+  | "lineal"
+  | "inversa"
+  | "exponencial"
+  | "tramos"
+  | "estandar"
+  | "estandar_desplazada"
+  | "estandar_ajustada";
 /**
  * Estado de un valor calculado (D-41, D-104): dentro del rango de mV de los puntos, calibrado o
  * provisional; hasta un margen (20 % del rango), extrapolado; más lejos, extrapolado lejos (se
  * calcula igual, muy incierto); fuera de rango solo si la curva da algo imposible (< 0 o > 100 %).
  */
 export type EstadoValor =
+  | "estandar"
   | "calibrado"
   | "provisional"
   | "extrapolado"
@@ -96,11 +105,24 @@ export type Punto = {
 /** mV de la sonda al aire y sumergida en agua, medidos en banco (D-109). */
 export type Referencia = { mv_air: number | null; mv_water: number | null; measured_at: string; notes: string | null };
 
+/** Curva estándar normalizada vigente (D-112): θ = a·N^b, N = (mV aire − mV) / (mV aire − mV agua). */
+export type Estandar = {
+  version: number;
+  status: "provisional" | "calibrada";
+  params: { a: number; b: number };
+  source: string;
+  n: number | null;
+  rmse: number | null;
+  mv_air: number;
+  mv_water: number;
+};
+
 export type ElectrodoCal = {
   index: 1 | 2 | 3;
   depth: number | null;
   device_id: string | null;
   referencia?: Referencia | null;
+  estandar?: Estandar | null;
   suelo: Suelo | null;
   densidad: number | null;
   historial_suelo: Suelo[];
@@ -338,7 +360,12 @@ export async function estimarNiveles(sitio: string, electrodo: number): Promise<
 
 export const TEXTO_ESTADO_CURVA: Record<EstadoCurva, { titulo: string; detalle: string; color: string }> = {
   insuficiente: { titulo: "Sin curva", detalle: "Hacen falta al menos dos puntos con mV distintos.", color: "#64748b" },
-  provisional: { titulo: "Provisional", detalle: "Dos puntos: la recta pasa por ellos, todavía sin error estimado.", color: "#b45309" },
+  estandar: {
+    titulo: "Curva estándar",
+    detalle: "Sin muestras de este electrodo: usa la curva estándar normalizada, sin corregir. Una muestra gravimétrica la ajusta.",
+    color: "#b45309",
+  },
+  provisional: { titulo: "Provisional", detalle: "1 o 2 puntos: la curva pasa por ellos; el error todavía no se puede estimar bien.", color: "#b45309" },
   incierta: { titulo: "Calibración incierta", detalle: "3 o 4 puntos distintos: el error es una primera estimación.", color: "#b45309" },
   calibrada: { titulo: "Calibrada", detalle: "5 o más puntos distintos: el modelo se eligió por su error de validación.", color: "#059669" },
 };
@@ -348,6 +375,9 @@ export const TEXTO_MODELO: Record<ModeloCurva, string> = {
   inversa: "Inversa (θ = P/mV − Q)",
   exponencial: "Exponencial (θ = −c·ln((mV − a)/b))",
   tramos: "Tramos (curva anterior)",
+  estandar: "Estándar",
+  estandar_desplazada: "Estándar corrida a las muestras",
+  estandar_ajustada: "Estándar con desvío y pendiente propios",
 };
 
 export const TEXTO_METODO: Record<Punto["method"], string> = {
@@ -373,6 +403,7 @@ export const TEXTO_NIVEL: Record<Nivel["level"], { corto: string; largo: string 
 };
 
 export const TEXTO_ESTADO_VALOR: Record<EstadoValor, string> = {
+  estandar: "curva estándar sin corregir, alta incertidumbre",
   calibrado: "dentro del rango calibrado",
   provisional: "provisional",
   extrapolado: "extrapolado",
@@ -380,6 +411,12 @@ export const TEXTO_ESTADO_VALOR: Record<EstadoValor, string> = {
   fuera_de_rango: "fuera de rango (resultado menor que 0 o mayor que 100 %)",
   sin_calibracion: "sin curva",
 };
+
+/** "Estándar v1 (provisional): θ = 22,56 · N^3,25" para mostrar de dónde sale la curva. */
+export function textoEstandar(e: Estandar): string {
+  const n = (v: number, d: number) => v.toLocaleString("es-AR", { maximumFractionDigits: d });
+  return `Estándar v${e.version} (${e.status}): θ = ${n(e.params.a, 2)} · N^${n(e.params.b, 2)}`;
+}
 
 /** Clases texturales (USDA) para elegir. */
 export const TEXTURAS = [
@@ -430,7 +467,7 @@ export function leerNumero(texto: string): number | null {
 /** Estado de un electrodo según las marcas de control de calidad de una lectura. */
 export function estadoDeMarcas(flags: string[] | null | undefined, electrodo: number): EstadoValor | null {
   const f = new Set(flags ?? []);
-  for (const e of ["provisional", "extrapolado", "extrapolado_lejos", "fuera_de_rango", "sin_calibracion"] as const) {
+  for (const e of ["estandar", "provisional", "extrapolado", "extrapolado_lejos", "fuera_de_rango", "sin_calibracion"] as const) {
     if (f.has(`e${electrodo}_${e}`)) return e;
   }
   if (f.has(`e${electrodo}_fuera_de_calibracion`)) return "extrapolado";
