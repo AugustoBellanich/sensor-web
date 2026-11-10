@@ -1,7 +1,7 @@
 // Curva de calibración de un electrodo, como en la app: mV (eje horizontal) contra humedad
 // volumétrica. Puntos medidos (llenos los activos, huecos los desactivados, blancos los de la
-// calibración anterior), la curva ajustada (llena en el rango calibrado, cortada donde extrapola) y
-// los niveles PMP, CC y SAT como líneas.
+// calibración anterior), la curva ajustada (llena en el rango calibrado, cortada donde extrapola o
+// sigue a la estándar), la estándar sin corregir en gris de referencia y los niveles PMP, CC y SAT.
 import { useEffect, useRef, useState } from "react";
 
 import { TEXTO_METODO, TEXTO_NIVEL, type ElectrodoCal } from "@/datos/calibracion";
@@ -14,6 +14,7 @@ const ABAJO = 30;
 const EJES = "#64748b";
 const GRILLA = "#e2e8f0";
 const NIVEL = "#059669";
+const ESTANDAR = "#94a3b8";
 
 const coma = (v: number, d = 1) => v.toLocaleString("es-AR", { maximumFractionDigits: d });
 
@@ -27,8 +28,9 @@ export function CurvaCalibracion({ e, color, alto = 300 }: { e: ElectrodoCal; co
     return () => o.disconnect();
   }, []);
   const muestras = e.curva_muestras ?? [];
+  const estandar = e.estandar_muestras ?? [];
   const rx = extremos([...e.puntos.map((p) => p.mv), ...muestras.map((m) => m.mv)]);
-  const ry = extremos([...e.puntos.map((p) => p.theta_v), ...muestras.map((m) => m.hv), ...e.niveles.map((n) => n.theta_v)]);
+  const ry = extremos([...e.puntos.map((p) => p.theta_v), ...muestras.map((m) => m.hv), ...estandar.map((m) => m.hv), ...e.niveles.map((n) => n.theta_v)]);
   if (!rx || !ry) return <p className="text-[13px] text-texto-2">Sin puntos para dibujar.</p>;
   const mx = marcasEje(rx.min, rx.max, 6);
   const my = marcasEje(Math.max(0, ry.min), ry.max, 5);
@@ -45,6 +47,8 @@ export function CurvaCalibracion({ e, color, alto = 300 }: { e: ElectrodoCal; co
     if (a.hv == null || b.hv == null) continue;
     segmentos.push({ d: `M${x(a.mv).toFixed(1)} ${y(a.hv).toFixed(1)} L${x(b.mv).toFixed(1)} ${y(b.hv).toFixed(1)}`, extrapolado: a.estado !== b.estado || (a.estado !== "calibrado" && a.estado !== "provisional"), lejos: a.estado === "extrapolado_lejos" || b.estado === "extrapolado_lejos" });
   }
+
+  const dEstandar = estandar.map((m, i) => `${i ? "L" : "M"}${x(m.mv).toFixed(1)} ${y(m.hv).toFixed(1)}`).join(" ");
 
   return (
     <div ref={caja} style={{ height: alto }} className="w-full">
@@ -79,6 +83,14 @@ export function CurvaCalibracion({ e, color, alto = 300 }: { e: ElectrodoCal; co
               </g>
             ) : null,
           )}
+          {dEstandar ? (
+            <g>
+              <path d={dEstandar} stroke={ESTANDAR} strokeWidth={1.25} strokeDasharray="2 3" fill="none" />
+              <text x={ancho - DER} y={ARRIBA - 8} fontSize={10.5} fill={ESTANDAR} textAnchor="end">
+                ··· estándar sin corregir
+              </text>
+            </g>
+          ) : null}
           {segmentos.map((s, i) => (
             <path key={`s${i}`} d={s.d} stroke={color} strokeWidth={s.extrapolado ? 1.5 : 2.5} strokeDasharray={s.extrapolado ? "5 4" : undefined} strokeOpacity={s.lejos ? 0.45 : 1} fill="none" />
           ))}

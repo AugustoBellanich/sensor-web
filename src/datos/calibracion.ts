@@ -129,6 +129,8 @@ export type ElectrodoCal = {
   niveles: Nivel[];
   curva: Curva | null;
   curva_muestras: { mv: number; hv: number | null; estado: EstadoValor }[] | null;
+  /** La estándar sin corregir, de referencia, en las curvas que parten de ella con muestras (D-114). */
+  estandar_muestras?: { mv: number; hv: number }[] | null;
   puntos: Punto[];
 };
 
