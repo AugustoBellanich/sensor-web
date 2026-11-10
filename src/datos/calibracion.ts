@@ -252,6 +252,16 @@ export async function borrarPunto(id: string): Promise<Resultado> {
   return error ? { ok: false, mensaje: mensajeBase(error.message) } : { ok: true };
 }
 
+/** Borra todos los puntos desactivados de una sonda (D-116). No cambian la curva; cada uno queda en el registro. */
+export async function borrarDesactivados(sitio: string, electrodo: number): Promise<Resultado> {
+  const { error } = await supabase.rpc("delete_inactive_calibration_points", { p_site_id: sitio, p_electrode: electrodo });
+  return error ? { ok: false, mensaje: mensajeBase(error.message) } : { ok: true };
+}
+
+/** Puntos desactivados que se pueden borrar (los de la calibración anterior no). */
+export const desactivadosBorrables = (e: { puntos: { active: boolean; method: string }[] }) =>
+  e.puntos.filter((p) => !p.active && p.method !== "legado").length;
+
 /** Guarda el mV de la sonda al aire y en agua (D-109). Los dos vacíos quitan la referencia. */
 export async function guardarReferencia(
   equipo: string,

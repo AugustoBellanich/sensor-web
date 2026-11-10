@@ -25,7 +25,9 @@ import {
 } from "@/componentes/ui";
 import {
   activarPunto,
+  borrarDesactivados,
   borrarPunto,
+  desactivadosBorrables,
   estimarNiveles,
   fichaCalibracion,
   guardarNivel,
@@ -411,10 +413,13 @@ function Electrodo({
         }
         derecha={
           puedeEditar ? (
-            <Link to={aPunto} className={ENLACE_SECUNDARIO}>
-              <Plus size={15} strokeWidth={1.9} aria-hidden />
-              Agregar
-            </Link>
+            <span className="inline-flex items-center gap-2">
+              <BorrarDesactivados sitio={sitio} e={e} alCambiar={alCambiar} ejecutar={ejecutar} />
+              <Link to={aPunto} className={ENLACE_SECUNDARIO}>
+                <Plus size={15} strokeWidth={1.9} aria-hidden />
+                Agregar
+              </Link>
+            </span>
           ) : null
         }
       >
@@ -766,7 +771,7 @@ function AccionesPunto({ p, alCambiar, ejecutar }: { p: Punto; alCambiar: Cambio
               type="button"
               onClick={() => setModo("borrar")}
               className={`${enlace} inline-flex items-center gap-1 text-error`}
-              title="Se puede borrar hasta 24 h después de cargarlo"
+              title={p.active ? "Se puede borrar hasta 24 h después de cargarlo" : "Ya no entra en la curva: se puede borrar"}
             >
               <Trash2 size={13} aria-hidden />
               Borrar
@@ -815,6 +820,52 @@ function AccionesPunto({ p, alCambiar, ejecutar }: { p: Punto; alCambiar: Cambio
         </span>
       ) : null}
       {error ? <span className="max-w-[320px] whitespace-normal text-xs text-error">{error}</span> : null}
+    </span>
+  );
+}
+
+/** Borra de una vez los puntos desactivados de la sonda (D-116), con confirmación. */
+function BorrarDesactivados({ sitio, e, alCambiar, ejecutar }: { sitio: string; e: ElectrodoCal; alCambiar: Cambio; ejecutar: Ejecutar }) {
+  const [confirmar, setConfirmar] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const n = desactivadosBorrables(e);
+  if (!n) return null;
+  if (!confirmar)
+    return (
+      <button
+        type="button"
+        onClick={() => setConfirmar(true)}
+        className="inline-flex h-[34px] items-center gap-1.5 rounded-lg px-2.5 text-[13px] font-medium text-error hover:bg-fondo"
+      >
+        <Trash2 size={14} aria-hidden />
+        Borrar desactivados ({n})
+      </button>
+    );
+  return (
+    <span className="inline-flex flex-wrap items-center justify-end gap-1.5">
+      <span className="text-xs text-texto-2">
+        {n === 1 ? "Se borra el punto desactivado." : `Se borran los ${n} desactivados.`} La curva no cambia.
+      </span>
+      <Boton
+        type="button"
+        variante="secundario"
+        icono={Trash2}
+        onClick={() =>
+          void ejecutar("Borrando los puntos desactivados…", async () => {
+            setError(null);
+            const r = await borrarDesactivados(sitio, e.index);
+            if (!r.ok) return setError(r.mensaje ?? null);
+            setConfirmar(false);
+            await alCambiar();
+          })
+        }
+      >
+        Borrar
+      </Boton>
+      <Boton type="button" variante="texto" onClick={() => setConfirmar(false)}>
+        Cancelar
+      </Boton>
+      {error ? <span className="w-full text-right text-xs text-error">{error}</span> : null}
     </span>
   );
 }

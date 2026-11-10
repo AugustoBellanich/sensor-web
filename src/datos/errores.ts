@@ -85,7 +85,7 @@ const MENSAJES: Record<string, string> = {
   invalid_url: "El enlace al informe tiene que empezar con http:// o https://.",
   description_not_found: "Esa descripción del suelo ya no existe.",
   point_not_found: "Ese punto ya no existe.",
-  delete_window_closed: "Solo quien cargó el punto lo borra, en las 24 h siguientes. Si no, desactivalo con un motivo.",
+  delete_window_closed: "Un punto activo lo borra solo quien lo cargó, en las 24 h siguientes. Si no, desactivalo con un motivo y después se puede borrar.",
   legacy_point: "Los puntos de la calibración anterior no se borran: se desactivan.",
   invalid_reference: "En agua la sonda tiene que dar menos mV que al aire.",
   request_id_in_use: "No se pudo guardar el punto. Volvé a intentarlo.",
