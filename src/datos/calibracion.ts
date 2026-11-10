@@ -403,7 +403,7 @@ export const TEXTO_NIVEL: Record<Nivel["level"], { corto: string; largo: string 
 };
 
 export const TEXTO_ESTADO_VALOR: Record<EstadoValor, string> = {
-  estandar: "curva estándar sin corregir, alta incertidumbre",
+  estandar: "según la curva estándar (sin muestras del electrodo en ese rango)",
   calibrado: "dentro del rango calibrado",
   provisional: "provisional",
   extrapolado: "extrapolado",
