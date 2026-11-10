@@ -53,7 +53,7 @@ export function CurvaCalibracion({ e, color, alto = 300 }: { e: ElectrodoCal; co
   return (
     <div ref={caja} style={{ height: alto }} className="w-full">
       {ancho > 0 ? (
-        <svg width={ancho} height={alto} role="img" aria-label={`Curva de calibración del electrodo ${e.index}`}>
+        <svg width={ancho} height={alto} role="img" aria-label={`Curva de calibración de la sonda S${e.index}`}>
           {my.map((m) => (
             <g key={`y${m}`}>
               <line x1={IZQ} x2={ancho - DER} y1={y(m)} y2={y(m)} stroke={GRILLA} />

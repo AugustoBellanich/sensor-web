@@ -146,13 +146,13 @@ export function Calibracion() {
               }
               acciones={
                 <Segmento
-                  etiqueta="Electrodo"
+                  etiqueta="Sonda"
                   opciones={ficha.electrodes.map((x) => ({
                     valor: String(x.index) as "1" | "2" | "3",
                     texto:
                       x.depth != null
                         ? `${coma(x.depth, 0)} cm`
-                        : `E${x.index}`,
+                        : `S${x.index}`,
                   }))}
                   valor={elegido}
                   alCambiar={setElegido}
@@ -862,7 +862,7 @@ function Sonda({
       titulo={
         <span className="inline-flex items-center gap-1.5">
           <Ruler size={15} strokeWidth={1.9} className="text-texto-3" aria-hidden />
-          Sonda E{e.index}
+          Sonda S{e.index}
         </span>
       }
     >
@@ -905,12 +905,12 @@ function Sonda({
           }}
         >
           <Campo
-            etiqueta="Profundidad del electrodo (cm)"
+            etiqueta="Profundidad de la sonda (cm)"
             inputMode="decimal"
             value={cm}
             onChange={(ev) => setCm(ev.target.value)}
             placeholder="Ej.: 20"
-            ayuda={profundidadInvalida ? "Entre 1 y 300 cm." : "Donde quedó el electrodo al instalar. Con ella la sonda toma los datos de su capa del perfil."}
+            ayuda={profundidadInvalida ? "Entre 1 y 300 cm." : "Donde quedó la sonda al instalar. Con ella toma los datos de su capa del perfil."}
           />
           <div className="flex gap-2">
             <Boton type="submit" disabled={profundidad == null || profundidadInvalida}>
@@ -965,7 +965,7 @@ function Sonda({
 }
 
 const AYUDA_REFERENCIA =
-  "mV del electrodo medidos en banco con la sonda limpia y seca al aire, y sumergida en agua hasta la marca. Acotan la curva del sensor (la asíntota húmeda de la exponencial) y avisan si un punto cae fuera de ese rango.";
+  "mV de la sonda medidos en banco, limpia y seca al aire, y sumergida en agua hasta la marca. Acotan la curva del sensor (la asíntota húmeda de la exponencial) y avisan si un punto cae fuera de ese rango.";
 
 /** Suelo que usa la sonda, dato por dato, con su origen (D-106): medido junto a la sonda o de su capa. */
 function SueloEfectivo({ sonda }: { sonda: SueloDeSonda }) {

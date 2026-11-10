@@ -267,7 +267,7 @@ export function hojasLecturas(
       ],
       [
         "Humedad (% grav)",
-        "Calculada con la densidad aparente cargada en el suelo de cada electrodo.",
+        "Calculada con la densidad aparente cargada en el suelo de cada sonda.",
       ],
     );
   }

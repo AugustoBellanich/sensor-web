@@ -67,7 +67,7 @@ const MENSAJES: Record<string, string> = {
   invalid_range: "El final del período tiene que ser posterior al inicio.",
   invalid_bucket: "Intervalo no válido para el gráfico.",
   too_many_points: "Son demasiados puntos para ese período: elegí un período más corto.",
-  no_readings_at_time: "No hay lecturas de ese electrodo media hora antes o después de esa hora. Revisá la fecha y la hora.",
+  no_readings_at_time: "No hay lecturas de esa sonda media hora antes o después de esa hora. Revisá la fecha y la hora.",
   several_devices_at_time: "A esa hora hay lecturas de más de un equipo en el sitio.",
   invalid_mv: "El mV tiene que estar entre 1 y 3300.",
   invalid_mv_source: "El origen del mV no es válido.",

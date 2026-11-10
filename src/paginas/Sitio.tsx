@@ -572,9 +572,9 @@ function PerfilSuelo({ info }: { info: InfoSitio }) {
           <span
             className="flex h-[34px] w-[34px] shrink-0 flex-col items-center justify-center rounded-lg text-xs leading-tight font-semibold text-white"
             style={{ background: TIERRA[n] }}
-            title={`Electrodo ${k.i}`}
+            title={`Sonda S${k.i}`}
           >
-            {k.profundidad ?? `E${k.i}`}
+            {k.profundidad ?? `S${k.i}`}
             {k.profundidad != null ? (
               <span className="text-[9.5px] font-normal">cm</span>
             ) : null}
@@ -590,7 +590,7 @@ function PerfilSuelo({ info }: { info: InfoSitio }) {
               <Medidor
                 escala={escalaSuelo(k.refs, k.valor)}
                 valor={k.valor}
-                nombre={`Electrodo ${k.i}`}
+                nombre={`Sonda S${k.i}`}
                 oracion={fraseSuelo(k.valor, k.refs)}
               />
             ) : (
@@ -643,7 +643,7 @@ function Suelo({
     const e = info.electrodes.find((x) => x.index === i);
     const refs = referencias(e, unidad);
     return {
-      nombre: e?.depth != null ? `${e.depth} cm` : `E${i}`,
+      nombre: e?.depth != null ? `${e.depth} cm` : `S${i}`,
       color: COLOR_E[i - 1],
       valores: serie.map((p) => p[`e${i}_${unidad}`]),
       referencia: refs

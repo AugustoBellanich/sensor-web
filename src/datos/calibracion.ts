@@ -364,7 +364,7 @@ export const TEXTO_ESTADO_CURVA: Record<EstadoCurva, { titulo: string; detalle: 
   insuficiente: { titulo: "Sin curva", detalle: "Hacen falta al menos dos puntos con mV distintos.", color: "#64748b" },
   estandar: {
     titulo: "Curva estándar",
-    detalle: "Sin muestras de este electrodo: usa la curva estándar normalizada, sin corregir. Una muestra gravimétrica la ajusta.",
+    detalle: "Sin muestras de esta sonda: usa la curva estándar normalizada, sin corregir. Una muestra gravimétrica la ajusta.",
     color: "#b45309",
   },
   provisional: { titulo: "Provisional", detalle: "1 o 2 puntos: la curva pasa por ellos; el error todavía no se puede estimar bien.", color: "#b45309" },
@@ -405,7 +405,7 @@ export const TEXTO_NIVEL: Record<Nivel["level"], { corto: string; largo: string 
 };
 
 export const TEXTO_ESTADO_VALOR: Record<EstadoValor, string> = {
-  estandar: "según la curva estándar (sin muestras del electrodo en ese rango)",
+  estandar: "según la curva estándar (sin muestras de la sonda en ese rango)",
   calibrado: "dentro del rango calibrado",
   provisional: "provisional",
   extrapolado: "extrapolado",
