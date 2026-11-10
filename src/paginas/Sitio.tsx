@@ -276,14 +276,25 @@ export function Sitio() {
                     setDias(d);
                   }}
                 />
-                {r ? (
+                {s.cambiando ? (
+                  <span
+                    role="status"
+                    className="inline-flex items-center gap-1.5 text-xs font-medium text-texto-2"
+                  >
+                    <LoaderCircle size={14} className="animate-spin" aria-hidden />
+                    Actualizando el período…
+                  </span>
+                ) : r ? (
                   <span className="text-xs text-texto-3">
                     Promedios cada {textoIntervalo(r.intervalo)}
                   </span>
                 ) : null}
               </div>
               {r && s.datos ? (
-                <>
+                <div
+                  aria-busy={s.cambiando || undefined}
+                  className={`flex flex-col gap-3.5 transition-opacity ${s.cambiando ? "pointer-events-none opacity-45" : ""}`}
+                >
                   <Periodo
                     dias={s.datos.dias}
                     suelo={conSuelo}
@@ -357,7 +368,7 @@ export function Sitio() {
                       intervaloS={r.intervalo}
                     />
                   </Tarjeta>
-                </>
+                </div>
               ) : (
                 <Tarjeta>
                   <Cargando texto="Leyendo el período…" />
@@ -962,8 +973,8 @@ function Periodo({
     celdas.push({
       que: "tempSuelo",
       titulo: "Temp. del suelo",
-      valor: `${num(rs.reciente)} °C`,
-      nota: `promedio de ${rs.diasReciente} días`,
+      valor: `${num(rs.media)} °C`,
+      nota: `promedio de ${rs.dias} ${rs.dias === 1 ? "día" : "días"}`,
     });
     celdas.push({
       que: "amplitud",
