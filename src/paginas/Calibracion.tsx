@@ -1,14 +1,18 @@
-// Calibración de un sitio (D-41), como en la app: por electrodo, la curva con sus puntos, los niveles
-// PMP, CC y SAT y el suelo. Cada número dice de dónde salió. El dueño y los editores del campo
-// agregan puntos (CargaCalibracion.tsx), cargan el suelo, cambian o estiman los niveles y
-// desactivan puntos. Lo que necesita el equipo conectado (mV en vivo por Bluetooth) sigue en la app.
-import { FlaskConical, Layers, Plus, Sparkles, Spline } from "lucide-react";
+// Calibración de un sitio (D-41), como en la app: por electrodo, la curva con sus puntos, la sonda
+// (profundidad y referencia de banco, D-109), los niveles PMP, CC y SAT y el suelo. Cada número dice
+// de dónde salió. El dueño y los editores del campo agregan puntos (CargaCalibracion.tsx), cargan
+// la profundidad, la referencia y el suelo, cambian o estiman los niveles, y desactivan o borran
+// (los propios, en 24 h) puntos. Cada acción bloquea la página mientras la base la procesa. El
+// electrodo elegido va en la dirección (?e=). Lo que necesita el equipo conectado (mV en vivo por
+// Bluetooth) sigue en la app.
+import { FlaskConical, Layers, Plus, Ruler, Sparkles, Spline, Trash2 } from "lucide-react";
 import { useCallback, useState } from "react";
-import { Link, useParams } from "react-router";
+import { Link, useParams, useSearchParams } from "react-router";
 
 import { ConAyuda } from "@/componentes/Ayuda";
 import { CurvaCalibracion } from "@/componentes/CurvaCalibracion";
 import { Barra, Contenido } from "@/componentes/Marco";
+import { Procesando } from "@/componentes/Procesando";
 import {
   Aviso,
   Boton,
@@ -21,9 +25,11 @@ import {
 } from "@/componentes/ui";
 import {
   activarPunto,
+  borrarPunto,
   estimarNiveles,
   fichaCalibracion,
   guardarNivel,
+  guardarReferencia,
   leerNumero,
   TEXTO_ESTADO_CURVA,
   TEXTO_ESTADO_VALOR,
@@ -39,7 +45,9 @@ import {
   type Punto,
 } from "@/datos/calibracion";
 import { fechaHoraArg } from "@/datos/grafico";
+import { fechaArgHoy } from "@/datos/riego";
 import {
+  guardarProfundidad,
   sueloSitio,
   textoCapa,
   type DatoSonda,
@@ -47,6 +55,7 @@ import {
 } from "@/datos/suelo";
 import { infoSitio } from "@/datos/series";
 import { AYUDA } from "@/datos/textos";
+import { useAccion } from "@/datos/useAccion";
 import { useConsulta } from "@/datos/useConsulta";
 
 const COLOR_E = ["#2563eb", "#16a34a", "#ea580c"];
@@ -54,6 +63,14 @@ const fecha = (t: string) =>
   fechaHoraArg(t).slice(0, 10).split("-").reverse().join("/");
 const coma = (v: number | null | undefined, d = 1) =>
   v == null ? "—" : v.toLocaleString("es-AR", { maximumFractionDigits: d });
+/** Enlace con la forma del botón principal (agregar un punto, D-109: más visible). */
+const ENLACE_PRINCIPAL =
+  "inline-flex h-[34px] items-center gap-1.5 rounded-lg border border-tinta bg-tinta px-3 text-[13px] font-medium text-white no-underline hover:bg-[#1e293b]";
+const ENLACE_SECUNDARIO =
+  "inline-flex h-[34px] items-center gap-1.5 rounded-lg border border-linea bg-white px-3 text-[13px] font-medium text-texto-2 no-underline hover:bg-fondo hover:text-tinta";
+
+type Ejecutar = ReturnType<typeof useAccion>["ejecutar"];
+type Cambio = () => Promise<void> | void;
 
 export function Calibracion() {
   const { id = "" } = useParams();
@@ -75,7 +92,11 @@ export function Calibracion() {
   );
   const ficha = c.datos?.ficha ?? null;
   const info = c.datos?.info ?? null;
-  const [elegido, setElegido] = useState<"1" | "2" | "3">("1");
+  const [q, setQ] = useSearchParams();
+  const eq = q.get("e");
+  const elegido: "1" | "2" | "3" = eq === "2" || eq === "3" ? eq : "1";
+  const setElegido = (v: "1" | "2" | "3") => setQ({ e: v }, { replace: true });
+  const accion = useAccion();
   const e = ficha?.electrodes.find((x) => String(x.index) === elegido) ?? null;
   const sonda =
     c.datos?.suelo?.electrodes.find((x) => String(x.index) === elegido) ?? null;
@@ -139,16 +160,19 @@ export function Calibracion() {
             />
             {e ? (
               <Electrodo
+                key={e.index}
                 e={e}
                 sonda={sonda}
                 sitio={id}
                 puedeEditar={ficha.can_edit}
                 alCambiar={c.actualizar}
+                ejecutar={accion.ejecutar}
               />
             ) : null}
           </>
         ) : null}
       </Contenido>
+      <Procesando texto={accion.procesando} />
     </>
   );
 }
@@ -159,13 +183,16 @@ function Electrodo({
   sitio,
   puedeEditar,
   alCambiar,
+  ejecutar,
 }: {
   e: ElectrodoCal;
   sonda: SueloDeSonda | null;
   sitio: string;
   puedeEditar: boolean;
-  alCambiar: () => void;
+  alCambiar: Cambio;
+  ejecutar: Ejecutar;
 }) {
+  const aPunto = `/sitio/${sitio}/calibracion/punto?e=${e.index}`;
   const curva = e.curva;
   const estado = curva
     ? TEXTO_ESTADO_CURVA[curva.status]
@@ -196,11 +223,19 @@ function Electrodo({
               </span>
             }
           >
-            <p className="mb-3 text-[13px] text-texto-2">
-              {curva?.reason === "pendiente_invertida"
-                ? "Los puntos dan humedad que sube con los mV: revisá si alguno está mal cargado."
-                : estado.detalle}
-            </p>
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+              <p className="text-[13px] text-texto-2">
+                {curva?.reason === "pendiente_invertida"
+                  ? "Los puntos dan humedad que sube con los mV: revisá si alguno está mal cargado."
+                  : estado.detalle}
+              </p>
+              {puedeEditar ? (
+                <Link to={aPunto} className={ENLACE_PRINCIPAL}>
+                  <Plus size={15} strokeWidth={1.9} aria-hidden />
+                  Agregar un punto de calibración
+                </Link>
+              ) : null}
+            </div>
             {curva?.model ? (
               <div className="mb-3 grid grid-cols-2 gap-3 border-y border-separador py-3 sm:grid-cols-4">
                 <Celda titulo="Modelo" valor={TEXTO_MODELO[curva.model]} />
@@ -248,20 +283,10 @@ function Electrodo({
                   : ""}
               </p>
             ) : null}
-            {puedeEditar ? (
-              <div className="mt-3">
-                <Link
-                  to={`/sitio/${sitio}/calibracion/punto?e=${e.index}`}
-                  className="inline-flex h-[34px] items-center gap-1.5 rounded-lg border border-linea bg-white px-3 text-[13px] font-medium text-texto-2 no-underline hover:bg-fondo hover:text-tinta"
-                >
-                  <Plus size={15} strokeWidth={1.9} aria-hidden />
-                  Agregar un punto
-                </Link>
-              </div>
-            ) : null}
           </Tarjeta>
         </div>
         <div className="flex min-w-0 flex-[2_1_330px] flex-col gap-4">
+          <Sonda e={e} sonda={sonda} sitio={sitio} puedeEditar={puedeEditar} alCambiar={alCambiar} ejecutar={ejecutar} />
           <Tarjeta
             titulo={
               <ConAyuda que="PMP, CC y SAT" texto={AYUDA.zonasSuelo}>
@@ -274,6 +299,7 @@ function Electrodo({
               sitio={sitio}
               puedeEditar={puedeEditar}
               alCambiar={alCambiar}
+              ejecutar={ejecutar}
             />
           </Tarjeta>
           <Tarjeta
@@ -374,6 +400,14 @@ function Electrodo({
             Puntos ({activos} {activos === 1 ? "activo" : "activos"})
           </span>
         }
+        derecha={
+          puedeEditar ? (
+            <Link to={aPunto} className={ENLACE_SECUNDARIO}>
+              <Plus size={15} strokeWidth={1.9} aria-hidden />
+              Agregar
+            </Link>
+          ) : null
+        }
       >
         {!e.puntos.length ? (
           <p className="px-[18px] pb-4 text-[13px] text-texto-2">
@@ -430,7 +464,7 @@ function Electrodo({
                     </td>
                     {puedeEditar ? (
                       <td className="py-2 pr-[18px] text-right">
-                        <ActivarPunto p={p} alCambiar={alCambiar} />
+                        <AccionesPunto p={p} alCambiar={alCambiar} ejecutar={ejecutar} />
                       </td>
                     ) : null}
                   </tr>
@@ -476,16 +510,17 @@ function Niveles({
   sitio,
   puedeEditar,
   alCambiar,
+  ejecutar,
 }: {
   e: ElectrodoCal;
   sitio: string;
   puedeEditar: boolean;
-  alCambiar: () => void;
+  alCambiar: Cambio;
+  ejecutar: Ejecutar;
 }) {
   const [editando, setEditando] = useState<Nivel["level"] | null>(null);
   const [estimacion, setEstimacion] = useState<Estimacion | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [guardando, setGuardando] = useState(false);
   return (
     <>
       <p className="mb-1 text-xs text-texto-3">
@@ -544,19 +579,15 @@ function Niveles({
               <EditarNivel
                 inicial={n?.theta_v ?? null}
                 alCancelar={() => setEditando(null)}
-                alGuardar={async (valor, origen) => {
-                  setError(null);
-                  const r = await guardarNivel(
-                    sitio,
-                    e.index,
-                    l,
-                    valor,
-                    origen,
-                  );
-                  if (!r.ok) return setError(r.mensaje);
-                  setEditando(null);
-                  alCambiar();
-                }}
+                alGuardar={(valor, origen) =>
+                  ejecutar("Guardando el nivel…", async () => {
+                    setError(null);
+                    const r = await guardarNivel(sitio, e.index, l, valor, origen);
+                    if (!r.ok) return setError(r.mensaje);
+                    await alCambiar();
+                    setEditando(null);
+                  })
+                }
               />
             ) : null}
           </div>
@@ -586,27 +617,17 @@ function Niveles({
             </span>
             <div className="flex gap-2">
               <Boton
-                cargando={guardando}
-                onClick={async () => {
-                  setGuardando(true);
-                  setError(null);
-                  for (const l of ["pmp", "cc", "sat"] as const) {
-                    const r = await guardarNivel(
-                      sitio,
-                      e.index,
-                      l,
-                      Math.round(estimacion[l] * 10) / 10,
-                      "textura",
-                    );
-                    if (!r.ok) {
-                      setGuardando(false);
-                      return setError(r.mensaje);
+                onClick={() =>
+                  ejecutar("Guardando PMP, CC y SAT…", async () => {
+                    setError(null);
+                    for (const l of ["pmp", "cc", "sat"] as const) {
+                      const r = await guardarNivel(sitio, e.index, l, Math.round(estimacion[l] * 10) / 10, "textura");
+                      if (!r.ok) return setError(r.mensaje);
                     }
-                  }
-                  setGuardando(false);
-                  setEstimacion(null);
-                  alCambiar();
-                }}
+                    await alCambiar();
+                    setEstimacion(null);
+                  })
+                }
               >
                 Guardar valores estimados
               </Boton>
@@ -620,12 +641,14 @@ function Niveles({
             <Boton
               variante="secundario"
               icono={Sparkles}
-              onClick={async () => {
-                setError(null);
-                const r = await estimarNiveles(sitio, e.index);
-                if (r.error) setError(r.error);
-                else setEstimacion(r.estimacion);
-              }}
+              onClick={() =>
+                ejecutar("Estimando por textura…", async () => {
+                  setError(null);
+                  const r = await estimarNiveles(sitio, e.index);
+                  if (r.error) setError(r.error);
+                  else setEstimacion(r.estimacion);
+                })
+              }
             >
               Estimar por textura
             </Boton>
@@ -645,7 +668,7 @@ function EditarNivel({
   alGuardar: (
     valor: number,
     origen: Exclude<OrigenNivel, "legado">,
-  ) => Promise<void>;
+  ) => Promise<unknown>;
   alCancelar: () => void;
 }) {
   const [valor, setValor] = useState(
@@ -653,17 +676,13 @@ function EditarNivel({
   );
   const [origen, setOrigen] =
     useState<Exclude<OrigenNivel, "legado">>("laboratorio");
-  const [guardando, setGuardando] = useState(false);
   const n = leerNumero(valor);
   return (
     <form
       className="mt-2 flex flex-col gap-3 rounded-lg bg-fondo p-3"
-      onSubmit={async (ev) => {
+      onSubmit={(ev) => {
         ev.preventDefault();
-        if (n == null) return;
-        setGuardando(true);
-        await alGuardar(n, origen);
-        setGuardando(false);
+        if (n != null) void alGuardar(n, origen);
       }}
     >
       <Campo
@@ -689,7 +708,6 @@ function EditarNivel({
       <div className="flex gap-2">
         <Boton
           type="submit"
-          cargando={guardando}
           disabled={n == null || n <= 0 || n >= 100}
         >
           Guardar
@@ -702,73 +720,243 @@ function EditarNivel({
   );
 }
 
-/** Desactivar un punto (con motivo) o volver a usarlo; la base reajusta la curva. */
-function ActivarPunto({ p, alCambiar }: { p: Punto; alCambiar: () => void }) {
-  const [abierto, setAbierto] = useState(false);
+/** Desactivar un punto (con motivo), reactivarlo o, si es propio y de las últimas 24 h, borrarlo
+ * (D-109); la base reajusta la curva. Mientras procesa, la página queda bloqueada. */
+function AccionesPunto({ p, alCambiar, ejecutar }: { p: Punto; alCambiar: Cambio; ejecutar: Ejecutar }) {
+  const [modo, setModo] = useState<"ver" | "desactivar" | "borrar">("ver");
   const [motivo, setMotivo] = useState("");
   const [error, setError] = useState<string | null>(null);
-  if (!p.active)
-    return (
-      <button
-        type="button"
-        onClick={async () => {
-          const r = await activarPunto(p.id, true, null);
-          if (!r.ok) setError(r.mensaje);
-          else alCambiar();
-        }}
-        title={error ?? undefined}
-        className="text-xs font-medium text-acento-oscuro hover:underline"
-      >
-        Reactivar
-      </button>
-    );
-  if (!abierto)
-    return (
-      <button
-        type="button"
-        onClick={() => setAbierto(true)}
-        className="text-xs text-texto-3 hover:text-error hover:underline"
-      >
-        Desactivar
-      </button>
-    );
+  const hacer = (texto: string, f: () => Promise<{ ok: boolean; mensaje?: string }>) =>
+    ejecutar(texto, async () => {
+      setError(null);
+      const r = await f();
+      if (!r.ok) return setError(r.mensaje ?? null);
+      await alCambiar();
+      setModo("ver");
+    });
+  const enlace = "text-xs font-medium hover:underline";
   return (
-    <form
-      className="inline-flex items-center gap-1.5"
-      onSubmit={async (ev) => {
-        ev.preventDefault();
-        const r = await activarPunto(p.id, false, motivo);
-        if (!r.ok) return setError(r.mensaje);
-        setAbierto(false);
-        alCambiar();
-      }}
-    >
-      <input
-        autoFocus
-        value={motivo}
-        onChange={(ev) => setMotivo(ev.target.value)}
-        placeholder="Motivo"
-        aria-label="Motivo"
-        title={error ?? undefined}
-        className={`h-7 w-[180px] rounded-md border px-2 text-xs outline-none focus:ring-2 focus:ring-acento-oscuro ${error ? "border-error" : "border-linea"}`}
-      />
-      <button
-        type="submit"
-        disabled={!motivo.trim()}
-        className="text-xs font-medium text-error disabled:opacity-40"
-      >
-        Desactivar
-      </button>
-      <button
-        type="button"
-        onClick={() => setAbierto(false)}
-        className="text-xs text-texto-3"
-      >
-        ✕
-      </button>
-    </form>
+    <span className="inline-flex flex-col items-end gap-1">
+      {modo === "ver" ? (
+        <span className="inline-flex items-center gap-3">
+          {p.active ? (
+            <button type="button" onClick={() => setModo("desactivar")} className={`${enlace} text-texto-2 hover:text-tinta`}>
+              Desactivar
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => void hacer("Reactivando el punto…", () => activarPunto(p.id, true, null))}
+              className={`${enlace} text-acento-oscuro`}
+            >
+              Reactivar
+            </button>
+          )}
+          {p.can_delete ? (
+            <button
+              type="button"
+              onClick={() => setModo("borrar")}
+              className={`${enlace} inline-flex items-center gap-1 text-error`}
+              title="Se puede borrar hasta 24 h después de cargarlo"
+            >
+              <Trash2 size={13} aria-hidden />
+              Borrar
+            </button>
+          ) : null}
+        </span>
+      ) : null}
+      {modo === "desactivar" ? (
+        <form
+          className="inline-flex items-center gap-1.5"
+          onSubmit={(ev) => {
+            ev.preventDefault();
+            void hacer("Desactivando el punto y reajustando la curva…", () => activarPunto(p.id, false, motivo));
+          }}
+        >
+          <input
+            autoFocus
+            value={motivo}
+            onChange={(ev) => setMotivo(ev.target.value)}
+            placeholder="Motivo"
+            aria-label="Motivo"
+            className="h-7 w-[180px] rounded-md border border-linea px-2 text-xs outline-none focus:ring-2 focus:ring-acento-oscuro"
+          />
+          <Boton type="submit" variante="secundario" disabled={!motivo.trim()}>
+            Desactivar
+          </Boton>
+          <Boton type="button" variante="texto" onClick={() => setModo("ver")}>
+            Cancelar
+          </Boton>
+        </form>
+      ) : null}
+      {modo === "borrar" ? (
+        <span className="inline-flex items-center gap-1.5">
+          <span className="text-xs text-texto-2">Se borra definitivamente.</span>
+          <Boton
+            type="button"
+            variante="secundario"
+            icono={Trash2}
+            onClick={() => void hacer("Borrando el punto y reajustando la curva…", () => borrarPunto(p.id))}
+          >
+            Borrar
+          </Boton>
+          <Boton type="button" variante="texto" onClick={() => setModo("ver")}>
+            Cancelar
+          </Boton>
+        </span>
+      ) : null}
+      {error ? <span className="max-w-[320px] whitespace-normal text-xs text-error">{error}</span> : null}
+    </span>
   );
 }
+
+/** Profundidad de la sonda (donde quedó el electrodo al instalar) y su referencia de banco: mV al
+ * aire y en agua, que acotan la curva y avisan si un punto cae afuera (D-109). */
+function Sonda({
+  e,
+  sonda,
+  sitio,
+  puedeEditar,
+  alCambiar,
+  ejecutar,
+}: {
+  e: ElectrodoCal;
+  sonda: SueloDeSonda | null;
+  sitio: string;
+  puedeEditar: boolean;
+  alCambiar: Cambio;
+  ejecutar: Ejecutar;
+}) {
+  const [editando, setEditando] = useState<"profundidad" | "referencia" | null>(null);
+  const [cm, setCm] = useState(e.depth != null ? String(e.depth).replace(".", ",") : "");
+  const [aire, setAire] = useState(e.referencia?.mv_air != null ? String(e.referencia.mv_air) : "");
+  const [agua, setAgua] = useState(e.referencia?.mv_water != null ? String(e.referencia.mv_water) : "");
+  const [notas, setNotas] = useState(e.referencia?.notes ?? "");
+  const [error, setError] = useState<string | null>(null);
+  const profundidad = leerNumero(cm);
+  const mvAire = leerNumero(aire);
+  const mvAgua = leerNumero(agua);
+  const profundidadInvalida = cm.trim() !== "" && (profundidad == null || profundidad < 1 || profundidad > 300);
+  const mvMal = (v: number | null, t: string) => t.trim() !== "" && (v == null || v <= 0 || v > 3300);
+  const referenciaInvalida = mvMal(mvAire, aire) || mvMal(mvAgua, agua) || (mvAire != null && mvAgua != null && mvAgua >= mvAire);
+  const ref = e.referencia;
+  const guardar = (texto: string, f: () => Promise<{ ok: boolean; mensaje?: string }>) =>
+    ejecutar(texto, async () => {
+      setError(null);
+      const r = await f();
+      if (!r.ok) return setError(r.mensaje ?? null);
+      await alCambiar();
+      setEditando(null);
+    });
+  return (
+    <Tarjeta
+      titulo={
+        <span className="inline-flex items-center gap-1.5">
+          <Ruler size={15} strokeWidth={1.9} className="text-texto-3" aria-hidden />
+          Sonda E{e.index}
+        </span>
+      }
+    >
+      <FilaDato etiqueta="Profundidad">
+        {e.depth != null ? `${coma(e.depth, 0)} cm` : "Sin cargar"}
+        {sonda?.capa ? (
+          <span className="block text-[11.5px] font-normal text-texto-3">capa del perfil {textoCapa(sonda.capa)}</span>
+        ) : null}
+      </FilaDato>
+      <FilaDato
+        etiqueta={
+          <ConAyuda que="referencia de banco" texto={AYUDA_REFERENCIA}>
+            Al aire / en agua
+          </ConAyuda>
+        }
+      >
+        {ref ? `${ref.mv_air != null ? coma(ref.mv_air, 0) : "—"} / ${ref.mv_water != null ? coma(ref.mv_water, 0) : "—"} mV` : "Sin cargar"}
+        {ref ? <span className="block text-[11.5px] font-normal text-texto-3">medido el {fecha(ref.measured_at)}</span> : null}
+      </FilaDato>
+      <Aviso mensaje={error} />
+      {puedeEditar && editando === null ? (
+        <div className="mt-3 flex flex-wrap gap-2">
+          <Boton variante="secundario" onClick={() => setEditando("profundidad")}>
+            Cambiar la profundidad
+          </Boton>
+          {e.device_id ? (
+            <Boton variante="secundario" onClick={() => setEditando("referencia")}>
+              {ref ? "Cambiar la referencia" : "Cargar la referencia"}
+            </Boton>
+          ) : null}
+        </div>
+      ) : null}
+      {editando === "profundidad" ? (
+        <form
+          className="mt-3 flex flex-col gap-3 rounded-lg bg-fondo p-3"
+          onSubmit={(ev) => {
+            ev.preventDefault();
+            if (profundidad != null && !profundidadInvalida)
+              void guardar("Guardando la profundidad…", () => guardarProfundidad(sitio, e.index, profundidad, fechaArgHoy()));
+          }}
+        >
+          <Campo
+            etiqueta="Profundidad del electrodo (cm)"
+            inputMode="decimal"
+            value={cm}
+            onChange={(ev) => setCm(ev.target.value)}
+            placeholder="Ej.: 20"
+            ayuda={profundidadInvalida ? "Entre 1 y 300 cm." : "Donde quedó el electrodo al instalar. Con ella la sonda toma los datos de su capa del perfil."}
+          />
+          <div className="flex gap-2">
+            <Boton type="submit" disabled={profundidad == null || profundidadInvalida}>
+              Guardar
+            </Boton>
+            <Boton type="button" variante="texto" onClick={() => setEditando(null)}>
+              Cancelar
+            </Boton>
+          </div>
+        </form>
+      ) : null}
+      {editando === "referencia" && e.device_id ? (
+        <form
+          className="mt-3 flex flex-col gap-3 rounded-lg bg-fondo p-3"
+          onSubmit={(ev) => {
+            ev.preventDefault();
+            if (!referenciaInvalida && (mvAire != null || mvAgua != null))
+              void guardar("Guardando la referencia y reajustando la curva…", () =>
+                guardarReferencia(e.device_id as string, e.index, mvAire, mvAgua, fechaArgHoy(), notas.trim()),
+              );
+          }}
+        >
+          <div className="grid grid-cols-2 gap-3">
+            <Campo etiqueta="Al aire (mV)" inputMode="decimal" value={aire} onChange={(ev) => setAire(ev.target.value)} placeholder="Ej.: 1520" />
+            <Campo etiqueta="En agua (mV)" inputMode="decimal" value={agua} onChange={(ev) => setAgua(ev.target.value)} placeholder="Ej.: 640" />
+          </div>
+          {referenciaInvalida ? <span className="text-xs text-error">Entre 1 y 3300 mV; en agua, menos que al aire.</span> : null}
+          <Campo etiqueta="Notas (opcional)" value={notas} onChange={(ev) => setNotas(ev.target.value)} placeholder="Ej.: banco, agua de red" />
+          <div className="flex flex-wrap gap-2">
+            <Boton type="submit" disabled={referenciaInvalida || (mvAire == null && mvAgua == null)}>
+              Guardar
+            </Boton>
+            {ref ? (
+              <Boton
+                type="button"
+                variante="secundario"
+                onClick={() =>
+                  void guardar("Quitando la referencia…", () => guardarReferencia(e.device_id as string, e.index, null, null, fechaArgHoy(), ""))
+                }
+              >
+                Quitar
+              </Boton>
+            ) : null}
+            <Boton type="button" variante="texto" onClick={() => setEditando(null)}>
+              Cancelar
+            </Boton>
+          </div>
+        </form>
+      ) : null}
+    </Tarjeta>
+  );
+}
+
+const AYUDA_REFERENCIA =
+  "mV del electrodo medidos en banco con la sonda limpia y seca al aire, y sumergida en agua hasta la marca. Acotan la curva del sensor (la asíntota húmeda de la exponencial) y avisan si un punto cae fuera de ese rango.";
 
 /** Suelo que usa la sonda, dato por dato, con su origen (D-106): medido junto a la sonda o de su capa. */
 function SueloEfectivo({ sonda }: { sonda: SueloDeSonda }) {
