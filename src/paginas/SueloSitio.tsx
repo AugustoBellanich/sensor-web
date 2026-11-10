@@ -1,7 +1,8 @@
 // Suelo del sitio (D-106): el perfil observado en la excavación del sensor, por capas, y lo que toma
 // cada sonda. Arriba el esquema del perfil con las sondas a su profundidad; al lado, los datos de
-// cada capa con su método. El dueño y los editores del campo describen el perfil (o lo corrigen),
-// cargan la profundidad de las sondas y, si lo vuelven a describir, el anterior queda en el historial.
+// cada capa con su método. El dueño y los editores del campo describen el perfil (o lo corrigen) y,
+// si lo vuelven a describir, el anterior queda en el historial. La profundidad de las sondas se carga
+// en la calibración (D-109).
 import {
   ExternalLink,
   History,
@@ -24,7 +25,6 @@ import {
   capaVacia,
   GRUPOS,
   guardarDescripcion,
-  guardarProfundidad,
   numeroSuelo,
   renglonConDatos,
   RENGLONES,
@@ -159,7 +159,7 @@ export function SueloSitio() {
                     capas={vigente?.layers ?? []}
                     sondas={suelo.electrodes}
                   />
-                  <Sondas suelo={suelo} alCambiar={c.actualizar} />
+                  <Sondas suelo={suelo} />
                 </Tarjeta>
               </div>
               <div className="flex min-w-0 flex-[3_1_560px] flex-col gap-4">
@@ -339,140 +339,54 @@ function origen(d: { origen: "sonda" | "capa" } | undefined): string {
   return d?.origen === "sonda" ? " (medida junto a la sonda)" : "";
 }
 
-function Sondas({ suelo, alCambiar }: { suelo: Suelo; alCambiar: () => void }) {
-  const [editando, setEditando] = useState(false);
-  const [valores, setValores] = useState<string[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [guardando, setGuardando] = useState(false);
-
-  async function guardar(ev: FormEvent) {
-    ev.preventDefault();
-    setError(null);
-    const nuevos = valores.map((v) =>
-      v.trim() ? Number(v.trim().replace(",", ".")) : null,
-    );
-    if (
-      nuevos.some(
-        (n) => n != null && (!Number.isFinite(n) || n <= 0 || n > 300),
-      )
-    ) {
-      return setError("Cada profundidad tiene que estar entre 1 y 300 cm.");
-    }
-    setGuardando(true);
-    for (const s of suelo.electrodes) {
-      const n = nuevos[s.index - 1];
-      if (n == null || n === s.depth) continue;
-      const r = await guardarProfundidad(
-        suelo.site_id,
-        s.index,
-        n,
-        fechaArgHoy(),
-      );
-      if (!r.ok) {
-        setGuardando(false);
-        return setError(r.mensaje);
-      }
-    }
-    setGuardando(false);
-    setEditando(false);
-    alCambiar();
-  }
-
+// La profundidad de cada sonda se carga en la calibración (donde se habla de dónde quedaron los
+// electrodos, D-109); acá se muestra con su capa.
+function Sondas({ suelo }: { suelo: Suelo }) {
   return (
-    <div className="mt-3 border-t border-separador pt-3">
-      <Aviso mensaje={error} />
-      <form onSubmit={guardar} className="flex flex-col gap-2">
-        {suelo.electrodes.map((s) => (
-          <div key={s.index} className="flex items-start gap-2.5">
-            <span
-              className="mt-0.5 w-7 shrink-0 text-[13px] font-bold"
-              style={{ color: COLOR_E[s.index - 1] }}
-            >
-              S{s.index}
-            </span>
-            <span className="flex min-w-0 flex-1 flex-col text-[13px]">
-              {editando ? (
-                <label className="flex items-center gap-2">
-                  <input
-                    inputMode="decimal"
-                    aria-label={`Profundidad de la sonda ${s.index} (cm)`}
-                    value={valores[s.index - 1] ?? ""}
-                    onChange={(e) =>
-                      setValores((v) =>
-                        v.map((x, i) =>
-                          i === s.index - 1 ? e.target.value : x,
-                        ),
-                      )
-                    }
-                    className="h-8 w-20 rounded-lg border border-linea bg-white px-2 text-[13px] outline-none focus:ring-2 focus:ring-acento-oscuro"
-                  />
-                  cm
-                </label>
-              ) : (
-                <span className="font-medium text-tinta">
-                  {s.depth != null
-                    ? `${numeroSuelo(s.depth, 0)} cm`
-                    : "Sin profundidad"}
-                  {s.capa ? (
-                    <span className="font-normal text-texto-3">
-                      {" "}
-                      · capa {textoCapa(s.capa)}
-                    </span>
-                  ) : null}
-                </span>
-              )}
-              {!editando ? (
-                <span className="text-xs text-texto-3">
-                  {s.bulk_density
-                    ? `Densidad ${numeroSuelo(s.bulk_density.value, 2)} g/cm³${origen(s.bulk_density)}`
-                    : "Sin densidad"}
-                  {s.texture_class
-                    ? ` · ${s.texture_class.value}${origen(s.texture_class)}`
-                    : ""}
+    <div className="mt-3 flex flex-col gap-2 border-t border-separador pt-3">
+      {suelo.electrodes.map((s) => (
+        <div key={s.index} className="flex items-start gap-2.5">
+          <span
+            className="mt-0.5 w-7 shrink-0 text-[13px] font-bold"
+            style={{ color: COLOR_E[s.index - 1] }}
+          >
+            S{s.index}
+          </span>
+          <span className="flex min-w-0 flex-1 flex-col text-[13px]">
+            <span className="font-medium text-tinta">
+              {s.depth != null
+                ? `${numeroSuelo(s.depth, 0)} cm`
+                : "Sin profundidad"}
+              {s.capa ? (
+                <span className="font-normal text-texto-3">
+                  {" "}
+                  · capa {textoCapa(s.capa)}
                 </span>
               ) : null}
             </span>
-          </div>
-        ))}
-        {suelo.can_edit ? (
-          editando ? (
-            <span className="mt-1 flex gap-2">
-              <Boton type="submit" cargando={guardando}>
-                Guardar
-              </Boton>
-              <Boton variante="texto" onClick={() => setEditando(false)}>
-                Cancelar
-              </Boton>
+            <span className="text-xs text-texto-3">
+              {s.bulk_density
+                ? `Densidad ${numeroSuelo(s.bulk_density.value, 2)} g/cm³${origen(s.bulk_density)}`
+                : "Sin densidad"}
+              {s.texture_class
+                ? ` · ${s.texture_class.value}${origen(s.texture_class)}`
+                : ""}
             </span>
-          ) : (
-            <button
-              type="button"
-              onClick={() => {
-                setValores(
-                  suelo.electrodes.map((s) =>
-                    s.depth != null ? String(s.depth).replace(".", ",") : "",
-                  ),
-                );
-                setEditando(true);
-              }}
-              className="mt-1 self-start text-xs font-medium text-acento-oscuro hover:underline"
-            >
-              Cambiar las profundidades
-            </button>
-          )
-        ) : null}
-        <p className="text-xs text-texto-3">
-          Cada sonda toma los datos de la capa que contiene su profundidad (si
-          hay una sola capa, de esa). Lo medido junto a una sonda se carga en la{" "}
-          <Link
-            to={`/sitio/${suelo.site_id}/calibracion`}
-            className="text-acento-oscuro"
-          >
-            calibración
-          </Link>{" "}
-          y tiene prioridad sobre la capa.
-        </p>
-      </form>
+          </span>
+        </div>
+      ))}
+      <p className="text-xs text-texto-3">
+        Cada sonda toma los datos de la capa que contiene su profundidad (si
+        hay una sola capa, de esa). La profundidad de las sondas y lo medido
+        junto a una sonda se cargan en la{" "}
+        <Link
+          to={`/sitio/${suelo.site_id}/calibracion`}
+          className="text-acento-oscuro"
+        >
+          calibración
+        </Link>
+        ; lo medido junto a la sonda tiene prioridad sobre la capa.
+      </p>
     </div>
   );
 }

@@ -1,13 +1,16 @@
 // Copiado de sensor-app/src/datos/calibracion.ts (misma lógica en app y web, D-83). Cambiar en los dos.
-// Calibración por puntos (D-41): funciones de la base de la migración 20261005100000 y textos.
+// Calibración por puntos (D-41, D-109): funciones de la base (migraciones 20261005100000 y
+// 20261110140000) y textos.
 // Las cuentas (ajuste de la curva, estados) las hace la base; acá solo se arma lo que se manda
 // y se ponen palabras a lo que vuelve.
 import type { Resultado } from "./cuenta";
 import { mensajeBase } from "./errores";
+import { nuevoId } from "./ids";
 import { supabase } from "./supabase";
 
 export type EstadoCurva = "insuficiente" | "provisional" | "incierta" | "calibrada";
-export type ModeloCurva = "lineal" | "inversa" | "tramos";
+/** "tramos" solo aparece en curvas guardadas antes de D-109. */
+export type ModeloCurva = "lineal" | "inversa" | "exponencial" | "tramos";
 /**
  * Estado de un valor calculado (D-41, D-104): dentro del rango de mV de los puntos, calibrado o
  * provisional; hasta un margen (20 % del rango), extrapolado; más lejos, extrapolado lejos (se
@@ -86,12 +89,18 @@ export type Punto = {
   created_by_name: string | null;
   created_at: string;
   estimado: number | null;
+  /** Quien lo cargó lo puede borrar en las 24 h siguientes (D-109). */
+  can_delete?: boolean;
 };
+
+/** mV de la sonda al aire y sumergida en agua, medidos en banco (D-109). */
+export type Referencia = { mv_air: number | null; mv_water: number | null; measured_at: string; notes: string | null };
 
 export type ElectrodoCal = {
   index: 1 | 2 | 3;
   depth: number | null;
   device_id: string | null;
+  referencia?: Referencia | null;
   suelo: Suelo | null;
   densidad: number | null;
   historial_suelo: Suelo[];
@@ -117,8 +126,17 @@ export type VistaPrevia = {
   soil_temp: number | null;
   bulk_density: number | null;
   theta_v: number;
+  avisos?: AvisoPunto[];
   antes: Curva | null;
   despues: Curva;
+};
+
+export type AvisoPunto = "mv_sobre_aire" | "mv_bajo_agua" | "punto_repetido";
+
+export const TEXTO_AVISO_PUNTO: Record<AvisoPunto, string> = {
+  mv_sobre_aire: "El mV es mayor que el de la sonda al aire: revisá la lectura.",
+  mv_bajo_agua: "El mV es menor que el de la sonda en agua: revisá la lectura.",
+  punto_repetido: "Ya hay un punto igual (misma muestra, mV y humedad): no se va a duplicar.",
 };
 
 /** De dónde sale el mV de un punto (D-47). */
@@ -168,8 +186,25 @@ export async function vistaPrevia(p: DatosPunto): Promise<{ vista: VistaPrevia |
   return { vista: data as VistaPrevia, error: null };
 }
 
+/** Clave de lo que define un punto: si cambia, la vista previa (y el identificador del pedido) son otros. */
+export function clavePunto(p: DatosPunto): string {
+  return JSON.stringify([p.sitio, p.electrodo, p.momento, p.humedad, p.tipo, p.mv?.valor ?? null, p.mv?.origen ?? null]);
+}
+
+/** Identificador del pedido para una clave de punto: el mismo mientras no cambien los datos. */
+export function idDePedido(guardado: { clave: string; id: string } | null, clave: string): { clave: string; id: string } {
+  return guardado && guardado.clave === clave ? guardado : { clave, id: nuevoId() };
+}
+
 export async function agregarPunto(
-  p: DatosPunto & { metodo: "gravimetrico" | "otro_sensor" | "otro"; detalle: string; submuestras: number | null; notas: string },
+  p: DatosPunto & {
+    metodo: "gravimetrico" | "otro_sensor" | "otro";
+    detalle: string;
+    submuestras: number | null;
+    notas: string;
+    /** Identificador del pedido: si llega dos veces, la base devuelve el punto ya guardado. */
+    pedido: string;
+  },
 ): Promise<Resultado> {
   const { error } = await supabase.rpc("add_calibration_point", {
     p_site_id: p.sitio,
@@ -182,6 +217,33 @@ export async function agregarPunto(
     p_subsamples: p.submuestras,
     p_notes: p.notas || null,
     ...parametrosMv(p.mv),
+    p_request_id: p.pedido,
+  });
+  return error ? { ok: false, mensaje: mensajeBase(error.message) } : { ok: true };
+}
+
+/** Borra un punto propio cargado en las últimas 24 h (D-109). */
+export async function borrarPunto(id: string): Promise<Resultado> {
+  const { error } = await supabase.rpc("delete_calibration_point", { p_point_id: id });
+  return error ? { ok: false, mensaje: mensajeBase(error.message) } : { ok: true };
+}
+
+/** Guarda el mV de la sonda al aire y en agua (D-109). Los dos vacíos quitan la referencia. */
+export async function guardarReferencia(
+  equipo: string,
+  electrodo: number,
+  aire: number | null,
+  agua: number | null,
+  fecha: string,
+  notas: string,
+): Promise<Resultado> {
+  const { error } = await supabase.rpc("set_probe_reference", {
+    p_device_id: equipo,
+    p_electrode: electrodo,
+    p_mv_air: aire,
+    p_mv_water: agua,
+    p_measured_at: fecha,
+    p_notes: notas || null,
   });
   return error ? { ok: false, mensaje: mensajeBase(error.message) } : { ok: true };
 }
@@ -277,14 +339,15 @@ export async function estimarNiveles(sitio: string, electrodo: number): Promise<
 export const TEXTO_ESTADO_CURVA: Record<EstadoCurva, { titulo: string; detalle: string; color: string }> = {
   insuficiente: { titulo: "Sin curva", detalle: "Hacen falta al menos dos puntos con mV distintos.", color: "#64748b" },
   provisional: { titulo: "Provisional", detalle: "Dos puntos: la recta pasa por ellos, todavía sin error estimado.", color: "#b45309" },
-  incierta: { titulo: "Calibración incierta", detalle: "3 o 4 puntos: el error es una primera estimación.", color: "#b45309" },
-  calibrada: { titulo: "Calibrada", detalle: "5 o más puntos: el modelo se eligió por su error de validación.", color: "#059669" },
+  incierta: { titulo: "Calibración incierta", detalle: "3 o 4 puntos distintos: el error es una primera estimación.", color: "#b45309" },
+  calibrada: { titulo: "Calibrada", detalle: "5 o más puntos distintos: el modelo se eligió por su error de validación.", color: "#059669" },
 };
 
 export const TEXTO_MODELO: Record<ModeloCurva, string> = {
   lineal: "Recta",
   inversa: "Inversa (θ = P/mV − Q)",
-  tramos: "Tramos (monótona)",
+  exponencial: "Exponencial (θ = −c·ln((mV − a)/b))",
+  tramos: "Tramos (curva anterior)",
 };
 
 export const TEXTO_METODO: Record<Punto["method"], string> = {

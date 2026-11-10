@@ -1,7 +1,17 @@
 // Copiado de sensor-app/src/__tests__/calibracion.test.ts.
 import { describe, expect, it, vi } from "vitest";
 
-import { estadoDeMarcas, fechaHoraArg, leerHora, leerNumero, momentoArg, textoAjusteDensidad } from "@/datos/calibracion";
+import {
+  clavePunto,
+  estadoDeMarcas,
+  fechaHoraArg,
+  idDePedido,
+  leerHora,
+  leerNumero,
+  momentoArg,
+  textoAjusteDensidad,
+  type DatosPunto,
+} from "@/datos/calibracion";
 
 // Solo se prueban las funciones puras: el cliente de la base no hace falta (vi.mock se eleva).
 vi.mock("@/datos/supabase", () => ({ supabase: {}, URL_BASE: "https://x.supabase.co" }));
@@ -78,5 +88,22 @@ describe("textoAjusteDensidad (D-105)", () => {
   });
   it("avisa si el factor quedó acotado", () => {
     expect(textoAjusteDensidad({ ...base, densidad: 2, densidad_normal: 1.43, df: 1.3, cc_normal: 27.8 })).toContain("acotado");
+  });
+});
+
+describe("pedido de un punto (D-109)", () => {
+  const base: DatosPunto = { sitio: "s", electrodo: 1, momento: "2026-11-10T10:00:00-03:00", humedad: 15, tipo: "hv", mv: { valor: 986, origen: "manual" } };
+  it("la clave cambia con lo que define el punto, no con el método o las notas", () => {
+    expect(clavePunto(base)).toBe(clavePunto({ ...base }));
+    expect(clavePunto(base)).not.toBe(clavePunto({ ...base, humedad: 16 }));
+    expect(clavePunto(base)).not.toBe(clavePunto({ ...base, mv: { valor: 987, origen: "manual" } }));
+    expect(clavePunto(base)).not.toBe(clavePunto({ ...base, mv: undefined }));
+  });
+  it("el identificador se mantiene mientras la clave no cambie", () => {
+    const a = idDePedido(null, "x");
+    expect(idDePedido(a, "x")).toBe(a);
+    const b = idDePedido(a, "y");
+    expect(b.id).not.toBe(a.id);
+    expect(b.id).toMatch(/^[0-9a-f-]{36}$/);
   });
 });
