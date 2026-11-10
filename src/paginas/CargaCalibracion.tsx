@@ -1,13 +1,16 @@
 // Cargar la calibración de un electrodo desde la web (D-41, D-47), como en la app pero sin
 // Bluetooth: un punto (el mV sale de las lecturas del equipo a esa hora o se escribe a mano; la
-// humedad medida en % grav o % vol) con vista previa de cómo queda la curva antes de guardar, y las
-// propiedades del suelo (densidad, textura, materia orgánica), que quedan en el historial.
-import { Check, Search } from "lucide-react";
-import { useCallback, useState, type FormEvent, type ReactNode } from "react";
+// humedad medida en % grav o % vol) con vista previa de cómo queda la curva, y las propiedades del
+// suelo (densidad, textura, materia orgánica), que quedan en el historial. La vista previa se calcula
+// sola cuando están los datos y se rehace con cada cambio; "Guardar" se habilita con la vista previa
+// al día, y mientras guarda la página queda bloqueada (D-109). Al terminar se vuelve al mismo electrodo.
+import { Check, LoaderCircle } from "lucide-react";
+import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router";
 
 import { ConAyuda } from "@/componentes/Ayuda";
 import { Barra, Contenido } from "@/componentes/Marco";
+import { Procesando } from "@/componentes/Procesando";
 import {
   Aviso,
   Boton,
@@ -19,11 +22,14 @@ import {
 } from "@/componentes/ui";
 import {
   agregarPunto,
+  clavePunto,
   fichaCalibracion,
   guardarSuelo,
+  idDePedido,
   leerHora,
   leerNumero,
   momentoArg,
+  TEXTO_AVISO_PUNTO,
   TEXTO_ESTADO_CURVA,
   TEXTO_MODELO,
   TEXTURAS,
@@ -35,6 +41,7 @@ import {
 } from "@/datos/calibracion";
 import { fechaArgHoy, horaArgAhora } from "@/datos/riego";
 import { AYUDA } from "@/datos/textos";
+import { useAccion } from "@/datos/useAccion";
 import { useConsulta } from "@/datos/useConsulta";
 
 const coma = (v: number | null | undefined, d = 1) =>
@@ -105,9 +112,11 @@ export function PuntoCalibracion() {
   const [detalle, setDetalle] = useState("");
   const [submuestras, setSubmuestras] = useState("");
   const [notas, setNotas] = useState("");
-  const [vista, setVista] = useState<VistaPrevia | null>(null);
+  // Última vista previa pedida a la base: vale mientras su clave sea la de los datos a la vista.
+  const [resultado, setResultado] = useState<{ clave: string; v: VistaPrevia | null; error: string | null } | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [trabajando, setTrabajando] = useState(false);
+  const pedido = useRef<{ clave: string; id: string } | null>(null);
+  const accion = useAccion();
 
   const h = leerHora(hora);
   const valor = leerNumero(humedad);
@@ -131,38 +140,45 @@ export function PuntoCalibracion() {
           mv,
         }
       : null;
-  const cambiar =
-    <T,>(set: (v: T) => void) =>
-    (v: T) => {
-      set(v);
-      setVista(null);
+  // Vista previa automática: medio segundo después del último cambio, si están todos los datos.
+  const clave = datos ? clavePunto(datos) : null;
+  useEffect(() => {
+    const d = datos;
+    if (!clave || !d) return;
+    let vigente = true;
+    const t = setTimeout(async () => {
+      const r = await vistaPrevia(d);
+      if (vigente) setResultado({ clave, v: r.vista, error: r.error });
+    }, 500);
+    return () => {
+      vigente = false;
+      clearTimeout(t);
     };
+    // La clave resume todo lo que cambia la vista previa: datos se arma de nuevo en cada render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clave]);
+  const alDia = resultado && resultado.clave === clave ? resultado : null;
+  const vista = alDia?.v ?? null;
+  const calculando = clave != null && !alDia;
 
-  async function revisar(ev: FormEvent) {
+  function guardar(ev: FormEvent) {
     ev.preventDefault();
-    if (!datos) return;
-    setTrabajando(true);
-    setError(null);
-    const r = await vistaPrevia(datos);
-    setTrabajando(false);
-    if (r.error) setError(r.error);
-    else setVista(r.vista);
-  }
-  async function guardar() {
-    if (!datos) return;
-    setTrabajando(true);
-    setError(null);
-    const sub = leerNumero(submuestras);
-    const r = await agregarPunto({
-      ...datos,
-      metodo,
-      detalle: detalle.trim(),
-      submuestras: sub != null && sub > 0 ? Math.round(sub) : null,
-      notas: notas.trim(),
+    void accion.ejecutar("Guardando el punto y reajustando la curva…", async () => {
+      if (!datos || !clave || !vista) return;
+      pedido.current = idDePedido(pedido.current, clave);
+      setError(null);
+      const sub = leerNumero(submuestras);
+      const r = await agregarPunto({
+        ...datos,
+        metodo,
+        detalle: detalle.trim(),
+        submuestras: sub != null && sub > 0 ? Math.round(sub) : null,
+        notas: notas.trim(),
+        pedido: pedido.current.id,
+      });
+      if (!r.ok) return setError(r.mensaje);
+      navegar(`/sitio/${id}/calibracion?e=${e}`);
     });
-    setTrabajando(false);
-    if (!r.ok) return setError(r.mensaje);
-    navegar(`/sitio/${id}/calibracion`);
   }
 
   return (
@@ -182,7 +198,7 @@ export function PuntoCalibracion() {
         />
       ) : null}
       {ficha?.can_edit ? (
-        <form onSubmit={revisar} className="flex flex-wrap items-start gap-4">
+        <form onSubmit={guardar} className="flex flex-wrap items-start gap-4">
           <div className="flex min-w-0 flex-[3_1_480px] flex-col gap-4">
             <Tarjeta
               titulo={
@@ -207,7 +223,7 @@ export function PuntoCalibracion() {
                     ] as const
                   }
                   valor={origen}
-                  alCambiar={cambiar(setOrigen)}
+                  alCambiar={setOrigen}
                 />
               }
             >
@@ -217,20 +233,20 @@ export function PuntoCalibracion() {
                   type="date"
                   value={fecha}
                   max={fechaArgHoy()}
-                  onChange={(ev) => cambiar(setFecha)(ev.target.value)}
+                  onChange={(ev) => setFecha(ev.target.value)}
                 />
                 <Campo
                   etiqueta="Hora (Argentina)"
                   type="time"
                   value={hora}
-                  onChange={(ev) => cambiar(setHora)(ev.target.value)}
+                  onChange={(ev) => setHora(ev.target.value)}
                 />
                 {origen === "manual" ? (
                   <Campo
                     etiqueta="mV del electrodo"
                     inputMode="decimal"
                     value={mvManual}
-                    onChange={(ev) => cambiar(setMvManual)(ev.target.value)}
+                    onChange={(ev) => setMvManual(ev.target.value)}
                     placeholder="Ej.: 1960"
                     ayuda={
                       mvInvalido
@@ -253,7 +269,7 @@ export function PuntoCalibracion() {
                     ] as const
                   }
                   valor={tipo}
-                  alCambiar={cambiar(setTipo)}
+                  alCambiar={setTipo}
                 />
               }
             >
@@ -266,7 +282,7 @@ export function PuntoCalibracion() {
                   }
                   inputMode="decimal"
                   value={humedad}
-                  onChange={(ev) => cambiar(setHumedad)(ev.target.value)}
+                  onChange={(ev) => setHumedad(ev.target.value)}
                   placeholder="Ej.: 18,4"
                   ayuda={
                     valorInvalido
@@ -337,46 +353,45 @@ export function PuntoCalibracion() {
               <Previa v={vista} tipo={tipo} />
             ) : (
               <Tarjeta titulo="Vista previa">
-                <p className="text-[13px] text-texto-2">
-                  Con «Revisar», la base busca el mV y muestra cómo queda la
-                  curva antes de guardar.
-                </p>
+                {calculando ? (
+                  <p className="flex items-center gap-2 text-[13px] text-texto-2">
+                    <LoaderCircle size={15} className="animate-spin text-acento-oscuro" aria-hidden />
+                    Calculando cómo queda la curva…
+                  </p>
+                ) : (
+                  <p className="text-[13px] text-texto-2">
+                    {datos
+                      ? "Sin vista previa: revisá el aviso."
+                      : "Con los datos completos, acá se ve el mV del punto y cómo queda la curva."}
+                  </p>
+                )}
               </Tarjeta>
             )}
-            <Aviso mensaje={error} />
-            <div className="flex flex-wrap gap-2">
-              {vista ? (
-                <>
-                  <Boton
-                    type="button"
-                    icono={Check}
-                    cargando={trabajando}
-                    onClick={guardar}
-                  >
-                    Guardar el punto
-                  </Boton>
-                  <Boton
-                    type="button"
-                    variante="secundario"
-                    onClick={() => setVista(null)}
-                  >
-                    Corregir
-                  </Boton>
-                </>
-              ) : (
-                <Boton
-                  type="submit"
-                  icono={Search}
-                  cargando={trabajando}
-                  disabled={!datos}
-                >
-                  Revisar
-                </Boton>
-              )}
+            <Aviso mensaje={error ?? alDia?.error} />
+            {vista?.avisos?.map((a) => (
+              <Aviso key={a} tipo="aviso" mensaje={TEXTO_AVISO_PUNTO[a]} />
+            ))}
+            <div className="flex flex-col gap-1.5">
+              <Boton
+                type="submit"
+                icono={Check}
+                disabled={!vista || accion.ocupado}
+                className="self-start"
+              >
+                Guardar el punto
+              </Boton>
+              {!vista ? (
+                <span className="text-xs text-texto-3">
+                  {datos
+                    ? "Se habilita cuando termina la vista previa."
+                    : "Se habilita cuando están la fecha, la hora, la humedad y el mV."}
+                </span>
+              ) : null}
             </div>
           </div>
         </form>
       ) : null}
+      <Procesando texto={accion.procesando} />
     </Marco>
   );
 }
@@ -541,7 +556,7 @@ export function SueloElectrodo() {
     });
     setGuardando(false);
     if (!r.ok) return setError(r.mensaje);
-    navegar(`/sitio/${id}/calibracion`);
+    navegar(`/sitio/${id}/calibracion?e=${e}`);
   }
 
   return (
