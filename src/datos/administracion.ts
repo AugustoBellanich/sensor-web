@@ -65,11 +65,13 @@ export async function altaEquipo(
 ): Promise<{ ok: true; id: string; codigo: string | null } | { ok: false; mensaje: string }> {
   const limpio = normalizarId(id);
   if (!idValido(limpio)) return { ok: false, mensaje: "El id tiene que ser como B01-A1B2C3." };
+  // El dueño va solo si se eligió: sin él, la llamada es la misma que antes de la migración
+  // 20261113120000 (sigue andando en una base que todavía no la tiene).
   const { data, error } = await supabase.rpc("provision_device_new_code", {
     p_device_id: limpio,
     p_type: modeloDeId(limpio),
     p_alias: alias.trim() || null,
-    p_owner_email: dueno.trim() || null,
+    ...(dueno.trim() ? { p_owner_email: dueno.trim() } : {}),
   });
   if (error) return { ok: false, mensaje: mensajeBase(error.message) };
   return { ok: true, id: limpio, codigo: (data as string | null) ?? null };
