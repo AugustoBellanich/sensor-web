@@ -60,17 +60,6 @@ export function etiquetaDato(d: DatoAhora | undefined, variable: Variable, capa:
   return variable === "temp_aire" || variable === "temp_suelo" ? `${num(v)}°` : `${Math.round(v)} %`;
 }
 
-/** Nombre de cada capa del suelo: la profundidad más común entre los sitios, o arriba/medio/abajo. */
-export function nombresCapas(datos: Iterable<DatoAhora>): Record<Capa, string> {
-  const nombres: Record<Capa, string> = { "1": "Arriba", "2": "Medio", "3": "Abajo" };
-  for (const c of ["1", "2", "3"] as Capa[]) {
-    const cuenta = new Map<number, number>();
-    for (const d of datos) {
-      const p = d[`e${c}_depth`];
-      if (p != null) cuenta.set(p, (cuenta.get(p) ?? 0) + 1);
-    }
-    const masComun = [...cuenta.entries()].sort((a, b) => b[1] - a[1])[0];
-    if (masComun) nombres[c] = `${Math.round(masComun[0])} cm`;
-  }
-  return nombres;
-}
+/** Nombre de cada capa del suelo en el selector: genérico, porque cada sitio tiene sus propias
+ * profundidades (se ven en la ficha del sitio). */
+export const NOMBRES_CAPA: Record<Capa, string> = { "1": "Superior", "2": "Medio", "3": "Inferior" };

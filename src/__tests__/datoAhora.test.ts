@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 vi.mock("@/datos/supabase", () => ({ supabase: {} }));
 
-import { etiquetaDato, nombresCapas, type DatoAhora } from "@/datos/datoAhora";
+import { etiquetaDato, NOMBRES_CAPA, type DatoAhora } from "@/datos/datoAhora";
 
 const AHORA = Date.parse("2026-11-02T18:00:00Z");
 const base: DatoAhora = {
@@ -41,10 +41,8 @@ describe("etiquetaDato", () => {
   });
 });
 
-describe("nombresCapas", () => {
-  it("usa la profundidad más común o arriba, medio y abajo", () => {
-    const otro = { ...base, e1_depth: 15 };
-    expect(nombresCapas([base, base, otro])).toEqual({ "1": "20 cm", "2": "40 cm", "3": "Abajo" });
-    expect(nombresCapas([])).toEqual({ "1": "Arriba", "2": "Medio", "3": "Abajo" });
+describe("NOMBRES_CAPA", () => {
+  it("son genéricos, sin profundidades", () => {
+    expect(NOMBRES_CAPA).toEqual({ "1": "Superior", "2": "Medio", "3": "Inferior" });
   });
 });
