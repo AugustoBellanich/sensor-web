@@ -5,6 +5,7 @@
 import type { Archivados } from "./archivo";
 import type { Resultado } from "./cuenta";
 import { mensajeBase } from "./errores";
+import { resultadoCompartir, type ResultadoCompartir } from "./personas";
 import { supabase } from "./supabase";
 
 export type RolCampo = "owner" | "editor" | "viewer";
@@ -366,7 +367,7 @@ export async function compartirCampo(
   campo: string,
   correo: string,
   rol: "editor" | "viewer",
-): Promise<Resultado> {
+): Promise<ResultadoCompartir> {
   if (!correo.trim())
     return { ok: false, mensaje: "Escribí el correo de la persona." };
   const { data, error } = await supabase.rpc("share_establishment", {
@@ -374,9 +375,7 @@ export async function compartirCampo(
     p_email: correo.trim().toLowerCase(),
     p_role: rol,
   });
-  if (error) return { ok: false, mensaje: mensajeBase(error.message) };
-  const r = data as { ok: boolean; error?: string };
-  return r.ok ? { ok: true } : { ok: false, mensaje: mensajeBase(r.error) };
+  return resultadoCompartir(error, data);
 }
 
 export async function quitarDelCampo(

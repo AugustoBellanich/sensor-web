@@ -4,6 +4,7 @@
 import type { Resultado } from "./cuenta";
 import { mensajeBase } from "./errores";
 import { normalizarId } from "./estado";
+import { resultadoCompartir, type ResultadoCompartir } from "./personas";
 import { supabase } from "./supabase";
 
 export type Rol = "owner" | "editor" | "viewer";
@@ -67,12 +68,10 @@ export async function miembros(id: string): Promise<{ miembros: Miembro[]; error
   return { miembros: (data ?? []) as Miembro[], error: null };
 }
 
-export async function compartir(id: string, correo: string, rol: "editor" | "viewer"): Promise<Resultado> {
+export async function compartir(id: string, correo: string, rol: "editor" | "viewer"): Promise<ResultadoCompartir> {
   if (!correo.trim()) return { ok: false, mensaje: "Escribí el correo de la persona." };
-  const { data, error } = await supabase.rpc("share_device", { p_device_id: id, p_email: correo, p_role: rol });
-  if (error) return { ok: false, mensaje: mensajeBase(error.message) };
-  const r = data as { ok: boolean; error?: string };
-  return r.ok ? { ok: true } : { ok: false, mensaje: mensajeBase(r.error) };
+  const { data, error } = await supabase.rpc("share_device", { p_device_id: id, p_email: correo.trim().toLowerCase(), p_role: rol });
+  return resultadoCompartir(error, data);
 }
 
 /** Nombre del equipo; vacío lo borra (se muestra el sitio o qué mide). */

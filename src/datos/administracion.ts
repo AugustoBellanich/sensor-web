@@ -56,20 +56,25 @@ function mensajeDeAdmin(texto: string): string {
 export const MODELOS = ["B01", "C01", "N01", "C02", "A01"] as const;
 export type ModeloAlta = (typeof MODELOS)[number];
 
-/** Da de alta un equipo y devuelve su código de vinculación (se muestra una sola vez). */
+/** Da de alta un equipo. Sin dueño devuelve su código de vinculación (se muestra una sola vez); con
+ * dueño, el equipo queda a nombre de esa persona y no hay código. */
 export async function altaEquipo(
   id: string,
   alias: string,
-): Promise<{ ok: true; id: string; codigo: string } | { ok: false; mensaje: string }> {
+  dueno = "",
+): Promise<{ ok: true; id: string; codigo: string | null } | { ok: false; mensaje: string }> {
   const limpio = normalizarId(id);
   if (!idValido(limpio)) return { ok: false, mensaje: "El id tiene que ser como B01-A1B2C3." };
+  // El dueño va solo si se eligió: sin él, la llamada es la misma que antes de la migración
+  // 20261113120000 (sigue andando en una base que todavía no la tiene).
   const { data, error } = await supabase.rpc("provision_device_new_code", {
     p_device_id: limpio,
     p_type: modeloDeId(limpio),
     p_alias: alias.trim() || null,
+    ...(dueno.trim() ? { p_owner_email: dueno.trim() } : {}),
   });
   if (error) return { ok: false, mensaje: mensajeBase(error.message) };
-  return { ok: true, id: limpio, codigo: data as string };
+  return { ok: true, id: limpio, codigo: (data as string | null) ?? null };
 }
 
 export async function nuevoCodigo(id: string): Promise<{ ok: true; codigo: string } | { ok: false; mensaje: string }> {

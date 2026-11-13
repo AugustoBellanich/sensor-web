@@ -9,11 +9,11 @@ import {
   Gauge,
   MapPin,
   RadioTower,
-  UserRound,
 } from "lucide-react";
 import { useCallback, useState, type FormEvent } from "react";
 import { Link, useParams } from "react-router";
 
+import { Accesos } from "@/componentes/Accesos";
 import { ConAyuda } from "@/componentes/Ayuda";
 import { FraseEstado } from "@/componentes/EstadoEquipo";
 import { FamiliaYCodigo, IconoFam } from "@/componentes/familia";
@@ -258,7 +258,7 @@ export function Equipo() {
                   />
                 ) : null}
                 {puedeCompartir ? (
-                  <Accesos id={e.id} miId={sesion?.user.id ?? ""} />
+                  <AccesosEquipo id={e.id} miId={sesion?.user.id ?? ""} />
                 ) : null}
                 {e.my_role && !puedeCompartir ? (
                   <Tarjeta titulo="Tu acceso">
@@ -331,98 +331,24 @@ function Nombre({
   );
 }
 
-function Accesos({ id, miId }: { id: string; miId: string }) {
+function AccesosEquipo({ id, miId }: { id: string; miId: string }) {
   const c = useConsulta(useCallback(() => miembros(id), [id]));
-  const [correo, setCorreo] = useState("");
-  const [rol, setRol] = useState<"viewer" | "editor">("viewer");
-  const [enviando, setEnviando] = useState(false);
-  const [mensaje, setMensaje] = useState<{
-    tipo: "error" | "bien";
-    texto: string;
-  } | null>(null);
-  async function enviar(ev: FormEvent) {
-    ev.preventDefault();
-    setEnviando(true);
-    setMensaje(null);
-    const r = await compartir(id, correo.trim().toLowerCase(), rol);
-    setEnviando(false);
-    if (!r.ok) return setMensaje({ tipo: "error", texto: r.mensaje });
-    setCorreo("");
-    setMensaje({ tipo: "bien", texto: "Acceso al equipo otorgado." });
-    void c.actualizar();
-  }
   return (
-    <Tarjeta titulo="Quién tiene acceso">
+    <>
       {c.cargando ? <Cargando /> : null}
-      {(c.datos?.miembros ?? []).map((m) => (
-        <div
-          key={m.user_id}
-          className="flex items-center gap-2.5 border-t border-separador py-2 text-[13px] first:border-t-0"
-        >
-          <UserRound
-            size={15}
-            strokeWidth={1.9}
-            className="text-texto-3"
-            aria-hidden
-          />
-          <span className="flex min-w-0 flex-1 flex-col">
-            <span className="truncate text-tinta">
-              {m.full_name ?? m.email}
-            </span>
-            {m.full_name ? (
-              <span className="truncate text-xs text-texto-3">{m.email}</span>
-            ) : null}
-          </span>
-          <span className="text-texto-3">{ROL[m.role]}</span>
-          {m.role !== "owner" && m.user_id !== miId ? (
-            <button
-              type="button"
-              onClick={async () => {
-                const r = await quitarAcceso(id, m.user_id);
-                if (!r.ok) setMensaje({ tipo: "error", texto: r.mensaje });
-                void c.actualizar();
-              }}
-              className="text-xs text-error hover:underline"
-            >
-              Quitar
-            </button>
-          ) : null}
-        </div>
-      ))}
-      <form onSubmit={enviar} className="mt-3 flex flex-wrap gap-2">
-        <input
-          type="email"
-          value={correo}
-          onChange={(ev) => setCorreo(ev.target.value)}
-          aria-label="Correo de la persona"
-          placeholder="Correo de la persona"
-          className="h-[34px] min-w-0 flex-[1_1_180px] rounded-lg border border-linea px-2.5 text-[13px] text-tinta outline-none focus:border-acento-oscuro"
-        />
-        <select
-          value={rol}
-          onChange={(ev) => setRol(ev.target.value as "viewer" | "editor")}
-          aria-label="Permiso"
-          className="h-[34px] rounded-lg border border-linea bg-white px-2 text-[13px] text-tinta"
-        >
-          <option value="viewer">Solo ver</option>
-          <option value="editor">Editor</option>
-        </select>
-        <Boton type="submit" variante="secundario" cargando={enviando}>
-          Compartir
-        </Boton>
-      </form>
-      <p className="mt-2 text-xs text-texto-3">
-        Editor: ve los datos y puede ubicar, calibrar y configurar el equipo.
-        Solo ver: ve el equipo y sus datos.
-      </p>
-      {mensaje ? (
-        <p
-          className={`mt-1 text-xs ${mensaje.tipo === "error" ? "text-error" : "text-[#047857]"}`}
-        >
-          {mensaje.texto}
-        </p>
-      ) : null}
-    </Tarjeta>
+      <Accesos
+        titulo="Quién tiene acceso"
+        tipo="equipo"
+        id={id}
+        miId={miId}
+        miembros={c.datos?.miembros ?? []}
+        gestiona
+        compartir={(correo, rol) => compartir(id, correo, rol)}
+        quitar={(usuario) => quitarAcceso(id, usuario)}
+        alCambiar={() => void c.actualizar()}
+        explicacion="Editor: ve los datos y puede ubicar, calibrar y configurar el equipo. Solo ver: ve el equipo y sus datos."
+      />
+    </>
   );
 }
 

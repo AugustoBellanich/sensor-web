@@ -1,9 +1,10 @@
 // Pasar un campo o un equipo a otra persona (admin y staff), como en la app. El dueño anterior queda
 // como editor. Hace falta, por ejemplo, para dar de baja la cuenta de quien era el único dueño.
-import { Mail, UserRoundCog } from "lucide-react";
+import { UserRoundCog } from "lucide-react";
 import { useState, type FormEvent } from "react";
 
-import { Aviso, Boton, Campo, Tarjeta } from "@/componentes/ui";
+import { SelectorPersona } from "@/componentes/SelectorPersona";
+import { Aviso, Boton, Tarjeta } from "@/componentes/ui";
 import { pasarA } from "@/datos/administracion";
 
 export function PasarA({
@@ -66,17 +67,15 @@ export function PasarA({
         }}
         className="flex flex-col gap-3"
       >
-        <Campo
-          etiqueta="Correo del nuevo dueño"
-          icono={Mail}
-          type="email"
-          value={correo}
-          onChange={(e) => {
-            setCorreo(e.target.value);
+        <SelectorPersona
+          tamano="campo"
+          etiqueta="Nuevo dueño"
+          valor={correo}
+          alCambiar={(c) => {
+            setCorreo(c);
             setConfirmar(false);
             setAviso(null);
           }}
-          placeholder="persona@ejemplo.com"
         />
         {aviso ? <Aviso tipo={aviso.tipo} mensaje={aviso.mensaje} /> : null}
         {confirmar ? (

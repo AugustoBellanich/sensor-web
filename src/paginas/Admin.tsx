@@ -1,5 +1,5 @@
 // Administración (admin y staff), lo mismo que la app: usuarios, salud de las redes, todos los
-// equipos, alta de equipos, versiones de firmware (solo web, D-92) y pedidos de baja (solo admin). La base vuelve a controlar cada permiso;
+// equipos, alta de equipos (uno o varios, con dueño opcional), pedidos de alta desde la app, versiones de firmware (solo web, D-92) y pedidos de baja (solo admin). La base vuelve a controlar cada permiso;
 // acá solo se esconde lo que el rol no puede hacer. En la web, listas en tabla y el detalle al costado.
 import {
   Activity,
@@ -9,6 +9,7 @@ import {
   Cpu,
   FileCode,
   Hash,
+  Inbox,
   PackagePlus,
   Search,
   Tag,
@@ -30,6 +31,7 @@ import { FraseEstado, IconoEstado } from "@/componentes/EstadoEquipo";
 import { AdminFirmware } from "@/paginas/AdminFirmware";
 import { FamiliaYCodigo, HaceCorto } from "@/componentes/familia";
 import { Barra, Contenido } from "@/componentes/Marco";
+import { SelectorPersona } from "@/componentes/SelectorPersona";
 import {
   Aviso,
   Boton,
@@ -66,6 +68,7 @@ import {
   type Familia,
 } from "@/datos/familias";
 import { fechaHoraArg } from "@/datos/grafico";
+import { aprobarPedido, pedidosAlta, rechazarPedido, type PedidoAlta } from "@/datos/personas";
 import {
   fraseResumen,
   nivel,
@@ -96,6 +99,7 @@ const SECCIONES: {
   { ruta: "redes", texto: "Salud de las redes", icono: Activity },
   { ruta: "equipos", texto: "Todos los equipos", icono: Cpu },
   { ruta: "alta", texto: "Alta de equipo", icono: PackagePlus },
+  { ruta: "pedidos-alta", texto: "Pedidos de alta", icono: Inbox },
   { ruta: "firmware", texto: "Firmware", icono: FileCode },
   { ruta: "bajas", texto: "Pedidos de baja", icono: UserX, soloAdmin: true },
 ];
@@ -144,6 +148,7 @@ export function Admin() {
             {seccion === "redes" ? <Redes /> : null}
             {seccion === "equipos" ? <TodosLosEquipos /> : null}
             {seccion === "alta" ? <Alta /> : null}
+            {seccion === "pedidos-alta" ? <PedidosAlta /> : null}
             {seccion === "firmware" ? <AdminFirmware /> : null}
             {seccion === "bajas" ? <Bajas /> : null}
           </>
@@ -793,15 +798,32 @@ function Buscador({
 // ------------------------------------------------------------------ alta
 
 function Alta() {
-  // ?id= viene de un sensor sin alta que oye un receptor (Equipo → Estado).
   const [q] = useSearchParams();
-  const [id, setId] = useState(q.get("id") ?? "");
+  const [modo, setModo] = useState<"uno" | "varios">("uno");
+  return (
+    <div className="flex max-w-[640px] flex-col gap-4">
+      <Segmento
+        etiqueta="Cuántos equipos"
+        opciones={[
+          { valor: "uno", texto: "Un equipo" },
+          { valor: "varios", texto: "Varios equipos" },
+        ]}
+        valor={modo}
+        alCambiar={setModo}
+      />
+      {modo === "uno" ? <AltaUno idInicial={q.get("id") ?? ""} /> : <AltaVarios />}
+    </div>
+  );
+}
+
+function AltaUno({ idInicial }: { idInicial: string }) {
+  // idInicial viene de un sensor sin alta que oye un receptor (Equipo → Estado).
+  const [id, setId] = useState(idInicial);
   const [alias, setAlias] = useState("");
+  const [dueno, setDueno] = useState("");
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [hecho, setHecho] = useState<{ id: string; codigo: string } | null>(
-    null,
-  );
+  const [hecho, setHecho] = useState<{ id: string; codigo: string | null; dueno: string } | null>(null);
   const [copiado, setCopiado] = useState(false);
   const [vinculado, setVinculado] = useState(false);
   const [vinculando, setVinculando] = useState(false);
@@ -811,120 +833,321 @@ function Alta() {
     ev.preventDefault();
     setCargando(true);
     setError(null);
-    const r = await altaEquipo(id, alias);
+    const r = await altaEquipo(id, alias, dueno);
     setCargando(false);
-    if (r.ok) setHecho({ id: r.id, codigo: r.codigo });
+    if (r.ok) setHecho({ id: r.id, codigo: r.codigo, dueno: dueno.trim() });
     else setError(r.mensaje);
   }
 
-  return (
-    <div className="max-w-[560px]">
-      {hecho ? (
-        <Tarjeta titulo="Equipo dado de alta">
-          <p className="font-mono text-[13px] text-texto-2">{hecho.id}</p>
-          <p className="mt-3 text-xs font-bold tracking-wider text-texto uppercase">
-            Código de vinculación
-          </p>
-          <p className="py-3 text-center font-mono text-[32px] font-bold tracking-[0.2em] text-tinta select-all">
-            {hecho.codigo}
-          </p>
-          <Aviso
-            tipo="aviso"
-            mensaje="Anotalo o copialo ahora: la base guarda solo una versión cifrada y no se puede volver a mostrar. Si se pierde, se genera otro desde la ficha del equipo."
-          />
-          <Aviso mensaje={error} />
-          <div className="mt-3 flex flex-wrap gap-2">
-            <Boton
-              cargando={vinculando}
-              disabled={vinculado}
-              onClick={async () => {
-                setVinculando(true);
-                setError(null);
-                const r = await vincular(hecho.id, hecho.codigo);
-                setVinculando(false);
-                if (r.ok) setVinculado(true);
-                else setError(r.mensaje);
-              }}
-            >
-              {vinculado ? "Vinculado a tu cuenta" : "Vincular a mi cuenta"}
-            </Boton>
-            <Boton
-              variante="secundario"
-              icono={copiado ? Check : Copy}
-              onClick={async () => {
-                try {
-                  await navigator.clipboard.writeText(
-                    `Equipo ${hecho.id}\nCódigo de vinculación: ${hecho.codigo}`,
-                  );
-                  setCopiado(true);
-                } catch {
-                  setCopiado(false);
-                }
-              }}
-            >
-              {copiado ? "Copiado" : "Copiar"}
-            </Boton>
-            <Boton
-              variante="secundario"
-              onClick={() => {
-                setHecho(null);
-                setCopiado(false);
-                setVinculado(false);
-                setId("");
-                setAlias("");
-              }}
-            >
-              Dar de alta otro
-            </Boton>
-            <Link
-              to={`/equipo/${hecho.id}`}
-              className="inline-flex h-[34px] items-center px-2 text-[13px] font-medium text-acento-oscuro no-underline hover:underline"
-            >
-              Ver ficha
-            </Link>
+  function otro() {
+    setHecho(null);
+    setCopiado(false);
+    setVinculado(false);
+    setId("");
+    setAlias("");
+    setDueno("");
+  }
+
+  if (hecho) {
+    return (
+      <Tarjeta titulo="Equipo dado de alta">
+        <p className="font-mono text-[13px] text-texto-2">{hecho.id}</p>
+        {hecho.codigo ? (
+          <>
+            <p className="mt-3 text-xs font-bold tracking-wider text-texto uppercase">Código de vinculación</p>
+            <p className="py-3 text-center font-mono text-[32px] font-bold tracking-[0.2em] text-tinta select-all">{hecho.codigo}</p>
+            <Aviso
+              tipo="aviso"
+              mensaje="Anotalo o copialo ahora: la base guarda solo una versión cifrada y no se puede volver a mostrar. Si se pierde, se genera otro desde la ficha del equipo."
+            />
+          </>
+        ) : (
+          <div className="mt-3">
+            <Aviso tipo="bien" mensaje={`Asignado a ${hecho.dueno}. No hace falta código de vinculación: ya lo ve en su cuenta.`} />
           </div>
-        </Tarjeta>
-      ) : (
-        <Tarjeta titulo="Alta de equipo">
-          <p className="mb-4 text-[13px] text-texto-2">
-            Se da de alta cuando el equipo sale del taller, ya probado. El id es
-            el nombre Bluetooth sin «SEN-» (B01-A1B2C3).
-          </p>
-          <form onSubmit={enviar} className="flex flex-col gap-4">
-            <Aviso mensaje={error} />
-            <Campo
-              etiqueta="Id del equipo"
-              icono={Hash}
-              value={id}
-              onChange={(e) => setId(e.target.value.toUpperCase())}
-              placeholder="B01-A1B2C3"
-              ayuda={
-                limpio && idValido(limpio)
-                  ? `Modelo: ${modeloDeId(limpio)}`
-                  : undefined
-              }
-            />
-            <Campo
-              etiqueta="Alias (opcional)"
-              icono={Tag}
-              value={alias}
-              onChange={(e) => setAlias(e.target.value)}
-              placeholder="Ej.: Banco 1, Finca El Alto norte"
-            />
-            <div>
+        )}
+        <Aviso mensaje={error} />
+        <div className="mt-3 flex flex-wrap gap-2">
+          {hecho.codigo ? (
+            <>
               <Boton
-                type="submit"
-                icono={PackagePlus}
-                cargando={cargando}
-                disabled={!idValido(limpio)}
+                cargando={vinculando}
+                disabled={vinculado}
+                onClick={async () => {
+                  setVinculando(true);
+                  setError(null);
+                  const r = await vincular(hecho.id, hecho.codigo ?? "");
+                  setVinculando(false);
+                  if (r.ok) setVinculado(true);
+                  else setError(r.mensaje);
+                }}
               >
-                Dar de alta
+                {vinculado ? "Vinculado a tu cuenta" : "Vincular a mi cuenta"}
+              </Boton>
+              <Boton
+                variante="secundario"
+                icono={copiado ? Check : Copy}
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(`Equipo ${hecho.id}\nCódigo de vinculación: ${hecho.codigo}`);
+                    setCopiado(true);
+                  } catch {
+                    setCopiado(false);
+                  }
+                }}
+              >
+                {copiado ? "Copiado" : "Copiar"}
+              </Boton>
+            </>
+          ) : null}
+          <Boton variante="secundario" onClick={otro}>
+            Dar de alta otro
+          </Boton>
+          <Link
+            to={`/equipo/${hecho.id}`}
+            className="inline-flex h-[34px] items-center px-2 text-[13px] font-medium text-acento-oscuro no-underline hover:underline"
+          >
+            Ver ficha
+          </Link>
+        </div>
+      </Tarjeta>
+    );
+  }
+
+  return (
+    <Tarjeta titulo="Alta de equipo">
+      <p className="mb-4 text-[13px] text-texto-2">
+        Se da de alta cuando el equipo sale del taller, ya probado. El id es el nombre Bluetooth sin «SEN-» (B01-A1B2C3).
+      </p>
+      <form onSubmit={enviar} className="flex flex-col gap-4">
+        <Aviso mensaje={error} />
+        <Campo
+          etiqueta="Id del equipo"
+          icono={Hash}
+          value={id}
+          onChange={(e) => setId(e.target.value.toUpperCase())}
+          placeholder="B01-A1B2C3"
+          ayuda={limpio && idValido(limpio) ? `Modelo: ${modeloDeId(limpio)}` : undefined}
+        />
+        <Campo
+          etiqueta="Alias (opcional)"
+          icono={Tag}
+          value={alias}
+          onChange={(e) => setAlias(e.target.value)}
+          placeholder="Ej.: Banco 1, Finca El Alto norte"
+        />
+        <div className="flex flex-col gap-1.5">
+          <SelectorPersona tamano="campo" etiqueta="Dueño (opcional)" valor={dueno} alCambiar={setDueno} />
+          <p className="text-xs text-texto-2">
+            Con dueño, el equipo queda a su nombre y no se genera código. Sin dueño, se genera el código para entregar con el equipo.
+          </p>
+        </div>
+        <div>
+          <Boton
+            type="submit"
+            icono={PackagePlus}
+            cargando={cargando}
+            disabled={!idValido(limpio) || (dueno.trim() !== "" && !dueno.includes("@"))}
+          >
+            Dar de alta
+          </Boton>
+        </div>
+      </form>
+    </Tarjeta>
+  );
+}
+
+type FilaLote = { id: string; ok: boolean; texto: string; codigo: string | null };
+
+/** Varios equipos de una vez (una tanda del taller): un id por línea, con el mismo dueño opcional. */
+function AltaVarios() {
+  const [texto, setTexto] = useState("");
+  const [dueno, setDueno] = useState("");
+  const [filas, setFilas] = useState<FilaLote[]>([]);
+  const [trabajando, setTrabajando] = useState(false);
+  const [copiado, setCopiado] = useState(false);
+  const ids = useMemo(
+    () => [...new Set(texto.split(/[\s,;]+/).map((x) => normalizarId(x)).filter(Boolean))],
+    [texto],
+  );
+  const invalidos = ids.filter((x) => !idValido(x));
+
+  async function enviar(ev: FormEvent) {
+    ev.preventDefault();
+    setTrabajando(true);
+    setCopiado(false);
+    const res: FilaLote[] = [];
+    for (const id of ids) {
+      const r = await altaEquipo(id, "", dueno);
+      res.push(
+        r.ok
+          ? { id, ok: true, codigo: r.codigo, texto: r.codigo ? "Dado de alta" : `Asignado a ${dueno.trim()}` }
+          : { id, ok: false, codigo: null, texto: r.mensaje },
+      );
+      setFilas([...res]);
+    }
+    setTrabajando(false);
+  }
+
+  const conCodigo = filas.filter((f) => f.codigo);
+  return (
+    <Tarjeta titulo="Alta de varios equipos">
+      <form onSubmit={enviar} className="flex flex-col gap-4">
+        <div className="flex flex-col gap-2">
+          <label htmlFor="alta-ids" className="text-xs font-bold tracking-wider text-texto uppercase">
+            Ids de los equipos
+          </label>
+          <textarea
+            id="alta-ids"
+            value={texto}
+            onChange={(e) => setTexto(e.target.value.toUpperCase())}
+            rows={6}
+            placeholder={"B01-A1B2C3\nB01-D4E5F6\nC01-112233"}
+            className="rounded-campo border border-borde bg-superficie px-3.5 py-2.5 font-mono text-[14px] text-tinta outline-none focus:border-transparent focus:bg-white focus:ring-2 focus:ring-acento-oscuro"
+          />
+          <p className="text-xs text-texto-2">
+            Uno por línea (también separados por espacio o coma). {ids.length ? `${ids.length} equipos.` : ""}
+            {invalidos.length ? ` Con formato inválido: ${invalidos.join(", ")}.` : ""}
+          </p>
+        </div>
+        <SelectorPersona tamano="campo" etiqueta="Dueño de todos (opcional)" valor={dueno} alCambiar={setDueno} />
+        <div>
+          <Boton
+            type="submit"
+            icono={PackagePlus}
+            cargando={trabajando}
+            disabled={!ids.length || invalidos.length > 0 || (dueno.trim() !== "" && !dueno.includes("@"))}
+          >
+            Dar de alta {ids.length || ""}
+          </Boton>
+        </div>
+      </form>
+      {filas.length ? (
+        <div className="mt-4">
+          {filas.map((f) => (
+            <div key={f.id} className="flex items-center gap-3 border-t border-separador py-2 text-[13px]">
+              <span className="w-[110px] shrink-0 font-mono text-texto-2">{f.id}</span>
+              <span className={`min-w-0 flex-1 ${f.ok ? "text-tinta" : "text-error"}`}>{f.texto}</span>
+              {f.codigo ? <span className="font-mono font-semibold tracking-wider text-tinta select-all">{f.codigo}</span> : null}
+            </div>
+          ))}
+          {conCodigo.length ? (
+            <div className="mt-3 flex flex-col gap-2">
+              <Aviso tipo="aviso" mensaje="Copiá los códigos ahora: no se pueden volver a mostrar." />
+              <div>
+                <Boton
+                  variante="secundario"
+                  icono={copiado ? Check : Copy}
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(conCodigo.map((f) => `${f.id}\t${f.codigo}`).join("\n"));
+                      setCopiado(true);
+                    } catch {
+                      setCopiado(false);
+                    }
+                  }}
+                >
+                  {copiado ? "Copiados" : "Copiar los códigos"}
+                </Boton>
+              </div>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+    </Tarjeta>
+  );
+}
+
+// ------------------------------------------------------------------ pedidos de alta
+
+/** Pedidos de alta hechos desde la app al conectarse a un equipo que no está en la base. */
+function PedidosAlta() {
+  const c = useConsulta(pedidosAlta);
+  const pedidos = c.datos?.pedidos ?? [];
+  return (
+    <>
+      <p className="max-w-[720px] text-[13px] text-texto-2">
+        Personas que se conectaron por Bluetooth a un equipo que no está en la base y pidieron el alta. Al aprobar, el equipo
+        se da de alta a su nombre. Antes, confirmá que el equipo es del proyecto y a quién se le entregó.
+      </p>
+      <Aviso mensaje={c.error} />
+      {c.cargando && !c.datos ? <Cargando /> : null}
+      {c.datos && !pedidos.length ? (
+        <Tarjeta>
+          <p className="text-[13px] text-texto-2">No hay pedidos pendientes.</p>
+        </Tarjeta>
+      ) : null}
+      <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(360px,1fr))]">
+        {pedidos.map((p) => (
+          <PedidoAltaTarjeta key={p.id} p={p} alTerminar={c.actualizar} />
+        ))}
+      </div>
+    </>
+  );
+}
+
+function PedidoAltaTarjeta({ p, alTerminar }: { p: PedidoAlta; alTerminar: () => void }) {
+  const [alias, setAlias] = useState("");
+  const [motivo, setMotivo] = useState("");
+  const [rechazando, setRechazando] = useState(false);
+  const [trabajando, setTrabajando] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  async function hacer(f: () => Promise<{ ok: boolean; mensaje?: string }>) {
+    setTrabajando(true);
+    setError(null);
+    const r = await f();
+    setTrabajando(false);
+    if (!r.ok) return setError(r.mensaje ?? null);
+    alTerminar();
+  }
+  return (
+    <Tarjeta titulo={<span className="font-mono">{p.device_id}</span>}>
+      <p className="text-[13px] text-tinta">{p.full_name || p.email}</p>
+      <p className="text-xs text-texto-3">
+        {p.email} · pedido el {fecha(p.created_at)}
+      </p>
+      {p.note ? <p className="mt-2 text-[13px] text-tinta">«{p.note}»</p> : null}
+      <div className="mt-3 flex flex-col gap-2">
+        <Aviso mensaje={error} />
+        {rechazando ? (
+          <>
+            <input
+              value={motivo}
+              onChange={(e) => setMotivo(e.target.value)}
+              aria-label="Motivo del rechazo"
+              placeholder="Motivo (lo ve la persona)"
+              className="h-[34px] rounded-lg border border-linea px-2.5 text-[13px] text-tinta outline-none focus:border-acento-oscuro"
+            />
+            <div className="flex flex-wrap gap-2">
+              <Boton variante="secundario" cargando={trabajando} onClick={() => void hacer(() => rechazarPedido(p.id, motivo))}>
+                Rechazar pedido
+              </Boton>
+              <Boton variante="texto" onClick={() => setRechazando(false)}>
+                Volver
               </Boton>
             </div>
-          </form>
-        </Tarjeta>
-      )}
-    </div>
+          </>
+        ) : (
+          <>
+            <input
+              value={alias}
+              onChange={(e) => setAlias(e.target.value)}
+              aria-label="Alias del equipo (opcional)"
+              placeholder="Alias (opcional)"
+              className="h-[34px] rounded-lg border border-linea px-2.5 text-[13px] text-tinta outline-none focus:border-acento-oscuro"
+            />
+            <div className="flex flex-wrap gap-2">
+              <Boton icono={Check} cargando={trabajando} onClick={() => void hacer(() => aprobarPedido(p.id, alias))}>
+                Aprobar: dar de alta a su nombre
+              </Boton>
+              <Boton variante="secundario" onClick={() => setRechazando(true)}>
+                Rechazar
+              </Boton>
+            </div>
+          </>
+        )}
+      </div>
+    </Tarjeta>
   );
 }
 
