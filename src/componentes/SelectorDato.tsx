@@ -4,7 +4,7 @@
 import { Droplets, Thermometer } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { datosAhora, etiquetaDato, nombresCapas, VARIABLES, type Capa, type DatoAhora, type Variable } from "@/datos/datoAhora";
+import { datosAhora, etiquetaDato, NOMBRES_CAPA, VARIABLES, type Capa, type DatoAhora, type Variable } from "@/datos/datoAhora";
 
 const CADA_MS = 5 * 60_000;
 const DEL_AIRE: Variable[] = ["temp_aire", "hum_aire"];
@@ -79,7 +79,7 @@ export function SelectorDato({
   tipos: string[];
   dato: ReturnType<typeof useDatoAhora>;
 }) {
-  const { variable, setVariable, capa, setCapa, datos } = dato;
+  const { variable, setVariable, capa, setCapa } = dato;
   const hayAire = tipos.includes("C01");
   const haySuelo = tipos.includes("B01");
   const ofrecidas = VARIABLES.filter(
@@ -92,7 +92,6 @@ export function SelectorDato({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hayAire, haySuelo, tipos.length]);
   if (ofrecidas.length < 2) return null;
-  const nombres = nombresCapas(datos.values());
 
   return (
     <div className="flex flex-wrap items-center gap-1" title="Solo lecturas de las últimas 2 horas">
@@ -112,7 +111,7 @@ export function SelectorDato({
         <div role="radiogroup" aria-label="Capa del suelo" className="ml-1 flex gap-1 border-l border-linea pl-2">
           {(["1", "2", "3"] as Capa[]).map((c) => (
             <button key={c} type="button" role="radio" aria-checked={capa === c} onClick={() => setCapa(c)} className={boton(capa === c)}>
-              {nombres[c]}
+              {NOMBRES_CAPA[c]}
             </button>
           ))}
         </div>
