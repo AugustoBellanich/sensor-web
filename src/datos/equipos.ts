@@ -111,3 +111,39 @@ export async function ultimaCarcasa(id: string, tipo: string): Promise<Carcasa |
 export function textoCarcasa(c: Carcasa, hace: (fecha: string) => string): string {
   return `${c.temperatura.toFixed(1).replace(".", ",")} °C · ${hace(c.momento)}`;
 }
+
+/** Señal LoRa con la que llegó al receptor la última lectura de un B01 o C01. */
+export type Senal = { rssi: number; snr: number | null; momento: string; receptor: string | null };
+
+/**
+ * La mide el N01 en cada paquete desde N01-FW-1.8.0 (F36). Las lecturas de la SD y las de receptores
+ * anteriores no la traen: null si no hay ninguna. Igual que en la app (D-83).
+ */
+export async function ultimaSenal(id: string, tipo: string): Promise<Senal | null> {
+  const tabla = tipo === "B01" ? "readings_b01" : tipo === "C01" ? "readings_c01" : null;
+  if (!tabla) return null;
+  const { data, error } = await supabase
+    .from(tabla)
+    .select("rssi, snr, timestamp, gateway_id")
+    .eq("sensor_id", id)
+    .not("rssi", "is", null)
+    .order("timestamp", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error || !data || data.rssi == null) return null;
+  return {
+    rssi: Number(data.rssi),
+    snr: data.snr == null ? null : Number(data.snr),
+    momento: String(data.timestamp),
+    receptor: data.gateway_id ?? null,
+  };
+}
+
+/** "-97 dBm · SNR 7,3 dB · hace 3 min · N01-24F8C2" (sin SNR o sin receptor, sin esa parte). */
+export function textoSenal(s: Senal, hace: (fecha: string) => string): string {
+  const partes = [`${Math.round(s.rssi)} dBm`];
+  if (s.snr != null) partes.push(`SNR ${s.snr.toFixed(1).replace(".", ",")} dB`);
+  partes.push(hace(s.momento));
+  if (s.receptor) partes.push(s.receptor);
+  return partes.join(" · ");
+}

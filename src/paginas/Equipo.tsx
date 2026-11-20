@@ -37,7 +37,9 @@ import {
   quitarAcceso,
   renombrarEquipo,
   textoCarcasa,
+  textoSenal,
   ultimaCarcasa,
+  ultimaSenal,
 } from "@/datos/equipos";
 import { duracion, hace } from "@/datos/estado";
 import { aliasPropio, familiaDeModelo, tituloEquipo } from "@/datos/familias";
@@ -62,9 +64,12 @@ export function Equipo() {
         historialEquipo(id),
       ]);
       const equipo = e.equipos.find((x) => x.id === id) ?? null;
-      const carcasa = equipo ? await ultimaCarcasa(id, equipo.type) : null;
+      const [carcasa, senal] = equipo
+        ? await Promise.all([ultimaCarcasa(id, equipo.type), ultimaSenal(id, equipo.type)])
+        : [null, null];
       return {
         carcasa,
+        senal,
         e: equipo,
         s: h.equipos.find((x) => x.device_id === id) ?? null,
         pasos: p.pasos,
@@ -220,6 +225,11 @@ export function Equipo() {
                     {c.datos?.carcasa ? (
                       <FilaDato icono={Box} etiqueta="Carcasa">
                         {textoCarcasa(c.datos.carcasa, (f) => hace(f))}
+                      </FilaDato>
+                    ) : null}
+                    {c.datos?.senal ? (
+                      <FilaDato icono={RadioTower} etiqueta="Señal LoRa">
+                        {textoSenal(c.datos.senal, (f) => hace(f))}
                       </FilaDato>
                     ) : null}
                   </Tarjeta>
