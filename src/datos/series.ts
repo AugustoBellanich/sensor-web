@@ -134,6 +134,30 @@ export async function serieCarcasa(id: string, desde: number, hasta: number, int
   return ((data ?? []) as PuntoCarcasa[]).sort((a, b) => a.t.localeCompare(b.t));
 }
 
+export type PuntoSenal = {
+  t: string;
+  n: number;
+  rssi: number | null;
+  rssi_min: number | null;
+  snr: number | null;
+  snr_min: number | null;
+};
+
+/**
+ * Señal LoRa por intervalo de las lecturas que llegaron por radio (site_lora_signal, F36): cantidad,
+ * promedio y mínimo de RSSI y SNR. Dato de diagnóstico, como la carcasa: si falla o no hay, vacío.
+ */
+export async function serieSenal(id: string, desde: number, hasta: number, intervalo: number): Promise<PuntoSenal[]> {
+  const { data, error } = await supabase.rpc("site_lora_signal", {
+    p_site_id: id,
+    p_from: new Date(desde).toISOString(),
+    p_to: new Date(hasta).toISOString(),
+    p_bucket_s: intervalo,
+  });
+  if (error) return [];
+  return ((data ?? []) as PuntoSenal[]).sort((a, b) => a.t.localeCompare(b.t));
+}
+
 /** Resumen por día (hora argentina) de un rango de fechas "AAAA-MM-DD". */
 export async function diarioSitio(
   id: string,
@@ -287,6 +311,12 @@ export type EstadoGateway = {
   pending_batches: number | null;
   last_lora_rx: string | null;
   rssi: number | null;
+  // Diagnóstico de recepción desde el arranque (N01-FW-1.9.0, F39); vacío con firmware anterior.
+  lora_rx_ok?: number | null;
+  lora_rx_crc?: number | null;
+  lora_rx_bad?: number | null;
+  lora_last_bad?: string | null;
+  lora_last_bad_at?: string | null;
 };
 
 export type ActividadHora = {

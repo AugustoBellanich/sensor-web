@@ -25,11 +25,12 @@ import { Medidor } from "@/componentes/Medidor";
 import { SelectorPeriodo } from "@/componentes/SelectorPeriodo";
 import { Aviso, Cargando, Estado, Tarjeta } from "@/componentes/ui";
 import { calidadWifi, duracion, hace, semaforo } from "@/datos/estado";
+import { detalleRecepcion, equipoDelDanado, NIVELES_RECEPCION, nivelRecepcion } from "@/datos/senal";
 import { aliasPropio, familiaDeModelo } from "@/datos/familias";
 import { etiquetaCorta, rango, type Dias, type Periodo } from "@/datos/grafico";
 import { ESCALA_WIFI } from "@/datos/medidor";
 import { saludRed, sensoresDe } from "@/datos/salud";
-import { actividadGateway, type Envio } from "@/datos/series";
+import { actividadGateway, type Envio, type EstadoGateway } from "@/datos/series";
 import { useConsulta } from "@/datos/useConsulta";
 
 const PERIODOS_GW = [
@@ -99,6 +100,7 @@ export function Receptor({ id }: { id: string }) {
                   <Medidor escala={ESCALA_WIFI} valor={e.rssi} nombre="Señal WiFi" />
                 </div>
               ) : null}
+              <RecepcionLora e={e} />
             </>
           ) : d ? (
             <p className="text-[13px] text-texto-2">Sin estado recibido.</p>
@@ -196,6 +198,43 @@ export function Receptor({ id }: { id: string }) {
           ) : null}
         </Tarjeta>
       </div>
+    </div>
+  );
+}
+
+/**
+ * Recepción LoRa desde el último arranque del N01 (latido de N01-FW-1.9.0, F39), con una interpretación
+ * mínima: qué parte de los paquetes llegó mal y de qué equipo fue el último dañado. Nada con firmware anterior.
+ */
+function RecepcionLora({ e }: { e: EstadoGateway }) {
+  if (e.lora_rx_ok == null) return null;
+  const r = { ok: e.lora_rx_ok ?? 0, crc: e.lora_rx_crc ?? 0, danados: e.lora_rx_bad ?? 0 };
+  const n = nivelRecepcion(r);
+  const info = n ? NIVELES_RECEPCION[n.nivel] : null;
+  const equipo = equipoDelDanado(e.lora_last_bad);
+  return (
+    <div className="mt-3.5 flex flex-col gap-1 border-t border-separador pt-3 text-[13px]">
+      <span className="inline-flex items-center gap-1.5 font-medium text-tinta">
+        <RadioTower size={14} strokeWidth={1.9} className="text-[#7c3aed]" aria-hidden />
+        Recepción LoRa
+      </span>
+      {info && n ? (
+        <Estado tipo={n.nivel === "normal" ? "ok" : n.nivel === "algunos" ? "aviso" : "error"}>
+          {`${info.nombre}: ${info.explicacion}`}
+        </Estado>
+      ) : (
+        <span className="text-texto-3">Sin paquetes desde que arrancó</span>
+      )}
+      <span className="text-xs text-texto-3">
+        Desde que arrancó: {detalleRecepcion(r)}
+        {n ? ` (${n.malos.toFixed(1).replace(".", ",")} % con problemas)` : ""}
+      </span>
+      {e.lora_last_bad ? (
+        <span className="text-xs text-texto-3" title={e.lora_last_bad}>
+          Último dañado: {equipo ?? "equipo sin identificar"}
+          {e.lora_last_bad_at ? `, ${hace(e.lora_last_bad_at)}` : ""}
+        </span>
+      ) : null}
     </div>
   );
 }
