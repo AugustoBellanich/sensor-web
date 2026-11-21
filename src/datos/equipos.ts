@@ -5,6 +5,7 @@ import type { Resultado } from "./cuenta";
 import { mensajeBase } from "./errores";
 import { normalizarId } from "./estado";
 import { resultadoCompartir, type ResultadoCompartir } from "./personas";
+import { mediana } from "./senal";
 import { supabase } from "./supabase";
 
 export type Rol = "owner" | "editor" | "viewer";
@@ -112,8 +113,17 @@ export function textoCarcasa(c: Carcasa, hace: (fecha: string) => string): strin
   return `${c.temperatura.toFixed(1).replace(".", ",")} °C · ${hace(c.momento)}`;
 }
 
-/** Señal LoRa con la que llegó al receptor la última lectura de un B01 o C01. */
-export type Senal = { rssi: number; snr: number | null; momento: string; receptor: string | null };
+/**
+ * Señal LoRa con la que llegó al receptor la última lectura de un B01 o C01, y la mediana de las
+ * últimas 24 h (n lecturas), que es la que da el nivel (datos/senal.ts).
+ */
+export type Senal = {
+  rssi: number;
+  snr: number | null;
+  momento: string;
+  receptor: string | null;
+  mediana: { rssi: number | null; snr: number | null; n: number } | null;
+};
 
 /**
  * La mide el N01 en cada paquete desde N01-FW-1.8.0 (F36). Las lecturas de la SD y las de receptores
@@ -122,20 +132,29 @@ export type Senal = { rssi: number; snr: number | null; momento: string; recepto
 export async function ultimaSenal(id: string, tipo: string): Promise<Senal | null> {
   const tabla = tipo === "B01" ? "readings_b01" : tipo === "C01" ? "readings_c01" : null;
   if (!tabla) return null;
-  const { data, error } = await supabase
-    .from(tabla)
-    .select("rssi, snr, timestamp, gateway_id")
-    .eq("sensor_id", id)
-    .not("rssi", "is", null)
-    .order("timestamp", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  if (error || !data || data.rssi == null) return null;
+  type Fila = { rssi: number | null; snr: number | null; timestamp: string; gateway_id: string | null };
+  const base = () =>
+    supabase.from(tabla).select("rssi, snr, timestamp, gateway_id").eq("sensor_id", id).not("rssi", "is", null);
+  const dia = new Date(Date.now() - 86400e3).toISOString();
+  const r24 = await base().gte("timestamp", dia).order("timestamp", { ascending: false }).limit(300);
+  if (r24.error) return null;
+  let filas = (r24.data ?? []) as Fila[];
+  if (!filas.length) {
+    const r = await base().order("timestamp", { ascending: false }).limit(1);
+    if (r.error) return null;
+    filas = (r.data ?? []) as Fila[];
+  }
+  const u = filas[0];
+  if (!u || u.rssi == null) return null;
+  const en24 = filas.filter((f) => f.timestamp >= dia);
   return {
-    rssi: Number(data.rssi),
-    snr: data.snr == null ? null : Number(data.snr),
-    momento: String(data.timestamp),
-    receptor: data.gateway_id ?? null,
+    rssi: Number(u.rssi),
+    snr: u.snr == null ? null : Number(u.snr),
+    momento: String(u.timestamp),
+    receptor: u.gateway_id ?? null,
+    mediana: en24.length
+      ? { rssi: mediana(en24.map((f) => f.rssi)), snr: mediana(en24.map((f) => f.snr)), n: en24.length }
+      : null,
   };
 }
 

@@ -35,6 +35,7 @@ import { SelectorPeriodo } from "@/componentes/SelectorPeriodo";
 import {
   Aviso,
   Cargando,
+  Estado,
   FilaDato,
   Segmento,
   Tarjeta,
@@ -78,17 +79,31 @@ import {
   diarioSitio,
   infoSitio,
   serieCarcasa,
+  serieSenal,
   serieSitio,
   type InfoSitio,
   type PuntoCarcasa,
+  type PuntoSenal,
   type PuntoSerie,
 } from "@/datos/series";
 import { aguaSitio, type AguaSitio } from "@/datos/sitios";
 import { AYUDA } from "@/datos/textos";
+import {
+  mediana,
+  NIVELES_SENAL,
+  nivelSenal,
+  NOTA_GRAFICO_SNR,
+  SNR_ACEPTABLE,
+  SNR_BUENA,
+  SNR_DEBIL,
+  SNR_MINIMO,
+} from "@/datos/senal";
 import { useConsulta } from "@/datos/useConsulta";
 
 const COLOR_E = ["#2563eb", "#16a34a", "#ea580c"];
 const COLOR_CARCASA = "#a16207"; // temperatura dentro de la caja, como en la app
+const COLOR_SENAL = "#0e7490"; // señal LoRa (SNR), como en la app
+const COLOR_REF_SENAL = "#b45309";
 const TIERRA = ["#a9875a", "#8f6f45", "#755a36"];
 const diaArg = (t: number) => fechaHoraArg(t).slice(0, 10);
 const fecha = (t: string) =>
@@ -112,23 +127,26 @@ export function Sitio() {
         b01: [] as PuntoSerie[],
         c01: [] as PuntoSerie[],
         carcasa: [] as PuntoCarcasa[],
+        senal: [] as PuntoSenal[],
         dias: [] as Dia[],
         agua: [] as AguaSitio[],
         error: null,
         r: null,
       };
-    const [s, d, w, k] = await Promise.all([
+    const [s, d, w, k, sl] = await Promise.all([
       serieSitio(id, r.desde, r.hasta, r.intervalo),
       diarioSitio(id, diaArg(r.desde), diaArg(r.hasta)),
       conSuelo
         ? aguaSitio(id, r.desde, r.hasta)
         : Promise.resolve({ eventos: [] as AguaSitio[], error: null }),
       serieCarcasa(id, r.desde, r.hasta, r.intervalo),
+      serieSenal(id, r.desde, r.hasta, r.intervalo),
     ]);
     return {
       b01: s.b01,
       c01: s.c01,
       carcasa: k,
+      senal: sl,
       dias: d.dias,
       agua: w.eventos,
       error: s.error ?? d.error ?? w.error,
@@ -346,6 +364,11 @@ export function Sitio() {
                       />
                     </Tarjeta>
                   ) : null}
+                  {s.datos.senal.length ? (
+                    <Tarjeta>
+                      <GraficoSenal puntos={s.datos.senal} desde={r.desde} hasta={r.hasta} intervalo={r.intervalo} />
+                    </Tarjeta>
+                  ) : null}
                   <Tarjeta>
                     <Grafico
                       titulo="Batería"
@@ -383,6 +406,55 @@ export function Sitio() {
 }
 
 /** Bajar las lecturas del período: planilla (.xlsx, abre en Excel y Google Sheets) o CSV para análisis. */
+/**
+ * SNR de la señal LoRa por intervalo (F36, H17), con las líneas de los niveles y la franja en la que el
+ * receptor ya casi no entiende los paquetes. Al lado del título, el nivel del período (mediana).
+ */
+function GraficoSenal({ puntos, desde, hasta, intervalo }: { puntos: PuntoSenal[]; desde: number; hasta: number; intervalo: number }) {
+  const m = mediana(puntos.map((p) => p.snr));
+  const nv = nivelSenal({ rssi: mediana(puntos.map((p) => p.rssi)), snr: m });
+  const info = nv ? NIVELES_SENAL[nv] : null;
+  const tipo = nv === "limite" ? "error" : nv === "debil" ? "aviso" : "ok";
+  return (
+    <Grafico
+      titulo="Señal LoRa (SNR)"
+      unidad="dB"
+      decimales={1}
+      alto={150}
+      nota={NOTA_GRAFICO_SNR}
+      accion={info ? <Estado tipo={tipo}>{`${info.nombre}: ${info.explicacion}`}</Estado> : undefined}
+      tiempos={puntos.map((p) => Date.parse(p.t))}
+      series={[
+        {
+          nombre: "SNR",
+          color: COLOR_SENAL,
+          valores: puntos.map((p) => p.snr),
+          referencia: {
+            desde: SNR_MINIMO,
+            hasta: SNR_DEBIL,
+            color: COLOR_REF_SENAL,
+            lineas: [
+              { valor: SNR_BUENA, etiqueta: "buena" },
+              { valor: SNR_ACEPTABLE, etiqueta: "aceptable" },
+              { valor: SNR_DEBIL, etiqueta: "débil" },
+              { valor: SNR_MINIMO, etiqueta: "no llega" },
+            ],
+          },
+        },
+      ]}
+      banda={{
+        nombre: "Peor lectura",
+        color: COLOR_SENAL,
+        min: puntos.map((p) => p.snr_min),
+        max: puntos.map((p) => p.snr),
+      }}
+      desde={desde}
+      hasta={hasta}
+      intervaloS={intervalo}
+    />
+  );
+}
+
 function Descarga({
   info,
   r,

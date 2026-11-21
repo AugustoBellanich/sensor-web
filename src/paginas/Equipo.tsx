@@ -40,12 +40,14 @@ import {
   textoSenal,
   ultimaCarcasa,
   ultimaSenal,
+  type Senal,
 } from "@/datos/equipos";
 import { duracion, hace } from "@/datos/estado";
 import { aliasPropio, familiaDeModelo, tituloEquipo } from "@/datos/familias";
 import { fechaHoraArg } from "@/datos/grafico";
 import { detalleCausa, nivel, saludRed, TEXTO_ESTADO } from "@/datos/salud";
 import { AYUDA } from "@/datos/textos";
+import { NIVELES_SENAL, nivelSenal, numerosSenal } from "@/datos/senal";
 import { useConsulta } from "@/datos/useConsulta";
 import { useSesion } from "@/sesion/SesionContexto";
 
@@ -227,11 +229,7 @@ export function Equipo() {
                         {textoCarcasa(c.datos.carcasa, (f) => hace(f))}
                       </FilaDato>
                     ) : null}
-                    {c.datos?.senal ? (
-                      <FilaDato icono={RadioTower} etiqueta="Señal LoRa">
-                        {textoSenal(c.datos.senal, (f) => hace(f))}
-                      </FilaDato>
-                    ) : null}
+                    {c.datos?.senal ? <FilaSenal senal={c.datos.senal} /> : null}
                   </Tarjeta>
                 ) : null}
                 <Tarjeta titulo="Historial de ubicaciones">
@@ -293,6 +291,29 @@ export function Equipo() {
         ) : null}
       </Contenido>
     </>
+  );
+}
+
+/**
+ * Señal LoRa con una interpretación mínima (datos/senal.ts): el nivel por la mediana de las últimas
+ * 24 h, qué significa y los números; la última lectura, al pasar el mouse.
+ */
+function FilaSenal({ senal }: { senal: Senal }) {
+  const base = senal.mediana ?? { rssi: senal.rssi, snr: senal.snr, n: 1 };
+  const nv = nivelSenal(base);
+  const info = nv ? NIVELES_SENAL[nv] : null;
+  const tipo = nv === "limite" ? "error" : nv === "debil" ? "aviso" : "ok";
+  const numeros = base.rssi != null ? numerosSenal({ rssi: base.rssi, snr: base.snr }) : null;
+  return (
+    <FilaDato icono={RadioTower} etiqueta="Señal LoRa">
+      <span className="flex flex-col items-end" title={`Última: ${textoSenal(senal, (f) => hace(f))}`}>
+        {info ? <Estado tipo={tipo}>{info.nombre}</Estado> : null}
+        <span className="text-[12px] text-texto-3">
+          {info ? info.explicacion : ""}
+          {numeros ? ` · ${senal.mediana ? "mediana 24 h: " : ""}${numeros}` : ""}
+        </span>
+      </span>
+    </FilaDato>
   );
 }
 
