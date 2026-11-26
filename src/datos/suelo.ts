@@ -171,6 +171,7 @@ export const RENGLONES: Renglon[] = [
         "Bouyoucos (hidrómetro)",
         "Pipeta de Robinson",
         "Al tacto",
+        "Sedimentación (frasco)",
         "Láser",
       ],
     },

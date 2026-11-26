@@ -15,10 +15,13 @@ import { useCallback, useState, type FormEvent, type ReactNode } from "react";
 import { Link, useParams } from "react-router";
 
 import { Barra, Contenido } from "@/componentes/Marco";
+import { PerfilSuelo } from "@/componentes/PerfilSuelo";
 import { Aviso, Boton, Cargando, Tarjeta, Titulo } from "@/componentes/ui";
 import { TEXTURAS } from "@/datos/calibracion";
 import { fechaArgHoy } from "@/datos/riego";
 import { infoSitio } from "@/datos/series";
+import { COLOR_SONDA, humedadDeSondas } from "@/datos/sondas";
+import { claseUSDA, colorCapa, fracciones } from "@/datos/textura";
 import {
   activarDescripcion,
   aFormulario,
@@ -36,13 +39,11 @@ import {
   type Descripcion,
   type Grupo,
   type Renglon,
-  type SueloDeSonda,
   type SueloSitio as Suelo,
 } from "@/datos/suelo";
 import { useConsulta } from "@/datos/useConsulta";
 
-const COLOR_E = ["#2563eb", "#16a34a", "#ea580c"];
-const TIERRA = ["#d9bf98", "#c6a47a", "#b38b62", "#a07a55", "#8c6a49"];
+const COLOR_E = COLOR_SONDA;
 
 const fecha = (iso: string) => iso.slice(0, 10).split("-").reverse().join("/");
 
@@ -155,9 +156,10 @@ export function SueloSitio() {
             <div className="flex flex-wrap items-start gap-4">
               <div className="flex min-w-0 flex-[1_1_320px] flex-col gap-4">
                 <Tarjeta titulo="Perfil y sondas">
-                  <EsquemaPerfil
+                  <PerfilSuelo
                     capas={vigente?.layers ?? []}
                     sondas={suelo.electrodes}
+                    humedad={humedadDeSondas(info?.last_b01)}
                   />
                   <Sondas suelo={suelo} />
                 </Tarjeta>
@@ -189,146 +191,6 @@ export function SueloSitio() {
         ) : null}
       </Contenido>
     </>
-  );
-}
-
-// ------------------------------------------------------------------ esquema del perfil
-
-function EsquemaPerfil({
-  capas,
-  sondas,
-}: {
-  capas: Capa[];
-  sondas: SueloDeSonda[];
-}) {
-  const profundidades = sondas
-    .map((s) => s.depth)
-    .filter((d): d is number => d != null);
-  const fondo = Math.max(
-    60,
-    ...capas.map((c) => c.bottom_cm),
-    ...profundidades.map((d) => d + 10),
-  );
-  const maximo = Math.ceil(fondo / 20) * 20;
-  const ALTO = 340;
-  const ARRIBA = 14;
-  const y = (cm: number) => ARRIBA + (cm / maximo) * (ALTO - ARRIBA - 6);
-  const marcas = Array.from({ length: maximo / 20 + 1 }, (_, i) => i * 20);
-  return (
-    <svg
-      viewBox={`0 0 300 ${ALTO}`}
-      className="w-full"
-      role="img"
-      aria-label="Esquema del perfil con sus capas y las sondas"
-    >
-      {marcas.map((m) => (
-        <g key={m}>
-          <line x1={34} x2={40} y1={y(m)} y2={y(m)} stroke="#94a3b8" />
-          <text
-            x={30}
-            y={y(m) + 4}
-            fontSize={10.5}
-            fill="#64748b"
-            textAnchor="end"
-          >
-            {m}
-          </text>
-        </g>
-      ))}
-      <text x={6} y={10} fontSize={10} fill="#64748b">
-        cm
-      </text>
-      {capas.length ? (
-        capas.map((c, i) => {
-          const alto = y(c.bottom_cm) - y(c.top_cm);
-          const dato = [
-            c.texture_class,
-            c.bulk_density != null
-              ? `${numeroSuelo(c.bulk_density, 2)} g/cm³`
-              : null,
-          ]
-            .filter(Boolean)
-            .join(" · ");
-          return (
-            <g key={c.id ?? i}>
-              <rect
-                x={42}
-                y={y(c.top_cm)}
-                width={150}
-                height={alto}
-                fill={TIERRA[i % TIERRA.length]}
-                stroke="#fff"
-              />
-              {alto > 18 ? (
-                <text
-                  x={50}
-                  y={y(c.top_cm) + 15}
-                  fontSize={11.5}
-                  fontWeight={600}
-                  fill="#3f2d1c"
-                >
-                  {c.name ? `${c.name} · ` : ""}
-                  {textoCapa(c)}
-                </text>
-              ) : null}
-              {alto > 34 && dato ? (
-                <text x={50} y={y(c.top_cm) + 30} fontSize={11} fill="#3f2d1c">
-                  {dato}
-                </text>
-              ) : null}
-            </g>
-          );
-        })
-      ) : (
-        <rect
-          x={42}
-          y={y(0)}
-          width={150}
-          height={y(maximo) - y(0)}
-          fill="#f1f5f9"
-          stroke="#cbd5e1"
-          strokeDasharray="4 4"
-        />
-      )}
-      <line
-        x1={214}
-        x2={214}
-        y1={y(0) - 6}
-        y2={y(maximo)}
-        stroke="#cbd5e1"
-        strokeWidth={3}
-        strokeLinecap="round"
-      />
-      {sondas.map((s) =>
-        s.depth != null ? (
-          <g key={s.index}>
-            <line
-              x1={192}
-              x2={214}
-              y1={y(s.depth)}
-              y2={y(s.depth)}
-              stroke={COLOR_E[s.index - 1]}
-              strokeDasharray="2 2"
-            />
-            <circle
-              cx={214}
-              cy={y(s.depth)}
-              r={5.5}
-              fill={COLOR_E[s.index - 1]}
-            />
-            <text
-              x={226}
-              y={y(s.depth) + 4}
-              fontSize={11.5}
-              fontWeight={600}
-              fill={COLOR_E[s.index - 1]}
-            >
-              S{s.index} · {numeroSuelo(s.depth, 0)} cm
-            </text>
-          </g>
-        ) : null,
-      )}
-    </svg>
   );
 }
 
@@ -461,7 +323,7 @@ function TablaCapas({ d }: { d: Descripcion }) {
                 >
                   <span
                     className="mr-1.5 inline-block h-2.5 w-2.5 rounded-sm"
-                    style={{ background: TIERRA[i % TIERRA.length] }}
+                    style={{ background: colorCapa(c, i).color }}
                   />
                   {c.name ? `${c.name} · ` : ""}
                   {textoCapa(c)}
@@ -644,6 +506,44 @@ function Metodo({
   );
 }
 
+/** Clase del triángulo USDA con los % escritos en el formulario (null si no alcanzan). */
+function claseCalculada(c: CapaFormulario): string | null {
+  const n = (t: string | undefined) => {
+    const x = (t ?? "").trim().replace(",", ".");
+    return x && Number.isFinite(Number(x)) ? Number(x) : null;
+  };
+  const f = fracciones(n(c.sand_pct), n(c.silt_pct), n(c.clay_pct));
+  return f ? claseUSDA(f) : null;
+}
+
+function AyudaClase({
+  capa,
+  calculada,
+}: {
+  capa: CapaFormulario;
+  calculada: string | null;
+}) {
+  const clase = capa.texture_class ?? "";
+  let texto: string;
+  let alerta = false;
+  if (calculada && clase && clase !== calculada) {
+    texto = `Con estos porcentajes la clase es ${calculada} (triángulo USDA).`;
+    alerta = true;
+  } else if (calculada) {
+    texto = "Clase calculada con el triángulo USDA.";
+  } else {
+    texto =
+      "Sin porcentajes, elegí la clase y el método (al tacto o sedimentación en frasco).";
+  }
+  return (
+    <p
+      className={`text-[11.5px] sm:col-span-2 sm:col-start-2 ${alerta ? "text-[#b45309]" : "text-texto-3"}`}
+    >
+      {texto}
+    </p>
+  );
+}
+
 function EditorCapa({
   capa,
   n,
@@ -657,8 +557,19 @@ function EditorCapa({
   alCambiar: (c: CapaFormulario) => void;
   alQuitar: (() => void) | null;
 }) {
-  const poner = (clave: keyof CapaFormulario, v: string) =>
-    alCambiar({ ...capa, [clave]: v });
+  const poner = (clave: keyof CapaFormulario, v: string) => {
+    const nueva = { ...capa, [clave]: v };
+    // Con arena, limo y arcilla la clase sale del triángulo: se completa sola si estaba vacía o si
+    // era la calculada antes (una clase elegida a mano distinta se respeta y se avisa).
+    if (clave === "sand_pct" || clave === "silt_pct" || clave === "clay_pct") {
+      const antes = claseCalculada(capa);
+      const ahora = claseCalculada(nueva);
+      if (ahora && (!capa.texture_class || capa.texture_class === antes))
+        nueva.texture_class = ahora;
+    }
+    alCambiar(nueva);
+  };
+  const calculada = claseCalculada(capa);
   const llenos = (g: Grupo) =>
     RENGLONES.filter((r) => r.grupo === g).filter((r) =>
       r.valores.some((v) => (capa[v.clave] ?? "").trim()),
@@ -709,11 +620,6 @@ function EditorCapa({
       {error ? (
         <p className="px-4 pt-2 text-[12.5px] text-[#b91c1c]">{error}</p>
       ) : null}
-      <datalist id="clases-texturales">
-        {TEXTURAS.map((t) => (
-          <option key={t} value={t} />
-        ))}
-      </datalist>
       {(Object.keys(GRUPOS) as Grupo[]).map((g) => (
         <details
           key={g}
@@ -744,18 +650,37 @@ function EditorCapa({
                       {r.valores.length > 1 ? (
                         <span className="shrink-0">{v.etiqueta}</span>
                       ) : null}
-                      <input
-                        aria-label={v.etiqueta}
-                        inputMode={v.texto ? undefined : "decimal"}
-                        list={
-                          v.clave === "texture_class"
-                            ? "clases-texturales"
-                            : undefined
-                        }
-                        value={capa[v.clave] ?? ""}
-                        onChange={(e) => poner(v.clave, e.target.value)}
-                        className={ENTRADA}
-                      />
+                      {v.clave === "texture_class" ? (
+                        <select
+                          aria-label={v.etiqueta}
+                          value={capa.texture_class ?? ""}
+                          onChange={(e) => poner(v.clave, e.target.value)}
+                          className={ENTRADA}
+                        >
+                          <option value="">—</option>
+                          {capa.texture_class &&
+                          !(TEXTURAS as readonly string[]).includes(
+                            capa.texture_class,
+                          ) ? (
+                            <option value={capa.texture_class}>
+                              {capa.texture_class}
+                            </option>
+                          ) : null}
+                          {TEXTURAS.map((t) => (
+                            <option key={t} value={t}>
+                              {t}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <input
+                          aria-label={v.etiqueta}
+                          inputMode={v.texto ? undefined : "decimal"}
+                          value={capa[v.clave] ?? ""}
+                          onChange={(e) => poner(v.clave, e.target.value)}
+                          className={ENTRADA}
+                        />
+                      )}
                       {v.unidad ? (
                         <span className="shrink-0">{v.unidad}</span>
                       ) : null}
@@ -772,6 +697,9 @@ function EditorCapa({
                 ) : (
                   <span />
                 )}
+                {r.titulo === "Textura" ? (
+                  <AyudaClase capa={capa} calculada={calculada} />
+                ) : null}
               </div>
             ))}
           </div>
