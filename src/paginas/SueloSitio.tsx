@@ -14,6 +14,7 @@ import {
 import { useCallback, useState, type FormEvent, type ReactNode } from "react";
 import { Link, useParams } from "react-router";
 
+import { ConAyuda } from "@/componentes/Ayuda";
 import { Barra, Contenido } from "@/componentes/Marco";
 import { PerfilSuelo } from "@/componentes/PerfilSuelo";
 import { Aviso, Boton, Cargando, Tarjeta, Titulo } from "@/componentes/ui";
@@ -21,6 +22,7 @@ import { TEXTURAS } from "@/datos/calibracion";
 import { fechaArgHoy } from "@/datos/riego";
 import { infoSitio } from "@/datos/series";
 import { COLOR_SONDA, humedadDeSondas } from "@/datos/sondas";
+import { AYUDA } from "@/datos/textos";
 import { claseUSDA, colorCapa, fracciones } from "@/datos/textura";
 import {
   activarDescripcion,
@@ -155,7 +157,13 @@ export function SueloSitio() {
             />
             <div className="flex flex-wrap items-start gap-4">
               <div className="flex min-w-0 flex-[1_1_320px] flex-col gap-4">
-                <Tarjeta titulo="Perfil y sondas">
+                <Tarjeta
+                  titulo={
+                    <ConAyuda que="perfil y sondas" texto={AYUDA.perfilSondas}>
+                      Perfil y sondas
+                    </ConAyuda>
+                  }
+                >
                   <PerfilSuelo
                     capas={vigente?.layers ?? []}
                     sondas={suelo.electrodes}
@@ -196,59 +204,41 @@ export function SueloSitio() {
 
 // ------------------------------------------------------------------ sondas
 
-// La capa ya figura en el renglón de la sonda: solo se aclara lo medido junto a la sonda.
-function origen(d: { origen: "sonda" | "capa" } | undefined): string {
-  return d?.origen === "sonda" ? " (medida junto a la sonda)" : "";
-}
-
-// La profundidad de cada sonda se carga en la calibración (donde se habla de dónde quedaron los
-// electrodos, D-109); acá se muestra con su capa.
+// Debajo del esquema, solo lo que el dibujo no muestra (criterios 1, 3 y 10 de docs/estilo.md): las
+// sondas sin profundidad (con el enlace a la calibración, donde se carga, D-109) y lo medido junto a
+// una sonda, que tiene prioridad sobre la capa. La explicación va en el ⓘ del título.
 function Sondas({ suelo }: { suelo: Suelo }) {
+  const sinProfundidad = suelo.electrodes.filter((s) => s.depth == null);
+  const medidos = suelo.electrodes.flatMap((s) =>
+    [
+      s.bulk_density?.origen === "sonda"
+        ? `densidad ${numeroSuelo(s.bulk_density.value, 2)} g/cm³`
+        : null,
+      s.texture_class?.origen === "sonda" ? s.texture_class.value : null,
+    ]
+      .filter(Boolean)
+      .map((t) => ({ s: s.index, t: t as string })),
+  );
+  if (!sinProfundidad.length && !medidos.length) return null;
   return (
-    <div className="mt-3 flex flex-col gap-2 border-t border-separador pt-3">
-      {suelo.electrodes.map((s) => (
-        <div key={s.index} className="flex items-start gap-2.5">
-          <span
-            className="mt-0.5 w-7 shrink-0 text-[13px] font-bold"
-            style={{ color: COLOR_E[s.index - 1] }}
-          >
-            S{s.index}
-          </span>
-          <span className="flex min-w-0 flex-1 flex-col text-[13px]">
-            <span className="font-medium text-tinta">
-              {s.depth != null
-                ? `${numeroSuelo(s.depth, 0)} cm`
-                : "Sin profundidad"}
-              {s.capa ? (
-                <span className="font-normal text-texto-3">
-                  {" "}
-                  · capa {textoCapa(s.capa)}
-                </span>
-              ) : null}
-            </span>
-            <span className="text-xs text-texto-3">
-              {s.bulk_density
-                ? `Densidad ${numeroSuelo(s.bulk_density.value, 2)} g/cm³${origen(s.bulk_density)}`
-                : "Sin densidad"}
-              {s.texture_class
-                ? ` · ${s.texture_class.value}${origen(s.texture_class)}`
-                : ""}
-            </span>
-          </span>
-        </div>
-      ))}
-      <p className="text-xs text-texto-3">
-        Cada sonda toma los datos de la capa que contiene su profundidad (si
-        hay una sola capa, de esa). La profundidad de las sondas y lo medido
-        junto a una sonda se cargan en la{" "}
+    <div className="mt-3 flex flex-col gap-1.5 border-t border-separador pt-3 text-[13px]">
+      {sinProfundidad.length ? (
         <Link
           to={`/sitio/${suelo.site_id}/calibracion`}
-          className="text-acento-oscuro"
+          className="text-acento-oscuro no-underline hover:underline"
         >
-          calibración
+          Sin profundidad: {sinProfundidad.map((s) => `S${s.index}`).join(", ")}{" "}
+          · cargar en Calibración
         </Link>
-        ; lo medido junto a la sonda tiene prioridad sobre la capa.
-      </p>
+      ) : null}
+      {medidos.map((m) => (
+        <span key={`${m.s}${m.t}`} className="text-texto-2">
+          <span className="font-semibold" style={{ color: COLOR_E[m.s - 1] }}>
+            S{m.s}
+          </span>{" "}
+          {m.t} (junto a la sonda)
+        </span>
+      ))}
     </div>
   );
 }
