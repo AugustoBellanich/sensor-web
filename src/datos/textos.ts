@@ -35,4 +35,5 @@ export const AYUDA = {
   horasHelada: "Horas con el aire a 0 °C o menos, a la altura del sensor; a nivel del suelo puede helar más.",
   amplitud: "Diferencia entre la máxima y la mínima de cada día, en promedio. En el suelo, una amplitud chica suele indicar suelo húmedo o cubierto.",
   lecturas24h: "Lecturas que llegaron en las últimas 24 h, contra las que el equipo tendría que haber mandado según su intervalo.",
+  perfilSondas: "Cada sonda toma los datos de la capa donde está; lo medido junto a una sonda tiene prioridad. La profundidad de las sondas y lo medido junto a ellas se cargan en Calibración.",
 } as const;

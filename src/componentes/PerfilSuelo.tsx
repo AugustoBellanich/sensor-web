@@ -157,7 +157,7 @@ export function PerfilSuelo({
                 x2={X0 - 2}
                 y1={y(m)}
                 y2={y(m)}
-                stroke="#b4b2a9"
+                stroke="#94a3b8"
               />
               {mayor ? (
                 <text
@@ -246,8 +246,8 @@ export function PerfilSuelo({
       {capas.length && hayGenerico ? (
         <figcaption className="mt-1 text-[11.5px] text-texto-3">
           {colores.every((c) => !c.medido)
-            ? "Colores ilustrativos: no hay color Munsell cargado."
-            : "Las capas sin color Munsell se muestran con un color ilustrativo."}
+            ? "Color ilustrativo: sin Munsell cargado"
+            : "Capas sin Munsell: color ilustrativo"}
         </figcaption>
       ) : null}
     </figure>
